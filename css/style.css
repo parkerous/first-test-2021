@@ -1,0 +1,42 @@
+# 정욱이 first test 2021 update .selector {
+  color: black;
+  font-size: 75px;
+}
+.colourforcontext {
+  color: blue;
+  font-size: 50px;
+  background-color: wheat;
+}
+h1 {
+  color: black;
+  font-size: 75px;
+}
+p {
+  color: blue;
+  font-size: 50px;
+  background-color: wheat;
+}
+li {
+  color: royalblue;
+  font-size: 20px;
+}
+footer {
+  color: black;
+  font: 10px;
+  text-align: right;
+  font-style: italic;
+}
+address {
+  color: yellowgreen;
+  font: 10px;
+  text-align: right;
+  font-style: italic;
+}
+
+a {
+  text-decoration: none;
+}
+
+a:hover {
+  color: red;
+}
