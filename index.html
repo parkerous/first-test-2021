@@ -1,6 +1,139 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Hello JW</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Binsu Star — Soai</title>
+  <meta name="description" content="Binsu Star volleyball league: rankings, rules, strategy guide, volleyball news, and match analysis tools." />
+  <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
+  <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
+  <link href="css/voll-e.css" rel="stylesheet" />
+  <link href="css/home.css" rel="stylesheet" />
 </head>
+<body>
 
+  <!-- top nav — menu bar sits at the far right -->
+  <nav class="nav">
+    <div class="wrap">
+      <a class="brand" href="index.html"><span class="logo">🏐</span><span class="word">Soai</span></a>
+      <div class="links menubar">
+        <a href="index.html" class="on">Home</a>
+        <a href="guide.html">Guide</a>
+        <a href="rankings.html">Binsu League Rankings</a>
+        <a href="rules.html">Rules</a>
+        <details class="menu-dd">
+          <summary>Teams ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">Teams</span>
+            <a href="teams.html?cat=Binsu">Teams in Binsu</a>
+            <a href="teams.html?cat=League">Teams in League</a>
+            <a href="teams.html">All teams</a>
+          </div>
+        </details>
+        <a href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">Discord</a>
+        <details class="menu-dd">
+          <summary>More ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">Other volleyball tools</span>
+            <a href="player.html">🎥 Analyze a match</a>
+            <a href="voll-e.html">📊 Team Stats</a>
+            <a href="film.html">🎬 Film Room</a>
+          </div>
+        </details>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Binsu Star intro -->
+  <section class="intro-hero">
+    <div class="intro-inner">
+      <img class="binsu-logo" src="img/binsu-pfp.jpg" alt="Binsu Star" />
+      <div class="intro-txt">
+        <span class="league-pill">Binsu Star League</span>
+        <h1>Welcome to Binsu Star</h1>
+        <p>The home of the Binsu Star volleyball league — official player rankings, league rules, and a full strategy guide, all in one place. New here? Start with the guide, then see where you stack up in the rankings.</p>
+        <div class="cta-row">
+          <a class="btn" href="guide.html">📖 Guide</a>
+          <a class="btn" href="rankings.html">🏆 Rankings</a>
+          <a class="btn" href="rules.html">📜 Rules</a>
+          <a class="btn ghost" href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">💬 Discord</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- prioritized quick access -->
+  <section class="section">
+    <div class="section-head"><h2><span class="bar"></span>Binsu Star</h2></div>
+    <div class="tools">
+      <a class="tool" href="guide.html"><div class="t">📖 General Guide</div><div class="d">Settings, key binds, hitter &amp; setter play, and callouts.</div></a>
+      <a class="tool" href="rankings.html"><div class="t">🏆 Binsu League Rankings</div><div class="d">Season 1 Top 5 + Honorable Mentions for every position.</div></a>
+      <a class="tool" href="rules.html"><div class="t">📜 League Rules</div><div class="d">The league's official rules, all in one place.</div></a>
+    </div>
+  </section>
+
+  <!-- analyze / learn search -->
+  <section class="analyze" style="margin-top:30px">
+    <div class="box">
+      <h2>🎥 Analyze a match — paste a YouTube or TikTok link</h2>
+      <p class="sub">Drop a game link and Soai opens the analyzer, where it learns from the footage (tag touches, stats, spike habits). Upload the clip for automatic self-study.</p>
+      <div class="field">
+        <input id="ytUrl" type="text" placeholder="YouTube or TikTok link…" />
+        <button class="btn" id="goBtn">Learn from this →</button>
+      </div>
+      <p class="msg" id="analyzeMsg"></p>
+    </div>
+  </section>
+
+  <!-- Volleyball News -->
+  <section class="section" id="news">
+    <div class="section-head">
+      <h2><span class="bar"></span>Volleyball News</h2>
+      <div class="spacer"></div>
+      <button class="btn ghost" id="addBtn">＋ Add news</button>
+      <button class="btn ghost" id="resetNews">↺ Reset</button>
+    </div>
+    <p class="mini-note" style="color:var(--muted);font-size:13px;margin:-6px 0 14px">
+      Volleyball news — curated launchers to real, credited outlets. Tap any card to read the latest, or add your own headlines.
+    </p>
+
+    <!-- hero news carousel -->
+    <div class="hero news-carousel" style="margin-bottom:18px;border-radius:16px">
+      <div class="slides" id="slides"></div>
+      <button class="arrow left" aria-label="Previous">‹</button>
+      <button class="arrow right" aria-label="Next">›</button>
+      <div class="dots" id="dots"></div>
+    </div>
+
+    <!-- Binsu Star Discord — league announcements -->
+    <div class="discord-banner">
+      <span class="dc-ic">💬</span>
+      <div class="dc-txt">
+        <b>League announcements are posted in the Binsu Star Discord.</b>
+        <span>See a league-related announcement? Join, then hit “＋ Add news” here to post it to Soai.</span>
+      </div>
+      <a class="btn" href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">Join the Discord →</a>
+    </div>
+
+    <div class="addform" id="addform" style="display:none">
+      <div class="row"><input id="nLg" type="text" placeholder="League/tag (e.g. SuperLega)" /><input id="nTitle" type="text" placeholder="Headline" /></div>
+      <div class="row"><input id="nUrl" type="text" placeholder="Link (https://...)" /><input id="nDesc" type="text" placeholder="Short description (optional)" /></div>
+      <div class="row"><input id="nImg" type="text" placeholder="Preview image URL (optional — draws more attention)" style="flex:1" /></div>
+      <div class="row" style="align-items:center">
+        <button class="btn" id="saveNews">Save headline</button>
+        <span style="color:var(--muted);font-size:12.5px">— or fetch live:</span>
+        <input id="feedUrl" type="text" placeholder="RSS feed URL (experimental)" style="flex:1;min-width:180px" />
+        <button class="btn ghost" id="liveBtn">🔴 Try live</button>
+      </div>
+      <p class="msg" id="newsMsg" style="color:var(--muted);font-size:13px;margin:6px 0 0"></p>
+    </div>
+
+    <div class="news-grid" id="newsGrid"></div>
+  </section>
+
+  <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · Binsu Star · &copy; 2026</p>
+
+  <script src="js/api.js"></script>
+  <script src="js/home.js"></script>
+</body>
 </html>

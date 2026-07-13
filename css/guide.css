@@ -1,0 +1,50 @@
+/* ============================================================
+   Soai — Guide page
+   ============================================================ */
+
+.toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 22px; }
+.toc a { text-decoration: none; font-weight: 700; font-size: 13px; padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink); background: var(--panel); }
+.toc a:hover { border-color: var(--gold); color: var(--gold); }
+
+.guide .card { scroll-margin-top: 80px; }
+.guide h2 { display: flex; align-items: center; gap: 10px; font-size: 20px; margin: 0 0 4px; }
+.guide h3 { font-size: 15px; color: var(--gold); margin: 18px 0 8px; }
+.guide h3:first-of-type { margin-top: 8px; }
+.guide ul { margin: 6px 0; padding-left: 20px; }
+.guide li { margin: 6px 0; font-size: 14.5px; }
+.guide li b { color: var(--ink); }
+.guide p { font-size: 14.5px; }
+
+/* keyboard keys */
+kbd {
+  display: inline-block; min-width: 20px; text-align: center;
+  background: var(--black); color: #fff; border-radius: 7px; padding: 3px 9px;
+  font: 800 13px ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  border: 1px solid #000; box-shadow: 0 2px 0 rgba(0,0,0,.35); line-height: 1.2;
+}
+@media (prefers-color-scheme: dark) { kbd { background: #2a2a34; border-color: #000; } }
+
+/* bind cards */
+.bind-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; margin: 8px 0; }
+.bind { display: flex; align-items: center; gap: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; }
+.bind .d { font-size: 13.5px; }
+.bind .d b { display: block; }
+.bind .d span { color: var(--muted); font-size: 12.5px; }
+
+/* ON/OFF badges */
+.tog { font-size: 11px; font-weight: 900; letter-spacing: .5px; padding: 2px 8px; border-radius: 999px; vertical-align: middle; }
+.tog.on { background: var(--good); color: #fff; }
+.tog.off { background: var(--bad); color: #fff; }
+
+/* callout box */
+.callout { background: color-mix(in srgb, var(--yellow) 20%, var(--panel)); border: 1px solid var(--yellow); border-radius: 12px; padding: 12px 16px; margin: 10px 0; font-size: 14px; }
+.callout b { color: #6a5300; }
+@media (prefers-color-scheme: dark) { .callout b { color: #f0dca0; } }
+
+/* reference tables */
+.gt-wrap { overflow-x: auto; }
+table.gt { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 8px 0 4px; min-width: 460px; }
+table.gt th, table.gt td { border: 1px solid var(--line); padding: 9px 11px; text-align: left; }
+table.gt th { background: var(--bg); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); }
+table.gt td.name { font-weight: 800; }
+table.gt td.p { font-weight: 800; color: var(--gold); text-align: center; font-variant-numeric: tabular-nums; }

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Soai — General Guide</title>
+  <meta name="description" content="General strategy guide: settings, key binds, position rules, hitter & setter play, and callouts." />
+  <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
+  <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
+  <link href="css/voll-e.css" rel="stylesheet" />
+  <link href="css/home.css" rel="stylesheet" />
+  <link href="css/guide.css" rel="stylesheet" />
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="wrap">
+      <a class="brand" href="index.html"><span class="logo">🏐</span><span class="word">Soai</span></a>
+      <div class="links menubar">
+        <a href="index.html">Home</a>
+        <a href="guide.html" class="on">Guide</a>
+        <a href="rankings.html">Binsu League Rankings</a>
+        <a href="rules.html">Rules</a>
+        <details class="menu-dd">
+          <summary>Teams ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">Teams</span>
+            <a href="teams.html?cat=Binsu">Teams in Binsu</a>
+            <a href="teams.html?cat=League">Teams in League</a>
+            <a href="teams.html">All teams</a>
+          </div>
+        </details>
+        <a href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">Discord</a>
+        <details class="menu-dd">
+          <summary>More ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">Other volleyball tools</span>
+            <a href="player.html">🎥 Analyze a match</a>
+            <a href="voll-e.html">📊 Team Stats</a>
+            <a href="film.html">🎬 Film Room</a>
+          </div>
+        </details>
+      </div>
+    </div>
+  </nav>
+
+  <section class="section guide" style="max-width:900px">
+    <div class="section-head"><h2 style="margin:0"><span class="bar"></span>📖 General Guide</h2></div>
+
+    <div class="toc">
+      <a href="#settings">Settings</a>
+      <a href="#binds">Key Binds</a>
+      <a href="#court">Court Rules</a>
+      <a href="#idealstats">Ideal Stats</a>
+      <a href="#position">Position & Receiving</a>
+      <a href="#hitter">Hitter Rules</a>
+      <a href="#setter">Setter Rules</a>
+      <a href="#callouts">Callouts</a>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="card" id="settings">
+      <h2>⚙️ Recommended Settings</h2>
+      <ul>
+        <li><b>Hold Based Sprint</b> <span class="tog on">ON</span> — Hold <kbd>Shift</kbd> to sprint: faster movement, farther dives, faster glides, higher jumps. Keep that sprint bar working.</li>
+        <li><b>Camera Following Ball</b> <span class="tog off">OFF</span> — Prevents dizziness and keeps your camera stable for fast plays.</li>
+        <li><b>Camera Angle Based Control</b> <span class="tog on">ON</span> — Balls go exactly where your crosshair points. Toggle with <kbd>N</kbd> — check for “CAM” under the crosshair.</li>
+        <li><b>Manual Jump</b> — Press <kbd>Space</kbd> twice (1st for run-up, 2nd to jump).</li>
+        <li><b>Boom Jump</b> — Press the 2nd <kbd>Space</kbd> exactly <b>0.48s</b> after the first for max height (you’ll hear a sound + see a foot effect).</li>
+      </ul>
+    </div>
+
+    <!-- KEY BINDS -->
+    <div class="card" id="binds">
+      <h2>⌨️ Key Binds & Shortcuts</h2>
+      <h3>Power Presets</h3>
+      <div class="bind-grid">
+        <div class="bind"><kbd>Z</kbd><div class="d"><b>2 Power</b><span>Great in front of the 5m line</span></div></div>
+        <div class="bind"><kbd>X</kbd><div class="d"><b>4 Power</b><span>Hitter defensive default</span></div></div>
+        <div class="bind"><kbd>X</kbd><div class="d"><b>6 Power</b><span>Setter default for fast adjustments</span></div></div>
+        <div class="bind"><kbd>C</kbd><div class="d"><b>15 Power</b><span>Instant max power spike shortcut</span></div></div>
+      </div>
+      <h3>Actions</h3>
+      <div class="bind-grid">
+        <div class="bind"><kbd>1</kbd><div class="d"><b>Spike</b><span>Hit the ball</span></div></div>
+        <div class="bind"><kbd>2</kbd><div class="d"><b>Block Mode</b><span>Hands show / power bar turns purple</span></div></div>
+        <div class="bind"><kbd>3</kbd><div class="d"><b>Dive</b><span>Sprint first for extra distance</span></div></div>
+        <div class="bind"><kbd>F</kbd>/<kbd>R</kbd><div class="d"><b>Forward / Backward Set</b><span>Ground or mid-air</span></div></div>
+        <div class="bind"><kbd>G</kbd>/<kbd>V</kbd><div class="d"><b>Spawn Ball / Service Spawn</b><span>On self / service</span></div></div>
+      </div>
+    </div>
+
+    <!-- COURT RULES -->
+    <div class="card" id="court">
+      <h2>📏 Court Rules</h2>
+      <div class="callout"><b>Backrow (BR) Rule:</b> If “BR” is under your crosshair, you’re in the backrow. Jumping and hitting the ball over from inside the 5m line is a <b>fault and loses a point</b> (applies to setters too).</div>
+    </div>
+
+    <!-- IDEAL STATS -->
+    <div class="card" id="idealstats">
+      <h2>📊 Ideal Stats by Position</h2>
+      <p class="mini-note" style="margin-top:0">Targets to aim for in the Analyze tool — general guidelines, adjust to your level and role.</p>
+      <div class="gt-wrap">
+        <table class="gt">
+          <thead><tr><th>Position</th><th>Stats that matter most</th><th>Ideal target</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Setter</td><td>Setteable conversion, Assists, low set errors</td><td>Convert <b>85%+</b> of setteable balls · lead the team in assists · near-zero errors</td></tr>
+            <tr><td class="name">Outside</td><td>Hit rate (kill %), Passing avg, Digs</td><td><b>40%+</b> kill rate · <b>2.2+/3</b> passing · reliable back-row defense</td></tr>
+            <tr><td class="name">Opposite</td><td>Hit rate (kill %), Blocks</td><td><b>45%+</b> kill rate · steady stuff blocks on the right side</td></tr>
+            <tr><td class="name">Middle Blocker</td><td>Blocks / stuffs, Quick kill %</td><td>Team <b>block leader</b> · <b>50%+</b> kill rate on quicks</td></tr>
+            <tr><td class="name">Libero</td><td>Passing avg, Dig / coverage %</td><td><b>2.4+/3</b> passing · reach &amp; convert <b>60%+</b> of dig chances · no attack errors</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- POSITION -->
+    <div class="card" id="position">
+      <h2>🧭 Position Rules & Receiving</h2>
+      <h3>Positioning</h3>
+      <ul><li><b>Stay in your zone:</b> Playing your position is critical for team play. Don’t crowd teammates or cause confusion on the court.</li></ul>
+      <h3>Defensive Receiving</h3>
+      <ul>
+        <li><b>4–3 Power (LONGS / outside the 5m line):</b> Use <kbd>M1</kbd>+<kbd>M2</kbd> for high, steady passes that give your team time to set up a counterattack.</li>
+        <li><b>2–1 Power (SHORTS / inside the 5m line):</b> Use for short, close balls. Keeps the ball under control and stops it flying over the net.</li>
+      </ul>
+      <h3>Offensive Receiving (Covering Spikes)</h3>
+      <ul>
+        <li>Spread out slightly around your hitter while they attack.</li>
+        <li>Use low power to safely pick up blocked balls so you can recycle the play into a counterattack.</li>
+      </ul>
+    </div>
+
+    <!-- HITTER -->
+    <div class="card" id="hitter">
+      <h2>⚡ Hitter Rules</h2>
+      <h3>Mechanics & Controls</h3>
+      <ul>
+        <li><b>Manual Jump:</b> Highly recommended for experienced players — lets you correct errors mid-play (early, late, or fake jumps).</li>
+        <li><b>Camera Angle Based Control</b> <span class="tog on">ON</span> — Essential for precise aiming. Adjust your crosshair up/down mid-air to exploit gaps or tool the blockers.</li>
+        <li><b>Top of Your Crosshair:</b> Always keep it UNDER the boundary line of the direction you’re hitting toward, so you don’t hit out.</li>
+        <li><b>Jump Timing + Swing:</b> There’s a <b>0.5s</b> delay on a run-up jump. Don’t swing early while ascending — you’ll miss. Learn your peak height and swing there to beat late-jumping blockers.</li>
+      </ul>
+      <h3>Court Awareness & Strategy</h3>
+      <ul>
+        <li><b>Court Awareness:</b> Study the enemy’s habits — do they jump early for quicks, stay deep for longs, crowd the net for shorts? Punish it.</li>
+        <li><b>Unpredictability:</b> Mix approach angles, use glides, flick your camera, target different spots.</li>
+        <li><b>Ball Shadow:</b> Lost the ball in the air? Look at its shadow on the floor. If it’s on or next to you — swing and pray. Tracking gets intuitive over time.</li>
+      </ul>
+      <h3>Positioning & Defense</h3>
+      <ul>
+        <li><b>Staying in Position:</b> Vital for offense and defense — being in your spot keeps you ready for fast plays.</li>
+        <li><b>Blocking & Unblocking:</b> Don’t bite on fake quicks; blind jumps wreck your backrow defense. Read the setter. When blocking, commit close to your antenna to close defensive gaps.</li>
+      </ul>
+    </div>
+
+    <!-- SETTER -->
+    <div class="card" id="setter">
+      <h2>🙌 Setter Rules</h2>
+      <h3>General Setting Mechanics</h3>
+      <ul>
+        <li><b>Camera Angle Based Control:</b> <span class="tog on">ALWAYS ON</span></li>
+        <li><b>Ground Set:</b> Add <b>+1 power</b> vs a mid-air set.</li>
+        <li><b>Behind the 5m Line:</b> Add <b>+1 power</b> to your standard set.</li>
+        <li><b>Distance Rule:</b> The farther you are from your target hitter, the more power you need.</li>
+      </ul>
+
+      <h3>Outside Sets (Left Side)</h3>
+      <div class="gt-wrap">
+        <table class="gt">
+          <thead><tr><th>Set</th><th>Aim</th><th>From Outside</th><th>From Middle</th><th>From Opposite</th></tr></thead>
+          <tbody>
+            <tr><td class="name">High Outside <span style="color:var(--muted);font-weight:400">(3s)</span></td><td>Higher top-left of the antenna</td><td class="p">7</td><td class="p">8</td><td class="p">9</td></tr>
+            <tr><td class="name">Sprint / Tempo <span style="color:var(--muted);font-weight:400">(2s)</span></td><td>Directly on top-left of outside antenna</td><td class="p">7</td><td class="p">8</td><td class="p">9</td></tr>
+            <tr><td class="name">Quick Outside</td><td>Left side of the antenna</td><td class="p" colspan="3">15 from anywhere — hitter adjusts to setter</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Opposite Sets (Right Side)</h3>
+      <div class="gt-wrap">
+        <table class="gt">
+          <thead><tr><th>Set</th><th>Aim</th><th>From Opposite</th><th>From Middle</th><th>From Outside</th></tr></thead>
+          <tbody>
+            <tr><td class="name">High Opposite <span style="color:var(--muted);font-weight:400">(3s)</span></td><td>Look straight up to the highest point, then slightly down</td><td class="p">7</td><td class="p">8</td><td class="p">9</td></tr>
+            <tr><td class="name">Sprint / Tempo <span style="color:var(--muted);font-weight:400">(2s)</span></td><td>Closer to the antenna = look higher</td><td class="p">3–4</td><td class="p">5</td><td class="p">6–7</td></tr>
+            <tr><td class="name">Quick Opposite</td><td>—</td><td class="p">5</td><td class="p">10</td><td class="p">15</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Middle Sets</h3>
+      <ul>
+        <li><b>Middle Wide:</b> 9 power, aimed between the Outside and Middle positions.</li>
+        <li><b>Middle V1:</b> Power depends entirely on tracking and matching the middle blocker’s peak jump height.</li>
+        <li><b>Middle Delay:</b> 3 from Middle Square | 4 beside Middle Square | 5+ if you change your angle.</li>
+        <li><b>Middle Slide:</b> Executed exactly like a Quick Opposite, but hit by the Middle Blocker.</li>
+      </ul>
+    </div>
+
+    <!-- CALLOUTS -->
+    <div class="card" id="callouts">
+      <h2>📣 Callouts Guide</h2>
+      <p class="mini-note" style="margin-top:0">Quick power reference by the setter's square. Numbers = power.</p>
+      <div class="gt-wrap">
+        <table class="gt">
+          <thead><tr><th>Callout</th><th>Aim / Look</th><th colspan="3">Power by setter square</th></tr></thead>
+          <tbody>
+            <tr><td class="name">High Outside (3s)</td><td>Higher top-left of antenna</td><td class="p">7 Out</td><td class="p">8 Mid</td><td class="p">9 Opp</td></tr>
+            <tr><td class="name">Sprint/Tempo Outside (2s)</td><td>Top-left of outside antenna</td><td class="p">7 Out</td><td class="p">8 Mid</td><td class="p">9 Opp</td></tr>
+            <tr><td class="name">Quick Outside</td><td>Left side of antenna</td><td class="p" colspan="3">15 from anywhere</td></tr>
+            <tr><td class="name">High Opposite (3s)</td><td>Highest point, then adjust down</td><td class="p">7 Opp</td><td class="p">8 Mid</td><td class="p">9 Out</td></tr>
+            <tr><td class="name">Sprint/Tempo Opposite (2s)</td><td>Closer to antenna = look higher</td><td class="p">3–4 Opp</td><td class="p">5 Mid</td><td class="p">6–7 Out</td></tr>
+            <tr><td class="name">Quick Opposite</td><td>—</td><td class="p">5 Opp</td><td class="p">10 Mid</td><td class="p">15 Out</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Middle Plays</h3>
+      <ul>
+        <li><b>Middle Wide:</b> 9 power, between Outside and Middle.</li>
+        <li><b>Middle V1:</b> Power depends on how close you are to the middle blocker’s peak.</li>
+        <li><b>Middle Delay:</b> 3 = Middle Square | 4 = beside Middle Square | 5+ = change angle.</li>
+        <li><b>Middle Slide:</b> Quick-opposite-style timing, executed as a middle hit.</li>
+      </ul>
+    </div>
+  </section>
+
+  <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · general strategy guide</p>
+
+</body>
+</html>

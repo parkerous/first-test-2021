@@ -1,0 +1,23 @@
+/* Voll-E Film Room — video stage + click overlay */
+
+.stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.stage-empty { position: absolute; inset: 0; display: grid; place-items: center; color: #9aa4bb; font-size: 14px; }
+.stage iframe, .stage video, #ytplayer, #localvid { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* transparent layer that captures spike/corner clicks over the video */
+#overlay { position: absolute; inset: 0; cursor: crosshair; z-index: 5; }
+
+.controls { align-items: center; }
+.controls label { display: inline-flex; align-items: center; gap: 6px; }
+
+.mini-note { font-size: 12.5px; color: var(--muted); margin: 4px 0 10px; }
+#mini { width: 100%; max-width: 260px; height: auto; border-radius: 8px; display: block; margin: 4px auto 0; }
+
+.footer-note a { color: var(--accent2); }

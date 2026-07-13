@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Binsu League Rankings — Soai</title>
+  <meta name="description" content="Every-position tier list rankings for the league." />
+  <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
+  <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
+  <link href="css/voll-e.css" rel="stylesheet" />
+  <link href="css/home.css" rel="stylesheet" />
+  <link href="css/rankings.css" rel="stylesheet" />
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="wrap">
+      <a class="brand" href="index.html"><span class="logo">🏐</span><span class="word">Soai</span></a>
+      <div class="links menubar">
+        <a href="index.html">Home</a>
+        <a href="guide.html">Guide</a>
+        <a href="rankings.html" class="on">Binsu League Rankings</a>
+        <a href="rules.html">Rules</a>
+        <details class="menu-dd">
+          <summary>Teams ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">Teams</span>
+            <a href="teams.html?cat=Binsu">Teams in Binsu</a>
+            <a href="teams.html?cat=League">Teams in League</a>
+            <a href="teams.html">All teams</a>
+          </div>
+        </details>
+        <a href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">Discord</a>
+        <details class="menu-dd">
+          <summary>More ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">Other volleyball tools</span>
+            <a href="player.html">🎥 Analyze a match</a>
+            <a href="voll-e.html">📊 Team Stats</a>
+            <a href="film.html">🎬 Film Room</a>
+          </div>
+        </details>
+      </div>
+    </div>
+  </nav>
+
+  <section class="section" style="max-width:820px">
+    <div class="section-head">
+      <h2><span class="bar"></span>🏆 Binsu League Rankings</h2>
+      <div class="spacer"></div>
+      <label style="color:var(--muted);font-size:13px">Season</label>
+      <select id="seasonSel" style="min-width:120px"></select>
+    </div>
+    <p class="mini-note" style="color:var(--muted);font-size:13px;margin:-6px 0 16px">
+      Official Binsu Star league rankings — Top 5 and Honorable Mentions per position, with score and tier grade.
+    </p>
+
+    <div class="postabs" id="postabs"></div>
+    <div id="board"></div>
+  </section>
+
+  <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · official Season 1 league rankings</p>
+
+  <script src="js/rankings.js"></script>
+</body>
+</html>

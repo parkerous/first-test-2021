@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Teams — Soai</title>
+  <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
+  <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
+  <link href="css/voll-e.css" rel="stylesheet" />
+  <link href="css/home.css" rel="stylesheet" />
+  <link href="css/teams.css" rel="stylesheet" />
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="wrap">
+      <a class="brand" href="index.html"><span class="logo">🏐</span><span class="word">Soai</span></a>
+      <div class="links menubar">
+        <a href="index.html">Home</a>
+        <a href="guide.html">Guide</a>
+        <a href="rankings.html">Binsu League Rankings</a>
+        <a href="rules.html">Rules</a>
+        <details class="menu-dd">
+          <summary>Teams ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">Teams</span>
+            <a href="teams.html?cat=Binsu">Teams in Binsu</a>
+            <a href="teams.html?cat=League">Teams in League</a>
+            <a href="teams.html">All teams</a>
+          </div>
+        </details>
+        <a href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">Discord</a>
+        <details class="menu-dd">
+          <summary>More ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">Other volleyball tools</span>
+            <a href="player.html">🎥 Analyze a match</a>
+            <a href="voll-e.html">📊 Team Stats</a>
+            <a href="film.html">🎬 Film Room</a>
+          </div>
+        </details>
+      </div>
+    </div>
+  </nav>
+
+  <!-- register -->
+  <section class="section" style="max-width:760px">
+    <div class="section-head"><h2><span class="bar"></span>Register your team</h2></div>
+    <p id="cfgNotice" class="notice" style="display:none"><b>Team registration isn't connected yet.</b> The league backend (Cloudflare) needs to be set up — see <code>api/SETUP.md</code>.</p>
+
+    <div class="card" id="regCard">
+      <div class="row"><input id="tName" type="text" placeholder="Team name" style="flex:1;min-width:200px" />
+        <label>Category:</label>
+        <select id="tCat" style="min-width:130px"><option value="Binsu">Binsu</option><option value="League">League</option></select>
+      </div>
+      <div class="row"><input id="tPass" type="password" placeholder="Team password (to manage your team later)" style="flex:1;min-width:200px" /></div>
+      <div class="upload" style="margin:6px 0 12px">
+        <label class="uploader" id="upLogo"><div class="lbl">🏷️ Team logo</div><input type="file" accept="image/*" hidden /><img /></label>
+        <label class="uploader" id="upFront"><div class="lbl">👕 Jersey — front</div><input type="file" accept="image/*" hidden /><img /></label>
+        <label class="uploader" id="upBack"><div class="lbl">👕 Jersey — back</div><input type="file" accept="image/*" hidden /><img /></label>
+      </div>
+      <div class="row">
+        <button class="btn" id="submitBtn">Submit for approval →</button>
+        <span class="mini-note" style="margin:0;color:var(--muted)">An admin reviews it before your team goes live.</span>
+      </div>
+      <p class="msg" id="regMsg" style="color:var(--muted);font-size:13.5px;margin:8px 0 0"></p>
+    </div>
+  </section>
+
+  <!-- approved teams -->
+  <section class="section">
+    <div class="section-head"><h2><span class="bar"></span><span id="teamsHeading">Teams</span></h2></div>
+    <div class="team-grid" id="teamGrid"><p class="empty">Loading teams…</p></div>
+  </section>
+
+  <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · <a href="admin.html">Admin</a></p>
+
+  <script src="js/api.js"></script>
+  <script src="js/teams.js"></script>
+</body>
+</html>

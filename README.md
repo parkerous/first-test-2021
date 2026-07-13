@@ -1,2 +1,2 @@
-<h1 style="color:yellow;">JW's First Test 2021 06 09</h1>
-HTML & CSS are somuch fun!
+<h1 style="color:yellow;">Soai — Volleyball News & AI</h1>
+A volleyball news + AI site: league news, player performance reports, team stats, and film analysis.

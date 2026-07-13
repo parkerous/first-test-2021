@@ -1,0 +1,27 @@
+/* Soai — Teams page */
+.notice { background: color-mix(in srgb, var(--yellow) 20%, var(--panel)); border: 1px solid var(--yellow); border-radius: 12px; padding: 12px 16px; font-size: 14px; margin-bottom: 18px; }
+.notice b { color: #6a5300; }
+
+.upload { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.uploader { border: 1.5px dashed var(--line); border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; transition: border-color .15s; }
+.uploader:hover { border-color: var(--gold); }
+.uploader .lbl { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.uploader img { max-width: 100%; max-height: 120px; border-radius: 8px; margin-top: 8px; display: none; }
+.uploader.has img { display: inline-block; }
+
+.team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+.team-card { background: linear-gradient(180deg, var(--panel), color-mix(in srgb, var(--panel) 93%, var(--bg))); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: var(--shadow-sm); }
+.team-card .head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.team-logo { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); background: #111; flex: none; }
+.team-card .nm { font-weight: 800; font-size: 17px; }
+.jerseys { display: flex; gap: 10px; }
+.jerseys figure { flex: 1; margin: 0; text-align: center; }
+.jerseys img { width: 100%; aspect-ratio: 3/4; object-fit: contain; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); }
+.jerseys figcaption { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
+.pending-pill { display:inline-block; font-size: 11px; font-weight: 800; letter-spacing:.5px; text-transform:uppercase; color:#8a6d00; background: color-mix(in srgb, var(--yellow) 35%, transparent); padding: 3px 8px; border-radius: 999px; }
+
+/* single team page */
+.team-head-lg { display: flex; align-items: center; gap: 18px; }
+.jerseys-big img { aspect-ratio: 3/4; max-height: 460px; }
+.jerseys-big figure { max-width: 340px; }
+@media (max-width: 560px) { .jerseys-big { flex-direction: column; } .jerseys-big figure { max-width: none; } }
