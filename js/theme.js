@@ -61,4 +61,13 @@ document.addEventListener("DOMContentLoaded", function () {
     /* back to desktop width → always reset to closed */
     window.addEventListener("resize", function () { if (window.innerWidth > 820) setOpen(false); });
   }
+
+  /* ---- apply the admin-set site logo (falls back to the placeholder) ---- */
+  if (typeof apiConfigured === "function" && apiConfigured() && typeof apiGet === "function") {
+    apiGet("/site").then(function (s) {
+      if (s && s.logo) {
+        document.querySelectorAll(".brand-logo, .topbar-brand").forEach(function (img) { img.src = s.logo; });
+      }
+    }).catch(function () { /* backend optional */ });
+  }
 });

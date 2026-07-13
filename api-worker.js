@@ -169,6 +169,18 @@ async function handleApi(req, env, url) {
     const raw = await KV.get("learn");
     return json(raw ? JSON.parse(raw) : { actions: {}, results: {}, videos: 0, touches: 0 });
   }
+  if (p === "/site" && req.method === "GET") {
+    const s = await KV.get("site");
+    return json(s ? JSON.parse(s) : {});
+  }
+  if (p === "/admin/site" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const b = await req.json();
+    const cur = JSON.parse((await KV.get("site")) || "{}");
+    if (typeof b.logo === "string") cur.logo = b.logo;
+    await KV.put("site", JSON.stringify(cur));
+    return json({ ok: true });
+  }
   if (p === "/admin/login" && req.method === "POST") {
     return json({ ok: isAdmin(req, env) });
   }

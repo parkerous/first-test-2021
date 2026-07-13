@@ -39,6 +39,31 @@ async function loadAll() {
   TEAMS = await adminGet("/admin/teams").catch(() => []);
   renderStats();
   renderTeamAdmin();
+  loadSite();
+}
+
+/* ---------- site logo ---------- */
+let brandLogo = "";
+async function loadSite() {
+  try { const s = await apiGet("/site"); if (s && s.logo) { brandLogo = s.logo; document.getElementById("brandPreview").src = s.logo; } } catch (e) {}
+}
+async function pickBrand(input) {
+  const f = input.files[0]; if (!f) return;
+  brandLogo = await fileToDataUrl(f, 420);
+  document.getElementById("brandPreview").src = brandLogo;
+  document.getElementById("brandMsg").textContent = "Ready — click Save logo.";
+}
+async function saveBrand() {
+  const m = document.getElementById("brandMsg");
+  if (!brandLogo) { m.textContent = "Choose an image first."; return; }
+  m.textContent = "Saving…";
+  try {
+    const r = await apiPost("/admin/site", { logo: brandLogo }, true);
+    if (r && r.ok) {
+      m.textContent = "✅ Saved — refresh to see it in the top bar.";
+      document.querySelectorAll(".brand-logo, .topbar-brand").forEach(img => { img.src = brandLogo; });
+    } else m.textContent = "⚠️ " + ((r && r.error) || "failed");
+  } catch (e) { m.textContent = "⚠️ " + e.message; }
 }
 
 /* ---------- stats dashboard ---------- */
@@ -175,6 +200,8 @@ function init() {
   document.getElementById("addAnnBtn").addEventListener("click", addAnn);
   document.getElementById("saveAnnBtn").addEventListener("click", saveAnns);
   document.getElementById("refreshBtn").addEventListener("click", refresh);
+  document.getElementById("brandFile").addEventListener("change", e => pickBrand(e.target));
+  document.getElementById("brandSave").addEventListener("click", saveBrand);
   document.querySelectorAll(".atab").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 }
 document.addEventListener("DOMContentLoaded", init);
