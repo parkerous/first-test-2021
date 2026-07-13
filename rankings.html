@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Soai — Rankings</title>
+  <meta name="description" content="Every-position tier list rankings for the league." />
+  <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
+  <link href="css/voll-e.css" rel="stylesheet" />
+  <link href="css/home.css" rel="stylesheet" />
+  <link href="css/rankings.css" rel="stylesheet" />
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="wrap">
+      <a class="brand" href="index.html"><span class="logo">🏐</span><span class="word">Soai</span></a>
+      <div class="links">
+        <a href="index.html">Home</a>
+        <a href="rankings.html" class="on">Rankings</a>
+        <a href="rules.html">Rules</a>
+        <a href="player.html">Analyze</a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="section">
+    <div class="section-head">
+      <h2><span class="bar"></span>Every Position Rankings</h2>
+      <div class="spacer"></div>
+      <button class="btn ghost" id="exportBtn">⬇ Export</button>
+      <label class="btn ghost" style="cursor:pointer">⬆ Import<input id="importFile" type="file" accept=".json" hidden /></label>
+      <button class="btn warn" id="clearBtn">🗑 Clear position</button>
+    </div>
+
+    <!-- fast logging: name + position + tier -> Add -->
+    <div class="addrow">
+      <input class="name" id="pl" type="text" placeholder="Player name…" />
+      <select id="pos"></select>
+      <select id="tier"></select>
+      <button class="btn" id="addBtn">＋ Add to ranking</button>
+    </div>
+
+    <div class="postabs" id="postabs"></div>
+    <div class="tierlist" id="tierlist"></div>
+  </section>
+
+  <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · rankings saved in your browser</p>
+
+  <script src="js/rankings.js"></script>
+</body>
+</html>
