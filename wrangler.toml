@@ -1,8 +1,14 @@
-# Deploys the Soai website as a Cloudflare static-assets Worker.
-# In your Cloudflare project's Build settings, set the Deploy command to:
-#     npx wrangler deploy
+# Deploys the Soai site + backend API as one Cloudflare Worker.
+# Cloudflare Build settings — Deploy command: npx wrangler deploy
 name = "first-test-2021"
+main = "api-worker.js"
 compatibility_date = "2024-11-01"
 
 [assets]
 directory = "./"
+binding = "ASSETS"
+
+# Shared storage for teams, announcements and learning
+[[kv_namespaces]]
+binding = "SOAI"
+id = "54049222951449bb85acaf849242d153"
