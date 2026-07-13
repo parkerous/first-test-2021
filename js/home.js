@@ -156,5 +156,20 @@ function init() {
   document.getElementById("saveNews").addEventListener("click", addNews);
   document.getElementById("resetNews").addEventListener("click", resetNews);
   document.getElementById("liveBtn").addEventListener("click", fetchLive);
+
+  loadAnnouncements();
+}
+
+/* pull admin-posted announcements from the backend and feature them first */
+async function loadAnnouncements() {
+  if (typeof apiConfigured !== "function" || !apiConfigured()) return;
+  try {
+    const list = await apiGet("/announcements");
+    if (Array.isArray(list) && list.length) {
+      const featured = list.map(a => ({ lg: a.lg || "Announcement", emoji: "📢", title: a.title, desc: a.desc || "", url: a.url || "#", img: a.img || "", src: a.src || "Binsu Star" }));
+      news = featured.concat(news);
+      renderSlides(); renderNews();
+    }
+  } catch (e) { /* backend optional — ignore if unreachable */ }
 }
 document.addEventListener("DOMContentLoaded", init);

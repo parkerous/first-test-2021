@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — Soai</title>
+  <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
+  <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
+  <link href="css/voll-e.css" rel="stylesheet" />
+  <link href="css/home.css" rel="stylesheet" />
+  <link href="css/teams.css" rel="stylesheet" />
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="wrap">
+      <a class="brand" href="index.html"><span class="logo">🏐</span><span class="word">Soai</span></a>
+      <div class="links menubar">
+        <a href="index.html">Home</a>
+        <a href="teams.html">Teams</a>
+        <a href="admin.html" class="on">Admin</a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="section" style="max-width:840px">
+    <div class="section-head"><h2><span class="bar"></span>🔒 Admin</h2></div>
+
+    <!-- login -->
+    <div class="card" id="loginCard">
+      <p class="mini-note" style="margin-top:0">Only the admin (with the password) can change the slideshow and approve teams.</p>
+      <div class="row"><input id="apiUrl" type="text" placeholder="Backend URL (skip if already set in js/api.js)" style="flex:1" /></div>
+      <div class="row"><input id="adminKeyIn" type="password" placeholder="Admin password" style="flex:1" /><button class="btn" id="loginBtn">Log in</button></div>
+      <p class="msg" id="loginMsg" style="color:var(--muted);font-size:13.5px;margin:6px 0 0"></p>
+    </div>
+
+    <!-- panels -->
+    <div id="panels" style="display:none">
+      <div class="card">
+        <h2>📢 Slideshow announcements</h2>
+        <p class="mini-note" style="margin-top:0">These appear first on the homepage slideshow — great for league announcements.</p>
+        <div id="annList"></div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn ghost" id="addAnnBtn">＋ Add announcement</button>
+          <button class="btn" id="saveAnnBtn">💾 Save to slideshow</button>
+        </div>
+        <p class="msg" id="annMsg" style="color:var(--muted);font-size:13.5px;margin:6px 0 0"></p>
+      </div>
+
+      <div class="card">
+        <h2>👥 Team approvals</h2>
+        <div id="teamAdmin"></div>
+      </div>
+    </div>
+  </section>
+
+  <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · admin</p>
+
+  <script src="js/api.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

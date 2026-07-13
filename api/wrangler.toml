@@ -1,0 +1,8 @@
+name = "soai-api"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# After you create the KV namespace (step 3 in SETUP.md), paste its id here:
+[[kv_namespaces]]
+binding = "SOAI"
+id = "REPLACE_WITH_YOUR_KV_ID"
