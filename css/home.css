@@ -3,6 +3,11 @@
    nav → auto hero slideshow → analyze search → news cards
    ============================================================ */
 
+/* ---------- scroll-reveal (fade up as you scroll) ---------- */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1); will-change: opacity, transform; }
+.reveal.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
+
 /* ---------- top nav ---------- */
 .nav {
   position: sticky; top: 0; z-index: 50;
