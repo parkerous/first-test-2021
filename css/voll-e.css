@@ -1,0 +1,128 @@
+/* ============================================================
+   Voll-E — Volleyball Spike AI Dashboard
+   by J.W  •  works in light & dark mode
+   ============================================================ */
+
+:root {
+  --bg: #f4f6fb;
+  --panel: #ffffff;
+  --ink: #1c2333;
+  --muted: #6b7280;
+  --line: #e3e7ef;
+  --accent: #ff7a1a;   /* volleyball orange */
+  --accent2: #2563eb;  /* net blue */
+  --good: #16a34a;
+  --bad: #dc2626;
+  --mid: #eab308;
+  --shadow: 0 6px 20px rgba(20, 30, 60, 0.08);
+  --radius: 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1220;
+    --panel: #161c2e;
+    --ink: #eef1f8;
+    --muted: #9aa4bb;
+    --line: #26304a;
+    --shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+/* ---------- Header ---------- */
+.topbar {
+  background: linear-gradient(120deg, var(--accent), #ff9d4d);
+  color: #fff;
+  padding: 22px 20px;
+  box-shadow: var(--shadow);
+}
+.topbar .wrap { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.logo { font-size: 34px; }
+.topbar h1 { margin: 0; font-size: 26px; letter-spacing: .5px; }
+.topbar p { margin: 2px 0 0; opacity: .95; font-size: 14px; }
+.topbar .home-link { margin-left: auto; color: #fff; text-decoration: none; font-weight: 600; background: rgba(255,255,255,.2); padding: 8px 14px; border-radius: 999px; font-size: 14px; }
+.topbar .home-link:hover { background: rgba(255,255,255,.35); }
+
+/* ---------- Layout ---------- */
+.container { max-width: 1100px; margin: 24px auto; padding: 0 16px; display: grid; grid-template-columns: minmax(0, 420px) 1fr; gap: 20px; }
+@media (max-width: 860px) { .container { grid-template-columns: 1fr; } }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+.card h2 { margin: 0 0 12px; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+.card h2 .tag { font-size: 11px; font-weight: 600; color: var(--accent2); background: color-mix(in srgb, var(--accent2) 14%, transparent); padding: 2px 8px; border-radius: 999px; }
+
+/* ---------- Court ---------- */
+.court-wrap { text-align: center; }
+#court { width: 100%; max-width: 340px; height: auto; touch-action: none; cursor: crosshair; border-radius: 10px; }
+.hint { font-size: 13px; color: var(--muted); min-height: 20px; margin: 6px 0 0; }
+
+/* ---------- Controls ---------- */
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.row label { font-size: 13px; color: var(--muted); }
+select, input[type="text"] {
+  font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--ink); min-width: 0;
+}
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg button { border: none; background: var(--panel); color: var(--ink); padding: 8px 12px; cursor: pointer; font: inherit; font-size: 13px; }
+.seg button.on { background: var(--accent); color: #fff; }
+
+button.btn {
+  font: inherit; font-weight: 600; cursor: pointer; border: none; border-radius: 10px;
+  padding: 9px 14px; background: var(--accent2); color: #fff; font-size: 14px;
+}
+button.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+button.btn.warn { background: var(--bad); }
+button.btn:hover { filter: brightness(1.05); }
+
+/* result chips in toolbar */
+.res-chip { border: 1px solid var(--line); padding: 8px 12px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600; background: var(--panel); }
+.res-chip.on.kill { background: var(--good); color: #fff; border-color: var(--good); }
+.res-chip.on.error { background: var(--bad); color: #fff; border-color: var(--bad); }
+.res-chip.on.inplay { background: var(--mid); color: #3a2f00; border-color: var(--mid); }
+
+/* ---------- Stat tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.tile { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.tile .num { font-size: 26px; font-weight: 800; line-height: 1; }
+.tile .lbl { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.tile .num.good { color: var(--good); }
+.tile .num.bad { color: var(--bad); }
+
+/* ---------- Insights ---------- */
+.insight { border-left: 3px solid var(--accent); padding: 8px 0 8px 12px; margin-bottom: 10px; }
+.insight b { color: var(--accent); }
+.bar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; margin-top: 6px; }
+.bar > span { display: block; height: 100%; background: var(--accent); }
+
+/* ---------- Table ---------- */
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { color: var(--muted); font-weight: 600; }
+td select { padding: 4px 6px; font-size: 12px; }
+.pill { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.pill.kill { background: color-mix(in srgb, var(--good) 20%, transparent); color: var(--good); }
+.pill.error { background: color-mix(in srgb, var(--bad) 20%, transparent); color: var(--bad); }
+.pill.inplay { background: color-mix(in srgb, var(--mid) 25%, transparent); color: #8a6d00; }
+.del { color: var(--bad); cursor: pointer; font-weight: 700; border: none; background: none; font-size: 15px; }
+
+.empty { text-align: center; color: var(--muted); padding: 24px; font-size: 14px; }
+.footer-note { text-align: center; color: var(--muted); font-size: 13px; margin: 10px 0 40px; }

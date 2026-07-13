@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Voll-E — Volleyball Spike AI</title>
+  <meta name="description" content="Voll-E learns where you spike in Roblox volleyball, tracks your success rate, and draws heat maps." />
+  <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
+  <link href="css/voll-e.css" rel="stylesheet" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="wrap">
+      <span class="logo">🏐</span>
+      <div>
+        <h1>Voll-E</h1>
+        <p>Volleyball spike AI — learns your habits, success rate & heat maps</p>
+      </div>
+      <a class="home-link" href="index.html">← Home</a>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- ============ LEFT: log spikes on the court ============ -->
+    <div>
+      <div class="card">
+        <h2>🏐 Log a spike <span class="tag">click the court</span></h2>
+
+        <div class="row">
+          <label>Player:</label>
+          <input id="playerName" type="text" value="Me" placeholder="Player name" style="flex:1" />
+        </div>
+
+        <div class="row">
+          <label>Result:</label>
+          <span class="res-chip on kill" data-result="kill">✔ Kill</span>
+          <span class="res-chip error" data-result="error">✘ Error</span>
+          <span class="res-chip inplay" data-result="inplay">↩ In-play</span>
+        </div>
+
+        <div class="court-wrap">
+          <svg id="court" viewBox="0 0 300 600" aria-label="Volleyball court"></svg>
+          <p class="hint" id="hint">Click YOUR side (bottom) where you spiked from, then the OPPONENT side (top) where it landed.</p>
+        </div>
+
+        <div class="row" style="margin-top:12px">
+          <label>Heat map:</label>
+          <div class="seg">
+            <button data-heat="origin">Where I spike</button>
+            <button data-heat="landing" class="on">Where it lands</button>
+            <button data-heat="none">Off</button>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="demoBtn">✨ Generate demo data</button>
+          <button class="btn ghost" id="undoBtn">↶ Undo last</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ RIGHT: stats, AI insights, table ============ -->
+    <div>
+      <div class="card">
+        <h2>📊 Stats
+          <span style="margin-left:auto;font-weight:400;font-size:13px">
+            <label style="color:var(--muted)">View:&nbsp;</label>
+            <select id="filterPlayer"><option value="ALL">All players</option></select>
+          </span>
+        </h2>
+        <div class="tiles" id="tiles"></div>
+      </div>
+
+      <div class="card">
+        <h2>🤖 Voll-E reads your habits <span class="tag">AI scouting</span></h2>
+        <div id="insights"></div>
+      </div>
+
+      <div class="card">
+        <h2>📋 Spike log <span class="tag">edit &amp; delete</span></h2>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Player</th><th>From zone</th><th>Shot</th><th>Result</th><th></th></tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn ghost" id="exportBtn">⬇ Export</button>
+          <label class="btn ghost" style="cursor:pointer">⬆ Import<input id="importFile" type="file" accept=".json" hidden /></label>
+          <button class="btn warn" id="clearBtn">🗑 Clear all</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="footer-note">Voll-E v1 · everything is saved in your browser · &copy; J.W</p>
+
+  <script src="js/voll-e.js"></script>
+</body>
+</html>
