@@ -29,11 +29,28 @@
 .jerseys-big figure { max-width: 340px; }
 @media (max-width: 560px) { .jerseys-big { flex-direction: column; } .jerseys-big figure { max-width: none; } }
 
-/* roster list */
-.roster { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; counter-reset: roster; }
-.roster li { counter-increment: roster; display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
-.roster li .rn::before { content: counter(roster); display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 12px; font-weight: 800; color: #0d0d10; background: linear-gradient(92deg, var(--gold-lite), var(--gold)); }
-.roster li .pn { font-weight: 700; font-size: 14.5px; }
+/* roster display — mugshot + name cards */
+.roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.pcard { display: flex; align-items: center; gap: 11px; background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 9px 11px; }
+.pshot { width: 48px; height: 48px; border-radius: 50%; flex: none; overflow: hidden; border: 2px solid var(--gold); background: linear-gradient(160deg, var(--gold-lite), var(--gold)); display: grid; place-items: center; }
+.pshot img { width: 100%; height: 100%; object-fit: cover; }
+.pshot span { font-weight: 900; font-size: 20px; color: #0d0d10; }
+.pcard .pmeta { display: flex; flex-direction: column; min-width: 0; }
+.pcard .rn { font-size: 11px; font-weight: 800; color: var(--muted); }
+.pcard .pn { font-weight: 700; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* roster editor — rows of mugshot + name + remove */
+.roster-editor { margin-top: 6px; }
+.pedit-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.pedit-photo { width: 46px; height: 46px; flex: none; border-radius: 50%; border: 1.5px dashed var(--line); background: var(--bg); display: grid; place-items: center; cursor: pointer; overflow: hidden; }
+.pedit-photo:hover { border-color: var(--gold); }
+.pedit-photo.has { border-style: solid; border-color: var(--gold); }
+.pedit-photo img { width: 100%; height: 100%; object-fit: cover; }
+.pedit-photo span { color: var(--muted); font-size: 20px; line-height: 1; }
+.pedit-name { flex: 1; min-width: 0; }
+.pedit-del { border: none; background: transparent; color: var(--bad); font-size: 16px; font-weight: 800; cursor: pointer; padding: 6px 8px; border-radius: 8px; }
+.pedit-del:hover { background: color-mix(in srgb, var(--bad) 14%, transparent); }
+.pedit-add { margin-top: 2px; }
 
 /* manage-roster + admin roster editors */
 .manage-card summary, .roster-edit summary { cursor: pointer; font-weight: 800; color: var(--gold); list-style: none; }

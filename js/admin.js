@@ -93,19 +93,23 @@ function renderAnns() {
 function setAnn(i, k, v) { anns[i][k] = v; }
 async function annImg(i, input) { const f = input.files[0]; if (f) { anns[i].img = await fileToDataUrl(f, 900); renderAnns(); } }
 function moveAnn(i, d) { const j = i + d; if (j < 0 || j >= anns.length) return; [anns[i], anns[j]] = [anns[j], anns[i]]; renderAnns(); }
-function removeAnn(i) { anns.splice(i, 1); renderAnns(); }
+async function removeAnn(i) {
+  anns.splice(i, 1); renderAnns();
+  // persist right away so a deleted announcement can't come back on reload
+  await saveAnns("🗑️ Removed — the change is saved.");
+}
 function addAnn() { anns.unshift({ lg: "Announcement", title: "", desc: "", url: "", img: "" }); renderAnns(); }
-async function saveAnns() {
+async function saveAnns(okMsg) {
   const m = document.getElementById("annMsg"); m.textContent = "Saving…";
   const clean = anns.filter(a => a.title && a.title.trim());
-  try { const r = await apiPost("/admin/announcements", { announcements: clean }, true); m.textContent = r.ok ? "✅ Saved — it's live on the homepage slideshow." : "⚠️ " + (r.error || "failed"); }
+  try { const r = await apiPost("/admin/announcements", { announcements: clean }, true); m.textContent = r.ok ? (okMsg || "✅ Saved — it's live on the homepage slideshow.") : "⚠️ " + (r.error || "failed"); }
   catch (e) { m.textContent = "⚠️ " + e.message; }
 }
 
 /* ---------- team management ---------- */
 function teamCard(t) {
   const pending = t.status === "pending";
-  const players = Array.isArray(t.players) ? t.players : [];
+  const players = normPlayers(t.players);
   return `
     <div class="team-card admin-team" style="margin-bottom:12px">
       <div class="head">
@@ -116,8 +120,8 @@ function teamCard(t) {
       <div class="jerseys"><figure><img src="${esc(t.jerseyFront || "img/mikasa.svg")}" alt="" /><figcaption>Front</figcaption></figure><figure><img src="${esc(t.jerseyBack || "img/mikasa.svg")}" alt="" /><figcaption>Back</figcaption></figure></div>
 
       <details class="roster-edit">
-        <summary>👥 Roster (${players.length})</summary>
-        <textarea id="rost_${t.id}" rows="6" placeholder="One player name per line" style="width:100%;margin-top:8px">${esc(players.join("\n"))}</textarea>
+        <summary>👥 Roster (${players.length}) — names &amp; mugshots</summary>
+        <div id="rost_${t.id}" class="roster-editor" style="margin-top:8px"></div>
         <div class="row" style="margin-top:6px"><button class="btn ghost" onclick="saveRoster('${t.id}')">💾 Save roster</button><span class="msg" id="rostmsg_${t.id}" style="color:var(--muted);font-size:12.5px"></span></div>
       </details>
 
@@ -144,6 +148,7 @@ function teamCard(t) {
       </div>
     </div>`;
 }
+const rosterCtl = {};   /* mounted roster editors, keyed by team id */
 function renderTeamAdmin() {
   const pend = TEAMS.filter(t => t.status === "pending");
   const appr = TEAMS.filter(t => t.status === "approved");
@@ -152,6 +157,11 @@ function renderTeamAdmin() {
     (pend.length ? pend.map(teamCard).join("") : `<p class="empty">Nothing waiting.</p>`) +
     `<h3 class="grp" style="margin-top:18px">✅ Approved teams (${appr.length})</h3>` +
     (appr.length ? appr.map(teamCard).join("") : `<p class="empty">No approved teams yet.</p>`);
+  // mount a mugshot roster editor for every team
+  TEAMS.forEach(t => {
+    const el = document.getElementById("rost_" + t.id);
+    if (el) rosterCtl[t.id] = makeRosterEditor(el, normPlayers(t.players));
+  });
 }
 async function refresh() { TEAMS = await adminGet("/admin/teams").catch(() => TEAMS); renderStats(); renderTeamAdmin(); }
 async function approve(id) { await apiPost("/admin/teams/approve", { id }, true); await refresh(); }
@@ -178,7 +188,7 @@ async function saveTeam(id) {
 }
 async function saveRoster(id) {
   const m = document.getElementById("rostmsg_" + id);
-  const players = document.getElementById("rost_" + id).value.split("\n").map(s => s.trim()).filter(Boolean);
+  const players = rosterCtl[id] ? rosterCtl[id].get() : [];
   m.textContent = "Saving…";
   try {
     const r = await apiPost("/admin/teams/roster", { id, players }, true);

@@ -29,7 +29,13 @@ function isAdmin(req, env) {
 }
 function cleanPlayers(arr) {
   if (!Array.isArray(arr)) return [];
-  return arr.map(p => String(p == null ? "" : p).trim().slice(0, 40)).filter(Boolean).slice(0, 30);
+  return arr.map(p => {
+    if (typeof p === "string") return { name: p.trim().slice(0, 40), photo: "" };
+    if (p && typeof p === "object") {
+      return { name: String(p.name == null ? "" : p.name).trim().slice(0, 40), photo: typeof p.photo === "string" ? p.photo : "" };
+    }
+    return null;
+  }).filter(p => p && p.name).slice(0, 30);
 }
 function publicTeam(t) {
   return { id: t.id, name: t.name, status: t.status, category: t.category || "League", logo: t.logo, jerseyFront: t.jerseyFront, jerseyBack: t.jerseyBack, players: Array.isArray(t.players) ? t.players : [], createdAt: t.createdAt };
