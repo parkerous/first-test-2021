@@ -119,9 +119,9 @@ async function fetchLive() {
 /* ---------- YouTube "learn" search ---------- */
 function goLearn() {
   const url = val("ytUrl");
-  if (!url) { msg2("Paste a YouTube match link first."); return; }
-  if (!/(youtu\.be\/|youtube\.com\/|[\w-]{11})/.test(url)) { msg2("That doesn't look like a YouTube link."); return; }
-  window.location.href = "player.html?yt=" + encodeURIComponent(url);
+  if (!url) { msg2("Paste a YouTube or TikTok match link first."); return; }
+  if (!/(youtu\.be\/|youtube\.com\/|tiktok\.com\/|[\w-]{11})/.test(url)) { msg2("That doesn't look like a YouTube or TikTok link."); return; }
+  window.location.href = "player.html?v=" + encodeURIComponent(url);
 }
 
 /* ---------- helpers ---------- */

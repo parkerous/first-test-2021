@@ -41,6 +41,16 @@ const ROLES = {
   Any:      { skills: ["serve", "receive", "dig", "set", "setteable", "hit", "block"], key: ["hit", "receive"] },
 };
 
+/* ---- Roblox volleyball games: announcement banner region + keywords ----
+   Region % and keywords are sensible starting points you can tune per game. */
+const GAME_PROFILES = {
+  Binsu: { topPct: 14, keywords: ["spiked", "spike", "hit", "hits", "kill", "kills", "scored", "point"] },
+  BVL:   { topPct: 16, keywords: ["spiked", "spike", "hit", "hits", "scored", "ace", "kill", "attack"] },
+  CVR:   { topPct: 16, keywords: ["spiked", "spike", "hit", "hits", "scored", "ace", "kill", "attack"] },
+  Other: { topPct: 15, keywords: ["spiked", "spike", "hit", "hits", "attacked", "attack", "kill", "kills", "scored", "ace"] },
+};
+let scanning = false;   // true while a self-study auto-scan is running
+
 /* ============================================================
    Storage
    ============================================================ */
@@ -51,8 +61,10 @@ function profile() {
     name: (document.getElementById("pName").value.trim()) || "Me",
     email: document.getElementById("pEmail").value.trim(),
     role: document.getElementById("pRole").value || "Any",
+    game: (document.getElementById("pGame") || {}).value || "Binsu",
   };
 }
+function gameProfile() { return GAME_PROFILES[profile().game] || GAME_PROFILES.Other; }
 function saveProfile() { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile())); }
 function myEvents() { return events.filter(e => e.player === profile().name); }
 function roleDef() { return ROLES[profile().role] || ROLES.Any; }
@@ -86,6 +98,22 @@ function loadYouTube(url) {
   });
   if (window.YT && window.YT.Player) make();
   else { window.onYouTubeIframeAPIReady = make; if (!document.getElementById("yt-api")) { const s = document.createElement("script"); s.id = "yt-api"; s.src = "https://www.youtube.com/iframe_api"; document.head.appendChild(s); } }
+}
+function parseTikTokId(url) { const m = String(url).match(/tiktok\.com\/(?:@[\w.\-]+\/video\/|v\/|embed\/v2\/)?(\d{6,25})/); return m ? m[1] : null; }
+function loadTikTok(url) {
+  const id = parseTikTokId(url);
+  if (!id) { setHint("⚠️ Paste a full TikTok video URL (…/video/123…). Short vm.tiktok.com links can't open directly — use the full link, or upload the clip for auto self-study."); return; }
+  videoLabel = "tiktok:" + id;
+  document.getElementById("stage").innerHTML = `<iframe src="https://www.tiktok.com/embed/v2/${id}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen frameborder="0"></iframe>`;
+  player = null;   // no JS control / pixel access over a TikTok embed
+  setHint("TikTok loaded — watch and tap your touches. (Speed/seek & auto self-study need an uploaded clip.)");
+}
+/* one entry point for any pasted link */
+function loadFromUrl(url) {
+  url = String(url || "").trim();
+  if (!url) { setHint("Paste a YouTube or TikTok link first."); return; }
+  if (/tiktok\.com/i.test(url)) loadTikTok(url);
+  else loadYouTube(url);
 }
 
 /* ============================================================
@@ -226,7 +254,8 @@ function ensureTesseract() {
   });
 }
 function guessHitter(text) {
-  const m = text.match(/([A-Za-z0-9_]{2,20})\s+(?:spiked|spikes|hit|hits|attacked|attacks|kills?|scored)/i);
+  const kw = gameProfile().keywords.join("|");
+  const m = text.match(new RegExp("([A-Za-z0-9_]{2,20})\\s+(?:" + kw + ")", "i"));
   if (m) return m[1];
   const m2 = text.match(/[A-Za-z0-9_]{2,20}/);
   return m2 ? m2[0] : "";
@@ -260,6 +289,55 @@ function logAnnouncedHit(result) {
   setAnn(`Logged ${result} for “${name}” at ${fmtTime(player ? player.time() : 0)}.`);
 }
 function setAnn(t) { document.getElementById("annOut").textContent = t; }
+
+/* ============================================================
+   Self-study — auto-scan an uploaded clip, read the "who hit"
+   banner across the whole video, and auto-log each detected hit.
+   Uploaded clips only (embeds can't be scanned).
+   ============================================================ */
+function seekTo(v, t) {
+  return new Promise(res => { const h = () => { v.removeEventListener("seeked", h); res(); }; v.addEventListener("seeked", h); v.currentTime = Math.min(t, v.duration || t); });
+}
+async function ocrHitterAt(v, T) {
+  const pct = clamp(parseFloat(document.getElementById("annPct").value) || gameProfile().topPct, 3, 60) / 100;
+  const w = v.videoWidth, srcH = Math.round(v.videoHeight * pct);
+  const scale = w < 900 ? 2 : 1;
+  const c = document.getElementById("annCanvas");
+  c.width = w * scale; c.height = srcH * scale;
+  const ctx = c.getContext("2d");
+  try { ctx.drawImage(v, 0, 0, w, srcH, 0, 0, c.width, c.height); } catch (e) { return ""; }
+  const { data: { text } } = await T.recognize(c, "eng");
+  return guessHitter(text.replace(/\s+/g, " ").trim());
+}
+async function selfStudy() {
+  if (scanning) { scanning = false; return; }              // second click = stop
+  const v = document.getElementById("localvid");
+  if (!v || !v.videoWidth) { setAnn("⚠️ Self-study needs an UPLOADED clip (YouTube/TikTok embeds can't be scanned). Upload your clip, pick your game, then run this."); return; }
+  const step = clamp(parseFloat(document.getElementById("scanStep").value) || 1.5, 0.5, 10);
+  let T;
+  setAnn("Loading OCR engine… (first run downloads it).");
+  try { T = await ensureTesseract(); } catch (e) { setAnn("⚠️ " + e.message); return; }
+
+  scanning = true;
+  document.getElementById("scanBtn").textContent = "⏹ Stop self-study";
+  const wasPlaying = !v.paused; v.pause();
+  const dur = v.duration || 0;
+  let lastName = "", logged = 0;
+  for (let t = 0; t < dur && scanning; t += step) {
+    await seekTo(v, t);
+    const name = await ocrHitterAt(v, T);
+    if (name && name.toLowerCase() !== lastName.toLowerCase()) {   // a new hitter announced
+      tag("hit", "in", name);                                      // auto-logged; result unknown → fix later
+      lastName = name; logged++;
+    }
+    setAnn(`🤖 Self-study… ${fmtTime(t)} / ${fmtTime(dur)} · ${logged} hits found (${profile().game})`);
+  }
+  const done = !scanning ? "stopped" : "done";
+  scanning = false;
+  document.getElementById("scanBtn").textContent = "🤖 Self-study (auto-scan)";
+  setAnn(`✅ Self-study ${done} — ${logged} hits auto-logged. Review & set each result (kill/error) in your touch log.`);
+  if (wasPlaying) v.play();
+}
 
 /* ============================================================
    Report + email
@@ -353,6 +431,7 @@ function init() {
   if (prof.name) document.getElementById("pName").value = prof.name;
   if (prof.email) document.getElementById("pEmail").value = prof.email;
   if (prof.role) document.getElementById("pRole").value = prof.role;
+  if (prof.game && document.getElementById("pGame")) document.getElementById("pGame").value = prof.game;
   const ej = load(EMAILJS_KEY, {});
   if (ej.service) document.getElementById("ejService").value = ej.service;
   if (ej.template) document.getElementById("ejTemplate").value = ej.template;
@@ -360,8 +439,12 @@ function init() {
 
   buildSkillButtons();
 
-  document.getElementById("loadYt").addEventListener("click", () => loadYouTube(document.getElementById("ytUrl").value));
+  document.getElementById("loadYt").addEventListener("click", () => loadFromUrl(document.getElementById("ytUrl").value));
+  document.getElementById("ytUrl").addEventListener("keydown", e => { if (e.key === "Enter") loadFromUrl(e.target.value); });
   document.getElementById("localFile").addEventListener("change", e => loadLocalFile(e.target.files[0]));
+  const gameSel = document.getElementById("pGame");
+  if (gameSel) gameSel.addEventListener("change", () => { saveProfile(); document.getElementById("annPct").value = gameProfile().topPct; });
+  document.getElementById("scanBtn").addEventListener("click", selfStudy);
   document.getElementById("pName").addEventListener("input", render);
   document.getElementById("pName").addEventListener("change", saveProfile);
   document.getElementById("pEmail").addEventListener("change", saveProfile);
@@ -378,8 +461,8 @@ function init() {
   render();
   setHint("Enter your name, email & role, upload your clip, then tap a button for each touch.");
 
-  // auto-load a YouTube link handed over from the front-page search (?yt=...)
-  const yt = new URLSearchParams(location.search).get("yt");
-  if (yt) { document.getElementById("ytUrl").value = yt; loadYouTube(yt); }
+  // auto-load a link handed over from the front-page search (?v=... or legacy ?yt=...)
+  const src = new URLSearchParams(location.search).get("v") || new URLSearchParams(location.search).get("yt");
+  if (src) { document.getElementById("ytUrl").value = src; loadFromUrl(src); }
 }
 document.addEventListener("DOMContentLoaded", init);

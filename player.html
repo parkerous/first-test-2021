@@ -44,11 +44,18 @@
             <option value="Middle">Middle blocker</option>
             <option value="Libero">Libero</option>
           </select>
-          <span class="mini-note" style="margin:0">Your role picks which skills &amp; stats matter most.</span>
+          <label>Game:</label>
+          <select id="pGame" style="min-width:120px">
+            <option value="Binsu">Binsu</option>
+            <option value="BVL">BVL</option>
+            <option value="CVR">CVR</option>
+            <option value="Other">Other</option>
+          </select>
+          <span class="mini-note" style="margin:0">Role picks your stats; game tunes the announcement reader.</span>
         </div>
         <div class="row">
-          <input id="ytUrl" type="text" placeholder="Paste a YouTube link…" style="flex:1;min-width:200px" />
-          <button class="btn" id="loadYt">Load YouTube</button>
+          <input id="ytUrl" type="text" placeholder="Paste a YouTube or TikTok link…" style="flex:1;min-width:200px" />
+          <button class="btn" id="loadYt">Load link</button>
           <label class="btn ghost" style="cursor:pointer">📁 Upload my clip<input id="localFile" type="file" accept="video/*" hidden /></label>
         </div>
       </div>
@@ -74,20 +81,25 @@
       </div>
 
       <div class="card">
-        <h2>📢 Read the "who hit" banner <span class="tag">experimental</span></h2>
-        <p class="mini-note">Pause on a frame where Binsu's announcement shows at the top, then read it. Works on <b>uploaded clips only</b> (browsers block reading YouTube pixels). OCR isn't perfect on low-quality video — check the name before logging.</p>
+        <h2>📢 Read the "who hit" banner + 🤖 Self-study <span class="tag">experimental</span></h2>
+        <p class="mini-note">Reads the game's announcement (Binsu, BVL, CVR…) to find who hit. Works on <b>uploaded clips only</b> — browsers block reading pixels from YouTube/TikTok embeds. OCR isn't perfect on low-quality video, so check names before trusting them. Pick your <b>Game</b> above first.</p>
         <div class="row">
-          <label>Top region %<input id="annPct" type="number" value="15" min="3" max="60" style="width:70px" /></label>
-          <button class="btn" id="readAnnBtn">🔍 Read who hit</button>
+          <label>Top region %<input id="annPct" type="number" value="14" min="3" max="60" style="width:70px" /></label>
+          <button class="btn" id="readAnnBtn">🔍 Read one frame</button>
         </div>
         <canvas id="annCanvas" style="display:none;width:100%;border-radius:8px;margin:6px 0;border:1px solid var(--line)"></canvas>
-        <p class="hint" id="annOut">Load an uploaded clip, pause on the announcement, then press “Read who hit”.</p>
+        <p class="hint" id="annOut">Upload a clip, pick your game, pause on the announcement, then read a frame — or run self-study below.</p>
         <div class="row">
           <input id="annName" type="text" placeholder="Detected hitter" style="flex:1" />
           <span class="mini-note" style="margin:0">Log this hit for them:</span>
           <button class="tagbtn good" data-annhit="kill">Kill</button>
           <button class="tagbtn mid" data-annhit="in">In</button>
           <button class="tagbtn bad" data-annhit="error">Error</button>
+        </div>
+        <div class="row" style="margin-top:10px;border-top:1px solid var(--line);padding-top:12px">
+          <label>Scan every<input id="scanStep" type="number" value="1.5" min="0.5" max="10" step="0.5" style="width:64px" />s</label>
+          <button class="btn" id="scanBtn">🤖 Self-study (auto-scan)</button>
+          <span class="mini-note" style="margin:0">Auto-scans the whole uploaded clip and logs each detected hit.</span>
         </div>
       </div>
     </div>
