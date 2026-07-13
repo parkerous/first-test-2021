@@ -41,20 +41,27 @@ function hashStr(s) { let h = 0; s = String(s || ""); for (let i = 0; i < s.leng
 function autoCover(item) {
   const h = hashStr((item.lg || "") + "|" + (item.title || ""));
   const p = COVER_PALETTES[h % COVER_PALETTES.length];
-  const cx = 130 + (h % 3) * 175, dotx = 520 - (h % 4) * 46, doty = 60 + (h % 3) * 34;
+  const left = (h % 2) === 0;
+  const bx = left ? 150 : 450, dotx = left ? 470 : 120, doty = 70 + (h % 3) * 30;
+  // an actual volleyball: white ball with the classic curved pinwheel panels
+  const ball =
+    "<circle cx='100' cy='100' r='90' fill='none' stroke='#ffffff' stroke-width='5'/>" +
+    "<g clip-path='url(#vbclip)' fill='none' stroke='#ffffff' stroke-width='5.5' stroke-linecap='round'>" +
+      "<path d='M74 4 C 66 56, 80 118, 58 200'/>" +
+      "<path d='M118 2 C 108 52, 150 90, 206 92'/>" +
+      "<path d='M50 44 C 96 70, 120 126, 116 206'/>" +
+      "<path d='M-6 126 C 58 116, 150 148, 204 128'/>" +
+    "</g>";
   const svg =
     "<svg xmlns='http://www.w3.org/2000/svg' width='600' height='300'>" +
-      "<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>" +
-      "<stop offset='0' stop-color='" + p[0] + "'/><stop offset='1' stop-color='" + p[1] + "'/></linearGradient></defs>" +
+      "<defs>" +
+        "<linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='" + p[0] + "'/><stop offset='1' stop-color='" + p[1] + "'/></linearGradient>" +
+        "<clipPath id='vbclip' clipPathUnits='userSpaceOnUse'><circle cx='100' cy='100' r='90'/></clipPath>" +
+      "</defs>" +
       "<rect width='600' height='300' fill='url(#g)'/>" +
       "<polygon points='0,300 220,0 340,0 120,300' fill='#ffffff' opacity='0.05'/>" +
-      "<circle cx='" + dotx + "' cy='" + doty + "' r='34' fill='#ffffff' opacity='0.06'/>" +
-      "<g transform='translate(" + cx + ",152)' opacity='0.17' fill='none' stroke='#ffffff' stroke-width='7' stroke-linecap='round'>" +
-        "<circle r='96'/>" +
-        "<path d='M-96 -6 C -30 -40, 40 -40, 96 -8'/>" +
-        "<path d='M-72 78 C -40 6, 8 -62, 58 -92'/>" +
-        "<path d='M72 78 C 40 6, -8 -62, -58 -92'/>" +
-      "</g>" +
+      "<circle cx='" + dotx + "' cy='" + doty + "' r='30' fill='#ffffff' opacity='0.05'/>" +
+      "<g transform='translate(" + bx + ",150) scale(1.35) translate(-100,-100)' opacity='0.22'>" + ball + "</g>" +
     "</svg>";
   return "data:image/svg+xml;base64," + btoa(svg);
 }
