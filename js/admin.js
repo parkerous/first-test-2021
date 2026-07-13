@@ -40,6 +40,32 @@ async function loadAll() {
   renderStats();
   renderTeamAdmin();
   loadSite();
+  loadBoard();
+}
+
+/* ---------- free agent board moderation ---------- */
+let BOARD = [];
+async function loadBoard() {
+  try { BOARD = await apiGet("/board"); renderBoard(); } catch (e) { BOARD = []; renderBoard(); }
+}
+function renderBoard() {
+  const el = document.getElementById("boardAdmin");
+  if (!BOARD.length) { el.innerHTML = `<p class="empty">No board posts.</p>`; return; }
+  el.innerHTML = BOARD.map(p => `
+    <div class="card" style="background:var(--bg);margin-bottom:8px">
+      <div class="row" style="align-items:center">
+        <span class="fa-tag ${p.type}">${p.type === "LFP" ? "📣 LFP" : "🙋 LFT"}</span>
+        <b>${esc(p.name)}</b>${p.role ? ` <span class="pending-pill">${esc(p.role)}</span>` : ""}
+        <span class="spacer"></span>
+        <button class="btn warn" onclick="deletePost('${p.id}')">🗑 Delete</button>
+      </div>
+      <p style="margin:8px 0 4px;font-size:14px">${esc(p.msg)}</p>
+      <div class="mini-note" style="margin:0">💬 ${esc(p.discord)}</div>
+    </div>`).join("");
+}
+async function deletePost(id) {
+  try { await apiPost("/admin/board/delete", { id }, true); BOARD = BOARD.filter(p => p.id !== id); renderBoard(); }
+  catch (e) { /* ignore */ }
 }
 
 /* ---------- site logo ---------- */
@@ -209,6 +235,7 @@ function switchTab(name) {
   document.querySelectorAll(".atab").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
   document.getElementById("pane-teams").style.display = name === "teams" ? "block" : "none";
   document.getElementById("pane-ann").style.display = name === "ann" ? "block" : "none";
+  document.getElementById("pane-board").style.display = name === "board" ? "block" : "none";
 }
 
 function init() {
@@ -217,6 +244,7 @@ function init() {
   document.getElementById("addAnnBtn").addEventListener("click", addAnn);
   document.getElementById("saveAnnBtn").addEventListener("click", saveAnns);
   document.getElementById("refreshBtn").addEventListener("click", refresh);
+  document.getElementById("refreshBoardBtn").addEventListener("click", loadBoard);
   document.getElementById("brandFile").addEventListener("change", e => pickBrand(e.target));
   document.getElementById("brandSave").addEventListener("click", saveBrand);
   document.querySelectorAll(".atab").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));

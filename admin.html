@@ -50,6 +50,7 @@
       <div class="admin-tabs">
         <button class="atab on" data-tab="teams">👥 Teams</button>
         <button class="atab" data-tab="ann">📢 Announcements</button>
+        <button class="atab" data-tab="board">🔎 Board</button>
       </div>
 
       <div class="tabpane" id="pane-teams">
@@ -70,6 +71,18 @@
             <button class="btn ghost" id="refreshBtn">↻ Refresh</button>
           </div>
           <div id="teamAdmin"></div>
+        </div>
+      </div>
+
+      <div class="tabpane" id="pane-board" style="display:none">
+        <div class="card">
+          <div class="row" style="align-items:center;margin-bottom:4px">
+            <h2 style="margin:0">🔎 Free Agent Board</h2>
+            <span class="spacer"></span>
+            <button class="btn ghost" id="refreshBoardBtn">↻ Refresh</button>
+          </div>
+          <p class="mini-note" style="margin-top:0">Moderate LFT/LFP posts — remove spam or filled listings.</p>
+          <div id="boardAdmin"></div>
         </div>
       </div>
 

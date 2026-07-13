@@ -53,6 +53,20 @@
 .jerseys-big figure { max-width: 340px; }
 @media (max-width: 560px) { .jerseys-big { flex-direction: column; } .jerseys-big figure { max-width: none; } }
 
+/* free agent board */
+.board-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.fa-card { background: linear-gradient(180deg, var(--panel), color-mix(in srgb, var(--panel) 93%, var(--bg))); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid var(--gold); }
+.fa-card.LFP { border-left-color: #4c8dff; }
+.fa-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.fa-tag { font-size: 11px; font-weight: 900; letter-spacing: .5px; padding: 3px 9px; border-radius: 999px; color: #0d0d10; background: linear-gradient(92deg, var(--gold-lite), var(--yellow)); }
+.fa-tag.LFP { background: linear-gradient(92deg, #7fb0ff, #4c8dff); color: #06122b; }
+.fa-when { margin-left: auto; color: var(--muted); font-size: 11.5px; }
+.fa-name { font-weight: 800; font-size: 17px; }
+.fa-msg { margin: 6px 0 10px; font-size: 13.5px; color: var(--ink); line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+.fa-contact { font-size: 13px; font-weight: 700; color: var(--muted); border-top: 1px solid var(--line); padding-top: 8px; }
+.fa-contact a { color: var(--gold); }
+.seg button.on { background: linear-gradient(92deg, var(--gold), var(--gold-lite)); color: #0d0d10; font-weight: 700; }
+
 /* team banner (wide header image) */
 .team-banner { margin: -20px -20px 16px; border-radius: 16px 16px 0 0; overflow: hidden; max-height: 200px; }
 .team-banner img { width: 100%; height: 100%; max-height: 200px; object-fit: cover; display: block; }
