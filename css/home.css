@@ -95,6 +95,13 @@
 .ncard .feat:hover { background: var(--yellow); color: #0d0d10; }
 .ncard .feat-badge { position: absolute; left: 12px; bottom: 10px; font-size: 10.5px; font-weight: 900; letter-spacing: .5px; color: #0d0d10; background: linear-gradient(92deg, var(--gold-lite), var(--yellow)); padding: 3px 8px; border-radius: 999px; }
 
+/* Discord banner */
+.discord-banner { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: linear-gradient(120deg, #0d0d10, #1c1c22); border: 1px solid var(--gold); border-radius: 16px; padding: 14px 18px; margin-bottom: 18px; box-shadow: var(--shadow-sm); }
+.discord-banner .dc-ic { font-size: 26px; }
+.discord-banner .dc-txt { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 200px; color: #e9e9ee; font-size: 13.5px; }
+.discord-banner .dc-txt b { color: var(--gold-lite); font-size: 14.5px; }
+.discord-banner .dc-txt span { color: #b7b7c0; }
+
 .addform { background: var(--panel); border: 1px dashed var(--gold); border-radius: 14px; padding: 14px; margin-bottom: 16px; }
 .addform .row { margin-bottom: 8px; }
 .addform input { flex: 1; min-width: 160px; }
