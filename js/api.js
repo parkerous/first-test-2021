@@ -3,10 +3,14 @@
    AFTER deploying the worker (see api/SETUP.md), paste its URL below.
    ============================================================ */
 
-const SOAI_API = "";  // <-- paste your Worker URL here, e.g. "https://soai-api.you.workers.dev"
+const SOAI_API = "";  // backend now runs on the SAME site (same Worker) — no URL needed
 
-/* (a localStorage override is allowed for local testing only) */
-function apiBase() { return (localStorage.getItem("soai_api_override") || SOAI_API || "").replace(/\/+$/, ""); }
+/* Same-origin by default; a localStorage override is allowed for testing. */
+function apiBase() {
+  const o = (localStorage.getItem("soai_api_override") || SOAI_API || "").replace(/\/+$/, "");
+  if (o) return o;
+  return (location.protocol === "http:" || location.protocol === "https:") ? location.origin : "";
+}
 function apiConfigured() { return !!apiBase(); }
 function adminKey() { return sessionStorage.getItem("soai_admin_key") || ""; }
 
