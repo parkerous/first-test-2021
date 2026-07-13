@@ -49,11 +49,22 @@
 .admin-login .row { justify-content: center; }
 .admin-login details { text-align: left; }
 
-.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 12px; margin-bottom: 18px; }
-.stat { background: linear-gradient(160deg, color-mix(in srgb, var(--gold) 9%, var(--panel)), var(--bg)); border: 1px solid var(--line); border-radius: 14px; padding: 14px; text-align: center; }
-.stat .num { font-size: 26px; font-weight: 900; line-height: 1; color: var(--gold); }
-.stat .num.good { color: var(--good); } .stat .num.bad { color: var(--bad); }
-.stat .lbl { font-size: 11.5px; color: var(--muted); margin-top: 5px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
+/* dark dashboard banner that holds the stat tiles */
+.admin-hero {
+  background: radial-gradient(900px 260px at 10% -40%, rgba(255,210,30,.18), transparent 60%), linear-gradient(120deg, #0d0d10, #1c1c22);
+  border: 1px solid var(--gold); border-radius: 18px; padding: 18px 18px 6px; margin-bottom: 18px;
+  box-shadow: var(--shadow);
+}
+.admin-hero-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.ah-badge { font-size: 12px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: #0d0d10; background: linear-gradient(92deg, var(--gold-lite), var(--yellow)); padding: 6px 12px; border-radius: 999px; }
+.ah-title { color: #e9e9ee; font-weight: 800; font-size: 15px; }
+
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.stat { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 14px; padding: 14px; text-align: center; transition: transform .14s ease, border-color .14s ease; }
+.stat:hover { transform: translateY(-3px); border-color: rgba(255,210,30,.5); }
+.stat .num { font-size: 27px; font-weight: 900; line-height: 1; color: var(--yellow); }
+.stat .num.good { color: #57d98a; } .stat .num.bad { color: #ff8080; }
+.stat .lbl { font-size: 11px; color: #b7b7c0; margin-top: 5px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
 
 .admin-tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
 .atab { border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-weight: 800; font-size: 14px; padding: 9px 16px; border-radius: 999px; cursor: pointer; transition: background .12s, color .12s; }

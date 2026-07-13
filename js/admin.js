@@ -96,6 +96,18 @@ function teamCard(t) {
         <div class="row" style="margin-top:6px"><button class="btn ghost" onclick="saveRoster('${t.id}')">💾 Save roster</button><span class="msg" id="rostmsg_${t.id}" style="color:var(--muted);font-size:12.5px"></span></div>
       </details>
 
+      <details class="roster-edit">
+        <summary>✏️ Edit team (name · logo · jerseys)</summary>
+        <div class="row" style="margin-top:8px"><input id="en_${t.id}" value="${esc(t.name)}" placeholder="Team name" style="flex:1;min-width:180px" /></div>
+        <div class="row">
+          <label class="btn ghost" style="cursor:pointer">🏷️ Logo<input type="file" accept="image/*" hidden onchange="pickImg('${t.id}','logo',this)" /></label>
+          <label class="btn ghost" style="cursor:pointer">👕 Front<input type="file" accept="image/*" hidden onchange="pickImg('${t.id}','jerseyFront',this)" /></label>
+          <label class="btn ghost" style="cursor:pointer">👕 Back<input type="file" accept="image/*" hidden onchange="pickImg('${t.id}','jerseyBack',this)" /></label>
+          <button class="btn" onclick="saveTeam('${t.id}')">💾 Save</button>
+        </div>
+        <p class="msg" id="editmsg_${t.id}" style="color:var(--muted);font-size:12.5px;margin:2px 0 0"></p>
+      </details>
+
       <div class="row" style="margin-top:10px;align-items:center">
         <label style="color:var(--muted);font-size:13px">Category</label>
         <select onchange="setCategory('${t.id}', this.value)">
@@ -120,6 +132,25 @@ async function refresh() { TEAMS = await adminGet("/admin/teams").catch(() => TE
 async function approve(id) { await apiPost("/admin/teams/approve", { id }, true); await refresh(); }
 async function reject(id) { if (!confirm("Remove this team?")) return; await apiPost("/admin/teams/reject", { id }, true); await refresh(); }
 async function setCategory(id, category) { await apiPost("/admin/teams/category", { id, category }, true); await refresh(); }
+const edits = {};   /* pending image uploads per team, keyed by id */
+async function pickImg(id, key, input) {
+  const f = input.files[0]; if (!f) return;
+  edits[id] = edits[id] || {};
+  edits[id][key] = await fileToDataUrl(f, key === "logo" ? 420 : 900);
+  const m = document.getElementById("editmsg_" + id);
+  if (m) m.textContent = "🖼️ " + key + " ready — click Save.";
+}
+async function saveTeam(id) {
+  const m = document.getElementById("editmsg_" + id);
+  const name = document.getElementById("en_" + id).value.trim();
+  if (!name) { m.textContent = "Team name can't be empty."; return; }
+  m.textContent = "Saving…";
+  try {
+    const r = await apiPost("/admin/teams/update", Object.assign({ id, name }, edits[id] || {}), true);
+    if (r && r.ok) { delete edits[id]; m.textContent = "✅ Saved"; await refresh(); }
+    else m.textContent = "⚠️ " + ((r && r.error) || "failed");
+  } catch (e) { m.textContent = "⚠️ " + e.message; }
+}
 async function saveRoster(id) {
   const m = document.getElementById("rostmsg_" + id);
   const players = document.getElementById("rost_" + id).value.split("\n").map(s => s.trim()).filter(Boolean);

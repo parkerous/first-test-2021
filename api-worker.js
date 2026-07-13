@@ -136,6 +136,21 @@ async function handleApi(req, env, url) {
     await KV.put("team:" + id, JSON.stringify(t));
     return json({ ok: true });
   }
+  /* the admin can edit a team's name, category, logo and jerseys */
+  if (p === "/admin/teams/update" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const b = await req.json();
+    const raw = await KV.get("team:" + b.id);
+    if (!raw) return json({ error: "not found" }, 404);
+    const t = JSON.parse(raw);
+    if (typeof b.name === "string" && b.name.trim()) t.name = b.name.trim().slice(0, 60);
+    if (b.category) t.category = b.category === "Binsu" ? "Binsu" : "League";
+    if (typeof b.logo === "string" && b.logo) t.logo = b.logo;
+    if (typeof b.jerseyFront === "string" && b.jerseyFront) t.jerseyFront = b.jerseyFront;
+    if (typeof b.jerseyBack === "string" && b.jerseyBack) t.jerseyBack = b.jerseyBack;
+    await KV.put("team:" + b.id, JSON.stringify(t));
+    return json({ ok: true });
+  }
   if (p === "/learn" && req.method === "POST") {
     const b = await req.json();
     const raw = await KV.get("learn");
