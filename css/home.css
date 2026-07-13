@@ -161,7 +161,7 @@
 .ncard { display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-sm); transition: transform .15s, box-shadow .15s; }
 .ncard:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
 .ncard .top { height: 96px; position: relative; background: linear-gradient(120deg, #14140f, #201a08); display: grid; place-items: center; }
-.ncard .top .emoji { font-size: 44px; opacity: .9; }
+.ncard .top .emoji { position: absolute; right: 8px; bottom: -10px; font-size: 78px; line-height: 1; opacity: .34; filter: drop-shadow(0 3px 8px rgba(0,0,0,.35)); pointer-events: none; }
 .ncard .top .lg { position: absolute; left: 12px; top: 12px; font-size: 10.5px; font-weight: 900; letter-spacing: .8px; text-transform: uppercase; color: #0d0d10; background: linear-gradient(92deg, var(--gold-lite), var(--yellow)); padding: 3px 8px; border-radius: 999px; }
 .ncard .body { padding: 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
 .ncard .body h3 { margin: 0; font-size: 15px; font-weight: 800; line-height: 1.25; }
