@@ -38,32 +38,10 @@ const COVER_PALETTES = [
   ["#10222a", "#1b6a7a"], ["#22200d", "#8a7a1b"],
 ];
 function hashStr(s) { let h = 0; s = String(s || ""); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
-function autoCover(item) {
-  const h = hashStr((item.lg || "") + "|" + (item.title || ""));
-  const p = COVER_PALETTES[h % COVER_PALETTES.length];
-  const left = (h % 2) === 0;
-  const bx = left ? 150 : 450, dotx = left ? 470 : 120, doty = 70 + (h % 3) * 30;
-  // an actual volleyball: white ball with the classic curved pinwheel panels
-  const ball =
-    "<circle cx='100' cy='100' r='90' fill='none' stroke='#ffffff' stroke-width='5'/>" +
-    "<g clip-path='url(#vbclip)' fill='none' stroke='#ffffff' stroke-width='5.5' stroke-linecap='round'>" +
-      "<path d='M74 4 C 66 56, 80 118, 58 200'/>" +
-      "<path d='M118 2 C 108 52, 150 90, 206 92'/>" +
-      "<path d='M50 44 C 96 70, 120 126, 116 206'/>" +
-      "<path d='M-6 126 C 58 116, 150 148, 204 128'/>" +
-    "</g>";
-  const svg =
-    "<svg xmlns='http://www.w3.org/2000/svg' width='600' height='300'>" +
-      "<defs>" +
-        "<linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='" + p[0] + "'/><stop offset='1' stop-color='" + p[1] + "'/></linearGradient>" +
-        "<clipPath id='vbclip' clipPathUnits='userSpaceOnUse'><circle cx='100' cy='100' r='90'/></clipPath>" +
-      "</defs>" +
-      "<rect width='600' height='300' fill='url(#g)'/>" +
-      "<polygon points='0,300 220,0 340,0 120,300' fill='#ffffff' opacity='0.05'/>" +
-      "<circle cx='" + dotx + "' cy='" + doty + "' r='30' fill='#ffffff' opacity='0.05'/>" +
-      "<g transform='translate(" + bx + ",150) scale(1.35) translate(-100,-100)' opacity='0.22'>" + ball + "</g>" +
-    "</svg>";
-  return "data:image/svg+xml;base64," + btoa(svg);
+/* a nice varied gradient per item; the real 🏐 emoji is overlaid on top */
+function autoGradient(item) {
+  const p = COVER_PALETTES[hashStr((item.lg || "") + "|" + (item.title || "")) % COVER_PALETTES.length];
+  return "linear-gradient(135deg, " + p[0] + ", " + p[1] + ")";
 }
 
 /* ---------- slideshow ---------- */
@@ -73,7 +51,7 @@ function renderSlides() {
   const items = news.slice(0, 6);
   host.innerHTML = items.map((n, i) => `
     <div class="slide ${i === 0 ? "on" : ""}" data-i="${i}">
-      <div class="bg" style="background-image:linear-gradient(90deg,rgba(13,13,16,.92),rgba(13,13,16,.4)),url('${esc(n.img || autoCover(n))}');background-size:cover;background-position:center"></div>
+      <div class="bg" style="${n.img ? `background-image:linear-gradient(90deg,rgba(13,13,16,.92),rgba(13,13,16,.4)),url('${esc(n.img)}');background-size:cover;background-position:center` : `background-image:${autoGradient(n)}`}"></div>
       <div class="glow">🏐</div>
       <div class="inner">
         <span class="league">${i === 0 ? "⭐ Featured · " : ""}${esc(n.lg)}</span>
@@ -107,9 +85,10 @@ function renderNews() {
   const grid = document.getElementById("newsGrid");
   grid.innerHTML = news.map((n, i) => `
     <div class="ncard">
-      <div class="top" style="background-image:url('${esc(n.img || autoCover(n))}');background-size:cover;background-position:center">
+      <div class="top" style="${n.img ? `background-image:url('${esc(n.img)}');background-size:cover;background-position:center` : `background-image:${autoGradient(n)}`}">
         <span class="lg">${esc(n.lg)}</span>
         ${i === 0 ? `<span class="feat-badge">⭐ Featured</span>` : ""}
+        ${n.img ? "" : `<span class="emoji">🏐</span>`}
         <button class="feat" title="Feature this (put it first in the slideshow)" onclick="featureNews(${i})">⭐</button>
         <button class="del" title="Remove" onclick="delNews(${i})">×</button>
       </div>
