@@ -29,6 +29,36 @@ function save() { localStorage.setItem(NEWS_KEY, JSON.stringify(news)); }
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function safeUrl(u) { return /^https?:\/\//i.test(u) ? u : "https://" + u; }
 
+/* ---------- auto cover art (so image-less cards aren't bland) ----------
+   Deterministic volleyball-themed gradient graphic per item — no external
+   images, so it always loads and each card looks distinct. */
+const COVER_PALETTES = [
+  ["#0d1b2a", "#2b5f8a"], ["#2a0d24", "#6b1b52"], ["#0d2a1b", "#1f7a4a"],
+  ["#2a1b0d", "#a5701b"], ["#1a1030", "#4a1b8b"], ["#301010", "#8a1b1b"],
+  ["#10222a", "#1b6a7a"], ["#22200d", "#8a7a1b"],
+];
+function hashStr(s) { let h = 0; s = String(s || ""); for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
+function autoCover(item) {
+  const h = hashStr((item.lg || "") + "|" + (item.title || ""));
+  const p = COVER_PALETTES[h % COVER_PALETTES.length];
+  const cx = 130 + (h % 3) * 175, dotx = 520 - (h % 4) * 46, doty = 60 + (h % 3) * 34;
+  const svg =
+    "<svg xmlns='http://www.w3.org/2000/svg' width='600' height='300'>" +
+      "<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>" +
+      "<stop offset='0' stop-color='" + p[0] + "'/><stop offset='1' stop-color='" + p[1] + "'/></linearGradient></defs>" +
+      "<rect width='600' height='300' fill='url(#g)'/>" +
+      "<polygon points='0,300 220,0 340,0 120,300' fill='#ffffff' opacity='0.05'/>" +
+      "<circle cx='" + dotx + "' cy='" + doty + "' r='34' fill='#ffffff' opacity='0.06'/>" +
+      "<g transform='translate(" + cx + ",152)' opacity='0.17' fill='none' stroke='#ffffff' stroke-width='7' stroke-linecap='round'>" +
+        "<circle r='96'/>" +
+        "<path d='M-96 -6 C -30 -40, 40 -40, 96 -8'/>" +
+        "<path d='M-72 78 C -40 6, 8 -62, 58 -92'/>" +
+        "<path d='M72 78 C 40 6, -8 -62, -58 -92'/>" +
+      "</g>" +
+    "</svg>";
+  return "data:image/svg+xml;base64," + btoa(svg);
+}
+
 /* ---------- slideshow ---------- */
 function renderSlides() {
   const host = document.getElementById("slides");
@@ -36,7 +66,7 @@ function renderSlides() {
   const items = news.slice(0, 6);
   host.innerHTML = items.map((n, i) => `
     <div class="slide ${i === 0 ? "on" : ""}" data-i="${i}">
-      <div class="bg" ${n.img ? `style="background-image:linear-gradient(90deg,rgba(13,13,16,.94),rgba(13,13,16,.4)),url('${esc(n.img)}');background-size:cover;background-position:center"` : ""}></div>
+      <div class="bg" style="background-image:linear-gradient(90deg,rgba(13,13,16,.92),rgba(13,13,16,.4)),url('${esc(n.img || autoCover(n))}');background-size:cover;background-position:center"></div>
       <div class="glow">🏐</div>
       <div class="inner">
         <span class="league">${i === 0 ? "⭐ Featured · " : ""}${esc(n.lg)}</span>
@@ -70,10 +100,9 @@ function renderNews() {
   const grid = document.getElementById("newsGrid");
   grid.innerHTML = news.map((n, i) => `
     <div class="ncard">
-      <div class="top" ${n.img ? `style="background-image:url('${esc(n.img)}');background-size:cover;background-position:center"` : ""}>
+      <div class="top" style="background-image:url('${esc(n.img || autoCover(n))}');background-size:cover;background-position:center">
         <span class="lg">${esc(n.lg)}</span>
         ${i === 0 ? `<span class="feat-badge">⭐ Featured</span>` : ""}
-        ${n.img ? "" : `<span class="emoji">${esc(n.emoji || "🏐")}</span>`}
         <button class="feat" title="Feature this (put it first in the slideshow)" onclick="featureNews(${i})">⭐</button>
         <button class="del" title="Remove" onclick="delNews(${i})">×</button>
       </div>
