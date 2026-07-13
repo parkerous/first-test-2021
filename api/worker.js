@@ -106,6 +106,15 @@ export default {
         await KV.delete("team:" + id);
         return json({ ok: true });
       }
+      if (p === "/admin/teams/category" && req.method === "POST") {
+        if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+        const { id, category } = await req.json();
+        const raw = await KV.get("team:" + id);
+        if (!raw) return json({ error: "not found" }, 404);
+        const t = JSON.parse(raw); t.category = category === "Binsu" ? "Binsu" : "League";
+        await KV.put("team:" + id, JSON.stringify(t));
+        return json({ ok: true });
+      }
 
       /* ---------- shared learning ---------- */
       if (p === "/learn" && req.method === "POST") {

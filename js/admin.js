@@ -69,7 +69,15 @@ function renderTeamAdmin(list) {
     <div class="team-card" style="margin-bottom:10px">
       <div class="head"><img class="team-logo" src="${esc(t.logo || "img/mikasa.svg")}" alt="" /><div class="nm">${esc(t.name)} ${pending ? `<span class="pending-pill">pending</span>` : ""}</div></div>
       <div class="jerseys"><figure><img src="${esc(t.jerseyFront || "img/mikasa.svg")}" alt="" /><figcaption>Front</figcaption></figure><figure><img src="${esc(t.jerseyBack || "img/mikasa.svg")}" alt="" /><figcaption>Back</figcaption></figure></div>
-      <div class="row" style="margin-top:10px">${pending ? `<button class="btn" onclick="approve('${t.id}')">✔ Approve</button>` : ""}<button class="btn warn" onclick="reject('${t.id}')">${pending ? "✘ Reject" : "🗑 Remove"}</button></div>
+      <div class="row" style="margin-top:10px;align-items:center">
+        <label style="color:var(--muted);font-size:13px">Category</label>
+        <select onchange="setCategory('${t.id}', this.value)">
+          <option value="Binsu" ${t.category === "Binsu" ? "selected" : ""}>Binsu</option>
+          <option value="League" ${t.category !== "Binsu" ? "selected" : ""}>League</option>
+        </select>
+        ${pending ? `<button class="btn" onclick="approve('${t.id}')">✔ Approve</button>` : ""}
+        <button class="btn warn" onclick="reject('${t.id}')">${pending ? "✘ Reject" : "🗑 Remove"}</button>
+      </div>
     </div>`;
   document.getElementById("teamAdmin").innerHTML =
     `<h3 style="color:var(--gold);font-size:15px">Pending (${pend.length})</h3>` +
@@ -79,6 +87,7 @@ function renderTeamAdmin(list) {
 }
 async function approve(id) { await apiPost("/admin/teams/approve", { id }, true); renderTeamAdmin(await adminGet("/admin/teams")); }
 async function reject(id) { if (!confirm("Remove this team?")) return; await apiPost("/admin/teams/reject", { id }, true); renderTeamAdmin(await adminGet("/admin/teams")); }
+async function setCategory(id, category) { await apiPost("/admin/teams/category", { id, category }, true); renderTeamAdmin(await adminGet("/admin/teams")); }
 
 function init() {
   document.getElementById("loginBtn").addEventListener("click", login);
