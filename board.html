@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Free Agent Board — Binsu Star</title>
+  <meta name="description" content="Free agent board for the Binsu Star league — players post LFT (looking for a team) and teams post LFP (looking for players)." />
+  <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
+  <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
+  <link href="css/voll-e.css" rel="stylesheet" />
+  <link href="css/home.css" rel="stylesheet" />
+  <link href="css/teams.css" rel="stylesheet" />
+  <script src="js/theme.js"></script>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="wrap">
+      <a class="brand" href="index.html"><img class="brand-logo" src="img/binsu-pfp.jpg" alt="Binsu Star logo" /><span class="word">Binsu Star</span></a>
+      <div class="links menubar">
+        <a href="index.html">Home</a>
+        <a href="guide.html">Guide</a>
+        <details class="menu-dd">
+          <summary>League ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">League</span>
+            <a href="rankings.html">S1 League Rankings</a>
+            <a href="rules.html">League Rules</a>
+          </div>
+        </details>
+        <details class="menu-dd">
+          <summary>Teams ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">Teams</span>
+            <a href="teams.html?cat=Binsu">Teams in Binsu</a>
+            <a href="teams.html?cat=League">Teams in League</a>
+            <a href="teams.html">All teams</a>
+            <a href="board.html" class="on">🔎 Free Agent Board</a>
+          </div>
+        </details>
+        <a href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">Discord</a>
+        <details class="menu-dd">
+          <summary>More ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">Other volleyball tools</span>
+            <a href="player.html">🎥 Analyze a match</a>
+            <a href="voll-e.html">📊 Team Stats</a>
+            <a href="film.html">🎬 Film Room</a>
+          </div>
+        </details>
+      </div>
+    </div>
+  </nav>
+
+  <!-- post a listing -->
+  <section class="section" style="max-width:760px">
+    <div class="section-head"><h2><span class="bar"></span>🔎 Free Agent Board</h2></div>
+    <p class="mini-note" style="margin-top:-6px">Players post <b>LFT</b> (Looking For a Team) and teams post <b>LFP</b> (Looking For Players). Add your contact so people can reach you.</p>
+    <p id="cfgNotice" class="notice" style="display:none"><b>The board isn't connected yet.</b> The league backend (Cloudflare) needs to be set up.</p>
+
+    <div class="card" id="postCard">
+      <div class="seg" id="typeSeg" style="margin-bottom:10px">
+        <button class="on" data-type="LFT">🙋 LFT — I want a team</button>
+        <button data-type="LFP">📣 LFP — my team wants players</button>
+      </div>
+      <div class="row">
+        <input id="fName" type="text" placeholder="Your name / team name" style="flex:1;min-width:170px" />
+        <select id="fRole" style="min-width:150px">
+          <option value="">Position (optional)…</option>
+        </select>
+      </div>
+      <div class="row"><input id="fDiscord" type="text" placeholder="💬 Discord (how people reach you)" style="flex:1;min-width:200px" /></div>
+      <div class="row" style="flex-direction:column;align-items:stretch;gap:6px">
+        <textarea id="fMsg" rows="3" placeholder="Short message — e.g. rank, availability, what you're looking for" style="width:100%"></textarea>
+      </div>
+      <div class="row"><button class="btn" id="postBtn">Post to the board →</button><span class="msg" id="postMsg" style="color:var(--muted);font-size:13px"></span></div>
+    </div>
+  </section>
+
+  <!-- board -->
+  <section class="section" style="max-width:960px">
+    <div class="section-head">
+      <h2><span class="bar"></span>Listings</h2>
+      <div class="spacer"></div>
+      <div class="seg" id="filterSeg">
+        <button class="on" data-filter="all">All</button>
+        <button data-filter="LFT">LFT</button>
+        <button data-filter="LFP">LFP</button>
+      </div>
+    </div>
+    <div class="board-grid" id="boardGrid"><p class="empty">Loading the board…</p></div>
+  </section>
+
+  <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · Binsu Star</p>
+
+  <script src="js/api.js"></script>
+  <script src="js/board.js"></script>
+</body>
+</html>

@@ -211,6 +211,33 @@ async function handleApi(req, env, url) {
     await KV.put("team:" + b.id, JSON.stringify(t));
     return json({ ok: true });
   }
+  /* ---- Free-agent board: LFT (looking for team) / LFP (looking for players) ---- */
+  if (p === "/board" && req.method === "GET") {
+    const raw = await KV.get("board");
+    return json(raw ? JSON.parse(raw) : []);
+  }
+  if (p === "/board" && req.method === "POST") {
+    const b = await req.json();
+    const type = b.type === "LFP" ? "LFP" : "LFT";
+    const name = cleanStr(b.name, 40), discord = cleanStr(b.discord, 60), msg = cleanStr(b.msg, 280);
+    const role = ROLES.includes(b.role) ? b.role : "";
+    if (!name || !discord || !msg) return json({ error: "name, contact and message are required" }, 400);
+    const raw = await KV.get("board");
+    const list = raw ? JSON.parse(raw) : [];
+    const post = { id: "p_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), type, name, role, discord, msg, createdAt: Date.now() };
+    list.unshift(post);
+    if (list.length > 200) list.length = 200;
+    await KV.put("board", JSON.stringify(list));
+    return json({ ok: true, id: post.id });
+  }
+  if (p === "/admin/board/delete" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const { id } = await req.json();
+    const raw = await KV.get("board");
+    const list = (raw ? JSON.parse(raw) : []).filter(x => x.id !== id);
+    await KV.put("board", JSON.stringify(list));
+    return json({ ok: true });
+  }
   if (p === "/learn" && req.method === "POST") {
     const b = await req.json();
     const raw = await KV.get("learn");
