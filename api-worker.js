@@ -329,6 +329,27 @@ async function handleApi(req, env, url) {
     await KV.put("coachreqs", JSON.stringify(list));
     return json({ ok: true });
   }
+  /* ---- Match analysis ingest (from the Colab notebook) + read ---- */
+  if (p === "/analyses" && req.method === "GET") {
+    const list = await KV.list({ prefix: "analysis:" });
+    const out = [];
+    for (const k of list.keys) { const a = JSON.parse(await KV.get(k.name)); out.push({ id: a.id, label: a.label, createdAt: a.createdAt }); }
+    out.sort((a, b) => b.createdAt - a.createdAt);
+    return json(out);
+  }
+  if (p === "/analysis" && req.method === "GET") {
+    const raw = await KV.get("analysis:" + url.searchParams.get("id"));
+    if (!raw) return json({ error: "not found" }, 404);
+    return json(JSON.parse(raw));
+  }
+  if (p === "/admin/analysis" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const b = await req.json();
+    const id = "a_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const a = { id, label: cleanStr(b.label, 80) || "Match analysis", report: b.report || {}, createdAt: Date.now() };
+    await KV.put("analysis:" + id, JSON.stringify(a));
+    return json({ ok: true, id });
+  }
   if (p === "/learn" && req.method === "POST") {
     const b = await req.json();
     const raw = await KV.get("learn");
