@@ -1,5 +1,5 @@
 /* ============================================================
-   Voll-E — Volleyball Spike AI Dashboard  (pure JavaScript)
+   Soai — Volleyball Spike AI Dashboard  (pure JavaScript)
    Learns where you spike, your success rate, and draws heat maps.
    No server needed — everything saves in your browser.
    ============================================================ */
@@ -192,7 +192,7 @@ function drawInsights() {
   const data = visibleSpikes();
   const box = document.getElementById("insights");
   if (!data.length) {
-    box.innerHTML = `<p class="empty">Log a few spikes (or press “Generate demo data”) and Voll-E will start reading your habits here.</p>`;
+    box.innerHTML = `<p class="empty">Log a few spikes (or press “Generate demo data”) and Soai will start reading your habits here.</p>`;
     return;
   }
 
@@ -361,7 +361,7 @@ function importData(evt) {
     try {
       const arr = JSON.parse(reader.result);
       if (Array.isArray(arr)) { spikes = arr; save(); render(); setHint("Imported " + arr.length + " spikes."); }
-    } catch { setHint("⚠️ That file wasn’t valid Voll-E data."); }
+    } catch { setHint("⚠️ That file wasn’t valid Soai data."); }
   };
   reader.readAsText(file);
 }

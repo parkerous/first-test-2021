@@ -1,9 +1,9 @@
 /* ============================================================
-   Voll-E Film Room — tag spikes off a video (YouTube or your own
+   Soai Film Room — tag spikes off a video (YouTube or your own
    recording) and map them onto the court, adjusting for the camera
    angle you recorded from (perspective calibration / homography).
 
-   Tagged spikes are saved to the SAME store as the Voll-E dashboard
+   Tagged spikes are saved to the SAME store as the Soai dashboard
    (localStorage "volle_spikes_v1"), so all your stats & heat maps
    include them automatically.
    ============================================================ */
@@ -161,7 +161,7 @@ function onOverlayClick(evt) {
   } else {
     saveTaggedSpike(pending.court, court, pending.norm, p);
     pending = null;
-    setHint("✅ Spike tagged! It's now in your Voll-E stats. Seek to the next rally and tag again.");
+    setHint("✅ Spike tagged! It's now in your Soai stats. Seek to the next rally and tag again.");
   }
   drawOverlay();
   drawMiniCourt();
