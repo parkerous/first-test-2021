@@ -42,8 +42,34 @@ function cleanPlayers(arr) {
     return null;
   }).filter(p => p && p.name).slice(0, 30);
 }
+function cleanStr(s, n) { return String(s == null ? "" : s).trim().slice(0, n); }
+/* build a roster-change log from the old vs new player lists */
+function diffPlayers(oldArr, newArr) {
+  const norm = a => (Array.isArray(a) ? a : []).map(p => typeof p === "string" ? { name: p, role: "" } : { name: (p && p.name) || "", role: (p && p.role) || "" }).filter(p => p.name);
+  const o = norm(oldArr), n = norm(newArr);
+  const oNames = new Set(o.map(p => p.name)), nNames = new Set(n.map(p => p.name));
+  const oRole = Object.fromEntries(o.map(p => [p.name, p.role]));
+  const out = [];
+  for (const p of n) if (!oNames.has(p.name)) out.push(`＋ ${p.name} joined${p.role ? ` (${p.role})` : ""}`);
+  for (const p of o) if (!nNames.has(p.name)) out.push(`－ ${p.name} left`);
+  for (const p of n) if (oNames.has(p.name) && (oRole[p.name] || "") !== (p.role || "")) out.push(`↺ ${p.name}: ${oRole[p.name] || "—"} → ${p.role || "—"}`);
+  return out;
+}
+function appendLog(t, texts) {
+  if (!Array.isArray(t.log)) t.log = [];
+  const now = Date.now();
+  for (const text of texts) t.log.push({ t: now, text });
+  if (t.log.length > 100) t.log = t.log.slice(-100);
+}
 function publicTeam(t) {
-  return { id: t.id, name: t.name, status: t.status, category: t.category || "League", logo: t.logo, jerseyFront: t.jerseyFront, jerseyBack: t.jerseyBack, players: Array.isArray(t.players) ? t.players : [], createdAt: t.createdAt };
+  return {
+    id: t.id, name: t.name, status: t.status, category: t.category || "League",
+    logo: t.logo, banner: t.banner || "", captain: t.captain || "", discord: t.discord || "",
+    jerseyFront: t.jerseyFront, jerseyBack: t.jerseyBack,
+    players: Array.isArray(t.players) ? t.players : [],
+    log: Array.isArray(t.log) ? t.log.slice(-30).reverse() : [],
+    createdAt: t.createdAt,
+  };
 }
 
 /* API routes — return a Response, or null to let a static asset serve it */
@@ -68,8 +94,10 @@ async function handleApi(req, env, url) {
     const team = {
       id, name: String(b.name).slice(0, 60), status: "pending",
       category: b.category === "Binsu" ? "Binsu" : "League",
-      logo: b.logo || "", jerseyFront: b.jerseyFront || "", jerseyBack: b.jerseyBack || "",
-      players: cleanPlayers(b.players),
+      logo: b.logo || "", banner: b.banner || "",
+      captain: cleanStr(b.captain, 40), discord: cleanStr(b.discord, 40),
+      jerseyFront: b.jerseyFront || "", jerseyBack: b.jerseyBack || "",
+      players: cleanPlayers(b.players), log: [],
       passHash: await sha256(b.password), createdAt: Date.now(),
     };
     await KV.put("team:" + id, JSON.stringify(team));
@@ -133,9 +161,24 @@ async function handleApi(req, env, url) {
     if (!raw) return json({ error: "not found" }, 404);
     const t = JSON.parse(raw);
     if (t.passHash !== await sha256(password || "")) return json({ error: "wrong team password" }, 403);
+    const changes = diffPlayers(t.players, players);
     t.players = cleanPlayers(players);
+    appendLog(t, changes);
     await KV.put("team:" + id, JSON.stringify(t));
     return json({ ok: true, players: t.players });
+  }
+  /* a team edits its own info (captain, discord, banner) with its password */
+  if (p === "/team/info" && req.method === "POST") {
+    const { id, password, captain, discord, banner } = await req.json();
+    const raw = await KV.get("team:" + id);
+    if (!raw) return json({ error: "not found" }, 404);
+    const t = JSON.parse(raw);
+    if (t.passHash !== await sha256(password || "")) return json({ error: "wrong team password" }, 403);
+    if (typeof captain === "string") { const v = cleanStr(captain, 40); if (v !== (t.captain || "")) appendLog(t, [`👑 Captain set to ${v || "—"}`]); t.captain = v; }
+    if (typeof discord === "string") t.discord = cleanStr(discord, 40);
+    if (typeof banner === "string" && banner) t.banner = banner;
+    await KV.put("team:" + id, JSON.stringify(t));
+    return json({ ok: true, team: publicTeam(t) });
   }
   /* the admin can edit any team's roster */
   if (p === "/admin/teams/roster" && req.method === "POST") {
@@ -143,11 +186,14 @@ async function handleApi(req, env, url) {
     const { id, players } = await req.json();
     const raw = await KV.get("team:" + id);
     if (!raw) return json({ error: "not found" }, 404);
-    const t = JSON.parse(raw); t.players = cleanPlayers(players);
+    const t = JSON.parse(raw);
+    const changes = diffPlayers(t.players, players);
+    t.players = cleanPlayers(players);
+    appendLog(t, changes);
     await KV.put("team:" + id, JSON.stringify(t));
     return json({ ok: true });
   }
-  /* the admin can edit a team's name, category, logo and jerseys */
+  /* the admin can edit a team's name, category, logo, banner, captain, discord, jerseys */
   if (p === "/admin/teams/update" && req.method === "POST") {
     if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
     const b = await req.json();
@@ -157,6 +203,9 @@ async function handleApi(req, env, url) {
     if (typeof b.name === "string" && b.name.trim()) t.name = b.name.trim().slice(0, 60);
     if (b.category) t.category = b.category === "Binsu" ? "Binsu" : "League";
     if (typeof b.logo === "string" && b.logo) t.logo = b.logo;
+    if (typeof b.banner === "string" && b.banner) t.banner = b.banner;
+    if (typeof b.captain === "string") { const v = cleanStr(b.captain, 40); if (v !== (t.captain || "")) appendLog(t, [`👑 Captain set to ${v || "—"}`]); t.captain = v; }
+    if (typeof b.discord === "string") t.discord = cleanStr(b.discord, 40);
     if (typeof b.jerseyFront === "string" && b.jerseyFront) t.jerseyFront = b.jerseyFront;
     if (typeof b.jerseyBack === "string" && b.jerseyBack) t.jerseyBack = b.jerseyBack;
     await KV.put("team:" + b.id, JSON.stringify(t));

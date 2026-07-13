@@ -126,10 +126,15 @@ function teamCard(t) {
       </details>
 
       <details class="roster-edit">
-        <summary>✏️ Edit team (name · logo · jerseys)</summary>
+        <summary>✏️ Edit team (name · captain · discord · images)</summary>
         <div class="row" style="margin-top:8px"><input id="en_${t.id}" value="${esc(t.name)}" placeholder="Team name" style="flex:1;min-width:180px" /></div>
         <div class="row">
+          <input id="ecap_${t.id}" value="${esc(t.captain || "")}" placeholder="👑 Captain" style="flex:1;min-width:130px" />
+          <input id="edis_${t.id}" value="${esc(t.discord || "")}" placeholder="💬 Discord" style="flex:1;min-width:130px" />
+        </div>
+        <div class="row">
           <label class="btn ghost" style="cursor:pointer">🏷️ Logo<input type="file" accept="image/*" hidden onchange="pickImg('${t.id}','logo',this)" /></label>
+          <label class="btn ghost" style="cursor:pointer">🖼️ Banner<input type="file" accept="image/*" hidden onchange="pickImg('${t.id}','banner',this)" /></label>
           <label class="btn ghost" style="cursor:pointer">👕 Front<input type="file" accept="image/*" hidden onchange="pickImg('${t.id}','jerseyFront',this)" /></label>
           <label class="btn ghost" style="cursor:pointer">👕 Back<input type="file" accept="image/*" hidden onchange="pickImg('${t.id}','jerseyBack',this)" /></label>
           <button class="btn" onclick="saveTeam('${t.id}')">💾 Save</button>
@@ -171,7 +176,7 @@ const edits = {};   /* pending image uploads per team, keyed by id */
 async function pickImg(id, key, input) {
   const f = input.files[0]; if (!f) return;
   edits[id] = edits[id] || {};
-  edits[id][key] = await fileToDataUrl(f, key === "logo" ? 420 : 900);
+  edits[id][key] = await fileToDataUrl(f, key === "logo" ? 420 : key === "banner" ? 1000 : 900);
   const m = document.getElementById("editmsg_" + id);
   if (m) m.textContent = "🖼️ " + key + " ready — click Save.";
 }
@@ -179,9 +184,11 @@ async function saveTeam(id) {
   const m = document.getElementById("editmsg_" + id);
   const name = document.getElementById("en_" + id).value.trim();
   if (!name) { m.textContent = "Team name can't be empty."; return; }
+  const captain = document.getElementById("ecap_" + id).value.trim();
+  const discord = document.getElementById("edis_" + id).value.trim();
   m.textContent = "Saving…";
   try {
-    const r = await apiPost("/admin/teams/update", Object.assign({ id, name }, edits[id] || {}), true);
+    const r = await apiPost("/admin/teams/update", Object.assign({ id, name, captain, discord }, edits[id] || {}), true);
     if (r && r.ok) { delete edits[id]; m.textContent = "✅ Saved"; await refresh(); }
     else m.textContent = "⚠️ " + ((r && r.error) || "failed");
   } catch (e) { m.textContent = "⚠️ " + e.message; }
