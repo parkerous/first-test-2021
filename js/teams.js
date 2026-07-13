@@ -2,7 +2,7 @@
    Soai — Teams: register (pending admin approval) + display approved
    ============================================================ */
 
-const uploads = { logo: "", front: "", back: "" };
+const uploads = { logo: "", banner: "", front: "", back: "" };
 
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 function msg(t) { document.getElementById("regMsg").textContent = t; }
@@ -38,11 +38,13 @@ async function loadTeams() {
           <img class="team-logo" src="${esc(t.logo || "img/mikasa.svg")}" alt="" />
           <div class="ta-meta">
             <div class="nm">${esc(t.name)}</div>
-            <div class="ta-pills"><span class="pending-pill">${esc(t.category || "League")}</span><span class="pending-pill">👥 ${n} player${n === 1 ? "" : "s"}</span></div>
+            <div class="ta-pills"><span class="pending-pill">${esc(t.category || "League")}</span><span class="pending-pill">👥 ${n} player${n === 1 ? "" : "s"}</span>${t.captain ? `<span class="pending-pill">👑 ${esc(t.captain)}</span>` : ""}</div>
           </div>
           <span class="ta-chev" aria-hidden="true">▾</span>
         </summary>
         <div class="ta-body">
+          ${t.banner ? `<div class="team-banner"><img src="${esc(t.banner)}" alt="team banner" /></div>` : ""}
+          ${t.discord ? `<p class="ta-discord">💬 ${/^https?:\/\//i.test(t.discord) ? `<a href="${esc(t.discord)}" target="_blank" rel="noopener">${esc(t.discord)}</a>` : esc(t.discord)}</p>` : ""}
           <h4 class="ta-h">Roster</h4>
           ${rosterBigHtml(players)}
           <div class="jerseys" style="margin-top:16px">
@@ -62,15 +64,17 @@ async function submitTeam() {
   const password = document.getElementById("tPass").value;
   const category = document.getElementById("tCat").value;
   const players = document.getElementById("tPlayers").value.split("\n").map(s => s.trim()).filter(Boolean);
+  const captain = document.getElementById("tCaptain").value.trim();
+  const discord = document.getElementById("tDiscord").value.trim();
   if (!name || !password) { msg("Enter a team name and a password."); return; }
   if (!uploads.logo) { msg("Please add a team logo."); return; }
   msg("Submitting…");
   try {
-    const res = await apiPost("/teams/register", { name, password, category, players, logo: uploads.logo, jerseyFront: uploads.front, jerseyBack: uploads.back });
+    const res = await apiPost("/teams/register", { name, password, category, players, captain, discord, logo: uploads.logo, banner: uploads.banner, jerseyFront: uploads.front, jerseyBack: uploads.back });
     if (res.ok) {
       msg("✅ Submitted! Your team is pending admin approval — it'll appear once approved.");
-      document.getElementById("tName").value = ""; document.getElementById("tPass").value = ""; document.getElementById("tPlayers").value = "";
-      ["logo", "front", "back"].forEach(k => uploads[k] = "");
+      ["tName", "tPass", "tPlayers", "tCaptain", "tDiscord"].forEach(id => document.getElementById(id).value = "");
+      ["logo", "banner", "front", "back"].forEach(k => uploads[k] = "");
       document.querySelectorAll(".uploader").forEach(u => { u.classList.remove("has"); u.querySelector("img").src = ""; });
     } else { msg("⚠️ " + (res.error || "Something went wrong.")); }
   } catch (e) { msg("⚠️ " + e.message); }
@@ -80,6 +84,7 @@ function init() {
   if (!apiConfigured()) document.getElementById("cfgNotice").style.display = "block";
   const cat = getCat(); if (cat) document.getElementById("tCat").value = cat;   // preselect from the menu
   wireUploader("upLogo", "logo");
+  wireUploader("upBanner", "banner");
   wireUploader("upFront", "front");
   wireUploader("upBack", "back");
   document.getElementById("submitBtn").addEventListener("click", submitTeam);

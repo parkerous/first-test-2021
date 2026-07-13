@@ -53,6 +53,23 @@
 .jerseys-big figure { max-width: 340px; }
 @media (max-width: 560px) { .jerseys-big { flex-direction: column; } .jerseys-big figure { max-width: none; } }
 
+/* team banner (wide header image) */
+.team-banner { margin: -20px -20px 16px; border-radius: 16px 16px 0 0; overflow: hidden; max-height: 200px; }
+.team-banner img { width: 100%; height: 100%; max-height: 200px; object-fit: cover; display: block; }
+.team-acc .team-banner { margin: 6px 0 12px; border-radius: 12px; }
+.ta-discord { margin: 0 0 6px; font-size: 13.5px; color: var(--muted); font-weight: 700; }
+.ta-discord a { color: var(--gold); }
+.dc-pill { text-decoration: none; }
+
+/* transfer / roster-change log */
+.changelog { list-style: none; margin: 0; padding: 0; }
+.changelog li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 9px 12px; border-left: 3px solid var(--gold); background: var(--bg); border-radius: 0 10px 10px 0; margin-bottom: 7px; }
+.changelog .cl-text { font-weight: 700; font-size: 13.5px; }
+.changelog .cl-when { color: var(--muted); font-size: 11.5px; white-space: nowrap; flex: none; }
+
+/* manage-panel sub-headings */
+.mng-h { margin: 16px 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--gold); }
+
 /* roster display — mugshot + name cards */
 .roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
 .pcard { display: flex; align-items: center; gap: 11px; background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 9px 11px; }
