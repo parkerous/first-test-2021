@@ -52,6 +52,7 @@
 .lb-row.r1 { border-color: var(--gold); background: linear-gradient(100deg, color-mix(in srgb, var(--gold) 12%, var(--panel)), var(--panel) 55%); }
 .lb-row.hm { opacity: .92; }
 .hm-h { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin: 20px 0 10px; }
+.hm-chip { font-size: 10px; font-weight: 800; letter-spacing: .5px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 6px; vertical-align: 1px; }
 
 /* tier badge colors */
 .tb.t-splus { background: linear-gradient(92deg, var(--gold), var(--yellow)); color: #0d0d10; }
@@ -76,4 +77,5 @@
 .rules-doc li { margin: 3px 0; }
 .rules-edit { width: 100%; min-height: 420px; font: 14px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; padding: 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); resize: vertical; }
 .note-template { background: color-mix(in srgb, var(--yellow) 22%, transparent); border: 1px solid var(--yellow); color: #6a5300; border-radius: 10px; padding: 10px 14px; font-size: 13.5px; margin-bottom: 16px; }
-@media (prefers-color-scheme: dark) { .note-template { color: #f0dca0; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .note-template { color: #f0dca0; } }
+:root[data-theme="dark"] .note-template { color: #f0dca0; }

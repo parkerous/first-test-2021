@@ -22,7 +22,8 @@ kbd {
   font: 800 13px ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   border: 1px solid #000; box-shadow: 0 2px 0 rgba(0,0,0,.35); line-height: 1.2;
 }
-@media (prefers-color-scheme: dark) { kbd { background: #2a2a34; border-color: #000; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) kbd { background: #2a2a34; border-color: #000; } }
+:root[data-theme="dark"] kbd { background: #2a2a34; border-color: #000; }
 
 /* bind cards */
 .bind-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; margin: 8px 0; }
@@ -39,7 +40,8 @@ kbd {
 /* callout box */
 .callout { background: color-mix(in srgb, var(--yellow) 20%, var(--panel)); border: 1px solid var(--yellow); border-radius: 12px; padding: 12px 16px; margin: 10px 0; font-size: 14px; }
 .callout b { color: #6a5300; }
-@media (prefers-color-scheme: dark) { .callout b { color: #f0dca0; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .callout b { color: #f0dca0; } }
+:root[data-theme="dark"] .callout b { color: #f0dca0; }
 
 /* reference tables */
 .gt-wrap { overflow-x: auto; }
