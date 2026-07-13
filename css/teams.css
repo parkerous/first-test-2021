@@ -19,3 +19,9 @@
 .jerseys img { width: 100%; aspect-ratio: 3/4; object-fit: contain; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); }
 .jerseys figcaption { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
 .pending-pill { display:inline-block; font-size: 11px; font-weight: 800; letter-spacing:.5px; text-transform:uppercase; color:#8a6d00; background: color-mix(in srgb, var(--yellow) 35%, transparent); padding: 3px 8px; border-radius: 999px; }
+
+/* single team page */
+.team-head-lg { display: flex; align-items: center; gap: 18px; }
+.jerseys-big img { aspect-ratio: 3/4; max-height: 460px; }
+.jerseys-big figure { max-width: 340px; }
+@media (max-width: 560px) { .jerseys-big { flex-direction: column; } .jerseys-big figure { max-width: none; } }

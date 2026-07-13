@@ -24,12 +24,13 @@ You only do this once. You need a (free) Cloudflare account.
    wrangler kv namespace create SOAI
    ```
 
-4. **Admin password** — the default is **64928** (already baked in), so you can
-   skip this step. To use your own private password instead, run:
+4. **Set your admin password** (kept private — stored only as a Cloudflare secret,
+   never in the code). This is what you type to log into the Admin panel:
    ```
    wrangler secret put ADMIN_KEY
    ```
-   and type a strong password when prompted (this overrides 64928).
+   Type your password when prompted (e.g. `64928`). Admin features stay locked
+   until this secret is set.
 
 5. **Deploy:**
    ```

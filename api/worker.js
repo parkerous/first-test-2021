@@ -21,14 +21,14 @@ async function sha256(s) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(s)));
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
 }
-const DEFAULT_ADMIN_KEY = "64928";   // used if no ADMIN_KEY secret is set
+/* Admin password is PRIVATE: it lives only in the Cloudflare secret ADMIN_KEY
+   (set with `wrangler secret put ADMIN_KEY`), never in this public code. */
 function isAdmin(req, env) {
   const k = req.headers.get("X-Admin-Key");
-  const expected = (env && env.ADMIN_KEY) || DEFAULT_ADMIN_KEY;
-  return !!(k && k === expected);
+  return !!(k && env && env.ADMIN_KEY && k === env.ADMIN_KEY);
 }
 function publicTeam(t) {
-  return { id: t.id, name: t.name, status: t.status, logo: t.logo, jerseyFront: t.jerseyFront, jerseyBack: t.jerseyBack, createdAt: t.createdAt };
+  return { id: t.id, name: t.name, status: t.status, category: t.category || "League", logo: t.logo, jerseyFront: t.jerseyFront, jerseyBack: t.jerseyBack, createdAt: t.createdAt };
 }
 
 export default {
@@ -57,6 +57,7 @@ export default {
         const id = "t_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
         const team = {
           id, name: String(b.name).slice(0, 60), status: "pending",
+          category: b.category === "Binsu" ? "Binsu" : "League",
           logo: b.logo || "", jerseyFront: b.jerseyFront || "", jerseyBack: b.jerseyBack || "",
           passHash: await sha256(b.password), createdAt: Date.now(),
         };
@@ -64,13 +65,23 @@ export default {
         return json({ ok: true, id });
       }
       if (p === "/teams" && req.method === "GET") {
+        const cat = url.searchParams.get("category");
         const list = await KV.list({ prefix: "team:" });
         const out = [];
         for (const k of list.keys) {
           const t = JSON.parse(await KV.get(k.name));
-          if (t.status === "approved") out.push(publicTeam(t));
+          if (t.status !== "approved") continue;
+          if (cat && (t.category || "League") !== cat) continue;
+          out.push(publicTeam(t));
         }
         return json(out);
+      }
+      if (p === "/team" && req.method === "GET") {
+        const raw = await KV.get("team:" + url.searchParams.get("id"));
+        if (!raw) return json({ error: "not found" }, 404);
+        const t = JSON.parse(raw);
+        if (t.status !== "approved") return json({ error: "not found" }, 404);
+        return json(publicTeam(t));
       }
       if (p === "/admin/teams" && req.method === "GET") {
         if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);

@@ -28,7 +28,7 @@
 
     <!-- login -->
     <div class="card" id="loginCard">
-      <p class="mini-note" style="margin-top:0">Only the admin (with the password) can change the slideshow and approve teams. Default password: <b>64928</b> — change it any time by setting a Cloudflare secret (see <code>api/SETUP.md</code>).</p>
+      <p class="mini-note" style="margin-top:0">Only the admin can change the slideshow and approve teams. Enter the admin password you set during setup (your private Cloudflare secret — see <code>api/SETUP.md</code>).</p>
       <div class="row"><input id="apiUrl" type="text" placeholder="Backend URL (skip if already set in js/api.js)" style="flex:1" /></div>
       <div class="row"><input id="adminKeyIn" type="password" placeholder="Admin password" style="flex:1" /><button class="btn" id="loginBtn">Log in</button></div>
       <p class="msg" id="loginMsg" style="color:var(--muted);font-size:13.5px;margin:6px 0 0"></p>

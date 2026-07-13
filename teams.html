@@ -20,7 +20,15 @@
         <a href="guide.html">Guide</a>
         <a href="rankings.html">Binsu League Rankings</a>
         <a href="rules.html">Rules</a>
-        <a href="teams.html" class="on">Teams</a>
+        <details class="menu-dd">
+          <summary>Teams ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">Teams</span>
+            <a href="teams.html?cat=Binsu">Teams in Binsu</a>
+            <a href="teams.html?cat=League">Teams in League</a>
+            <a href="teams.html">All teams</a>
+          </div>
+        </details>
         <a href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">Discord</a>
         <details class="menu-dd">
           <summary>More ▾</summary>
@@ -41,7 +49,10 @@
     <p id="cfgNotice" class="notice" style="display:none"><b>Team registration isn't connected yet.</b> The league backend (Cloudflare) needs to be set up — see <code>api/SETUP.md</code>.</p>
 
     <div class="card" id="regCard">
-      <div class="row"><input id="tName" type="text" placeholder="Team name" style="flex:1;min-width:200px" /></div>
+      <div class="row"><input id="tName" type="text" placeholder="Team name" style="flex:1;min-width:200px" />
+        <label>Category:</label>
+        <select id="tCat" style="min-width:130px"><option value="Binsu">Binsu</option><option value="League">League</option></select>
+      </div>
       <div class="row"><input id="tPass" type="password" placeholder="Team password (to manage your team later)" style="flex:1;min-width:200px" /></div>
       <div class="upload" style="margin:6px 0 12px">
         <label class="uploader" id="upLogo"><div class="lbl">🏷️ Team logo</div><input type="file" accept="image/*" hidden /><img /></label>
@@ -58,7 +69,7 @@
 
   <!-- approved teams -->
   <section class="section">
-    <div class="section-head"><h2><span class="bar"></span>Teams</h2></div>
+    <div class="section-head"><h2><span class="bar"></span><span id="teamsHeading">Teams</span></h2></div>
     <div class="team-grid" id="teamGrid"><p class="empty">Loading teams…</p></div>
   </section>
 
