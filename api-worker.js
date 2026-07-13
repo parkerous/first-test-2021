@@ -61,6 +61,14 @@ function appendLog(t, texts) {
   for (const text of texts) t.log.push({ t: now, text });
   if (t.log.length > 100) t.log = t.log.slice(-100);
 }
+function cleanTitles(arr) { if (!Array.isArray(arr)) return []; return arr.map(s => cleanStr(s, 30)).filter(Boolean).slice(0, 6); }
+function publicProfile(pr) {
+  return {
+    id: pr.id, name: pr.name, roblox: pr.roblox || "", pos: pr.pos || "", bio: pr.bio || "",
+    photo: pr.photo || "", titles: Array.isArray(pr.titles) ? pr.titles : [], verified: !!pr.verified,
+    tagline: pr.tagline || "", createdAt: pr.createdAt,
+  };
+}
 function publicTeam(t) {
   return {
     id: t.id, name: t.name, status: t.status, category: t.category || "League",
@@ -211,31 +219,62 @@ async function handleApi(req, env, url) {
     await KV.put("team:" + b.id, JSON.stringify(t));
     return json({ ok: true });
   }
-  /* ---- Free-agent board: LFT (looking for team) / LFP (looking for players) ---- */
-  if (p === "/board" && req.method === "GET") {
-    const raw = await KV.get("board");
-    return json(raw ? JSON.parse(raw) : []);
+  /* ---- Player profiles ---- */
+  if (p === "/profiles" && req.method === "GET") {
+    const list = await KV.list({ prefix: "profile:" });
+    const out = [];
+    for (const k of list.keys) out.push(publicProfile(JSON.parse(await KV.get(k.name))));
+    out.sort((a, b) => (b.verified - a.verified) || (a.createdAt - b.createdAt));
+    return json(out);
   }
-  if (p === "/board" && req.method === "POST") {
+  if (p === "/profile" && req.method === "GET") {
+    const raw = await KV.get("profile:" + url.searchParams.get("id"));
+    if (!raw) return json({ error: "not found" }, 404);
+    return json(publicProfile(JSON.parse(raw)));
+  }
+  if (p === "/profiles/create" && req.method === "POST") {
     const b = await req.json();
-    const type = b.type === "LFP" ? "LFP" : "LFT";
-    const name = cleanStr(b.name, 40), discord = cleanStr(b.discord, 60), msg = cleanStr(b.msg, 280);
-    const role = ROLES.includes(b.role) ? b.role : "";
-    if (!name || !discord || !msg) return json({ error: "name, contact and message are required" }, 400);
-    const raw = await KV.get("board");
-    const list = raw ? JSON.parse(raw) : [];
-    const post = { id: "p_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), type, name, role, discord, msg, createdAt: Date.now() };
-    list.unshift(post);
-    if (list.length > 200) list.length = 200;
-    await KV.put("board", JSON.stringify(list));
-    return json({ ok: true, id: post.id });
+    const name = cleanStr(b.name, 40);
+    if (!name || !b.password) return json({ error: "name and password are required" }, 400);
+    const id = "u_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const pr = {
+      id, name, roblox: cleanStr(b.roblox, 40), pos: ROLES.includes(b.pos) ? b.pos : "",
+      bio: cleanStr(b.bio, 200), photo: b.photo || "", titles: [], verified: false, tagline: "",
+      passHash: await sha256(b.password), createdAt: Date.now(),
+    };
+    await KV.put("profile:" + id, JSON.stringify(pr));
+    return json({ ok: true, id });
   }
-  if (p === "/admin/board/delete" && req.method === "POST") {
+  if (p === "/profile/update" && req.method === "POST") {
+    const b = await req.json();
+    const raw = await KV.get("profile:" + b.id);
+    if (!raw) return json({ error: "not found" }, 404);
+    const pr = JSON.parse(raw);
+    if (pr.passHash !== await sha256(b.password || "")) return json({ error: "wrong password" }, 403);
+    if (typeof b.name === "string" && b.name.trim()) pr.name = cleanStr(b.name, 40);
+    if (typeof b.roblox === "string") pr.roblox = cleanStr(b.roblox, 40);
+    if (b.pos !== undefined) pr.pos = ROLES.includes(b.pos) ? b.pos : "";
+    if (typeof b.bio === "string") pr.bio = cleanStr(b.bio, 200);
+    if (typeof b.photo === "string" && b.photo) pr.photo = b.photo;
+    await KV.put("profile:" + b.id, JSON.stringify(pr));
+    return json({ ok: true, profile: publicProfile(pr) });
+  }
+  if (p === "/admin/profiles/titles" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const b = await req.json();
+    const raw = await KV.get("profile:" + b.id);
+    if (!raw) return json({ error: "not found" }, 404);
+    const pr = JSON.parse(raw);
+    pr.titles = cleanTitles(b.titles);
+    if (typeof b.verified === "boolean") pr.verified = b.verified;
+    if (typeof b.tagline === "string") pr.tagline = cleanStr(b.tagline, 60);
+    await KV.put("profile:" + b.id, JSON.stringify(pr));
+    return json({ ok: true });
+  }
+  if (p === "/admin/profiles/delete" && req.method === "POST") {
     if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
     const { id } = await req.json();
-    const raw = await KV.get("board");
-    const list = (raw ? JSON.parse(raw) : []).filter(x => x.id !== id);
-    await KV.put("board", JSON.stringify(list));
+    await KV.delete("profile:" + id);
     return json({ ok: true });
   }
   if (p === "/learn" && req.method === "POST") {

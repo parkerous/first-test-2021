@@ -40,31 +40,49 @@ async function loadAll() {
   renderStats();
   renderTeamAdmin();
   loadSite();
-  loadBoard();
+  loadProfiles();
 }
 
-/* ---------- free agent board moderation ---------- */
-let BOARD = [];
-async function loadBoard() {
-  try { BOARD = await apiGet("/board"); renderBoard(); } catch (e) { BOARD = []; renderBoard(); }
+/* ---------- player profile moderation (titles / verified / tagline) ---------- */
+let PROFILES = [];
+async function loadProfiles() {
+  try { PROFILES = await apiGet("/profiles"); renderProfiles(); } catch (e) { PROFILES = []; renderProfiles(); }
 }
-function renderBoard() {
-  const el = document.getElementById("boardAdmin");
-  if (!BOARD.length) { el.innerHTML = `<p class="empty">No board posts.</p>`; return; }
-  el.innerHTML = BOARD.map(p => `
+function renderProfiles() {
+  const el = document.getElementById("profileAdmin");
+  if (!PROFILES.length) { el.innerHTML = `<p class="empty">No player profiles yet.</p>`; return; }
+  el.innerHTML = PROFILES.map(pr => `
     <div class="card" style="background:var(--bg);margin-bottom:8px">
       <div class="row" style="align-items:center">
-        <span class="fa-tag ${p.type}">${p.type === "LFP" ? "📣 LFP" : "🙋 LFT"}</span>
-        <b>${esc(p.name)}</b>${p.role ? ` <span class="pending-pill">${esc(p.role)}</span>` : ""}
+        <b>${esc(pr.name)}</b>${pr.verified ? ` <span class="pf-verified">✔</span>` : ""}${pr.pos ? ` <span class="pending-pill">${esc(pr.pos)}</span>` : ""}
+        ${pr.roblox ? `<span class="mini-note" style="margin:0">🎮 ${esc(pr.roblox)}</span>` : ""}
         <span class="spacer"></span>
-        <button class="btn warn" onclick="deletePost('${p.id}')">🗑 Delete</button>
+        <button class="btn warn" onclick="deleteProfile('${pr.id}')">🗑 Delete</button>
       </div>
-      <p style="margin:8px 0 4px;font-size:14px">${esc(p.msg)}</p>
-      <div class="mini-note" style="margin:0">💬 ${esc(p.discord)}</div>
+      <div class="row" style="margin-top:8px"><input id="pt_${pr.id}" value="${esc((pr.titles || []).join(", "))}" placeholder="Titles (comma-separated) — e.g. S1 Champion, MVP" style="flex:1;min-width:200px" /></div>
+      <div class="row" style="align-items:center">
+        <input id="ptag_${pr.id}" value="${esc(pr.tagline || "")}" placeholder="Tagline (optional)" style="flex:1;min-width:160px" />
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)"><input type="checkbox" id="pv_${pr.id}" ${pr.verified ? "checked" : ""} /> Verified</label>
+        <button class="btn" onclick="saveTitles('${pr.id}')">💾 Save</button>
+        <span class="msg" id="ptm_${pr.id}" style="color:var(--muted);font-size:12.5px"></span>
+      </div>
     </div>`).join("");
 }
-async function deletePost(id) {
-  try { await apiPost("/admin/board/delete", { id }, true); BOARD = BOARD.filter(p => p.id !== id); renderBoard(); }
+async function saveTitles(id) {
+  const m = document.getElementById("ptm_" + id);
+  const titles = document.getElementById("pt_" + id).value.split(",").map(s => s.trim()).filter(Boolean);
+  const tagline = document.getElementById("ptag_" + id).value.trim();
+  const verified = document.getElementById("pv_" + id).checked;
+  m.textContent = "Saving…";
+  try {
+    const r = await apiPost("/admin/profiles/titles", { id, titles, tagline, verified }, true);
+    if (r && r.ok) { const pr = PROFILES.find(x => x.id === id); if (pr) { pr.titles = titles; pr.tagline = tagline; pr.verified = verified; } m.textContent = "✅ Saved"; }
+    else m.textContent = "⚠️ " + ((r && r.error) || "failed");
+  } catch (e) { m.textContent = "⚠️ " + e.message; }
+}
+async function deleteProfile(id) {
+  if (!confirm("Delete this player profile?")) return;
+  try { await apiPost("/admin/profiles/delete", { id }, true); PROFILES = PROFILES.filter(p => p.id !== id); renderProfiles(); }
   catch (e) { /* ignore */ }
 }
 
@@ -235,7 +253,7 @@ function switchTab(name) {
   document.querySelectorAll(".atab").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
   document.getElementById("pane-teams").style.display = name === "teams" ? "block" : "none";
   document.getElementById("pane-ann").style.display = name === "ann" ? "block" : "none";
-  document.getElementById("pane-board").style.display = name === "board" ? "block" : "none";
+  document.getElementById("pane-players").style.display = name === "players" ? "block" : "none";
 }
 
 function init() {
@@ -244,7 +262,7 @@ function init() {
   document.getElementById("addAnnBtn").addEventListener("click", addAnn);
   document.getElementById("saveAnnBtn").addEventListener("click", saveAnns);
   document.getElementById("refreshBtn").addEventListener("click", refresh);
-  document.getElementById("refreshBoardBtn").addEventListener("click", loadBoard);
+  document.getElementById("refreshProfilesBtn").addEventListener("click", loadProfiles);
   document.getElementById("brandFile").addEventListener("change", e => pickBrand(e.target));
   document.getElementById("brandSave").addEventListener("click", saveBrand);
   document.querySelectorAll(".atab").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));

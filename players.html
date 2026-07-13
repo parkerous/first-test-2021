@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Free Agent Board — Binsu Star</title>
-  <meta name="description" content="Free agent board for the Binsu Star league — players post LFT (looking for a team) and teams post LFP (looking for players)." />
+  <title>Player Profiles — Binsu Star</title>
+  <meta name="description" content="Player profiles for the Binsu Star league — players share their preferred position, name and Roblox username; admins award titles." />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
   <link href="css/voll-e.css" rel="stylesheet" />
@@ -35,7 +35,7 @@
             <a href="teams.html?cat=Binsu">Teams in Binsu</a>
             <a href="teams.html?cat=League">Teams in League</a>
             <a href="teams.html">All teams</a>
-            <a href="board.html" class="on">🔎 Free Agent Board</a>
+            <a href="players.html" class="on">👤 Player Profiles</a>
           </div>
         </details>
         <a href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">Discord</a>
@@ -52,48 +52,41 @@
     </div>
   </nav>
 
-  <!-- post a listing -->
+  <!-- create a profile -->
   <section class="section" style="max-width:760px">
-    <div class="section-head"><h2><span class="bar"></span>🔎 Free Agent Board</h2></div>
-    <p class="mini-note" style="margin-top:-6px">Players post <b>LFT</b> (Looking For a Team) and teams post <b>LFP</b> (Looking For Players). Add your contact so people can reach you.</p>
-    <p id="cfgNotice" class="notice" style="display:none"><b>The board isn't connected yet.</b> The league backend (Cloudflare) needs to be set up.</p>
+    <div class="section-head"><h2><span class="bar"></span>👤 Player Profiles</h2></div>
+    <p class="mini-note" style="margin-top:-6px">Make your own player profile — your name, Roblox username and preferred position. Set a password so you can edit it later. Admins award titles &amp; verification.</p>
+    <p id="cfgNotice" class="notice" style="display:none"><b>Profiles aren't connected yet.</b> The league backend (Cloudflare) needs to be set up.</p>
 
-    <div class="card" id="postCard">
-      <div class="seg" id="typeSeg" style="margin-bottom:10px">
-        <button class="on" data-type="LFT">🙋 LFT — I want a team</button>
-        <button data-type="LFP">📣 LFP — my team wants players</button>
+    <div class="card" id="createCard">
+      <div class="row">
+        <input id="cName" type="text" placeholder="Display name" style="flex:1;min-width:160px" />
+        <input id="cRoblox" type="text" placeholder="🎮 Roblox username" style="flex:1;min-width:160px" />
       </div>
       <div class="row">
-        <input id="fName" type="text" placeholder="Your name / team name" style="flex:1;min-width:170px" />
-        <select id="fRole" style="min-width:150px">
-          <option value="">Position (optional)…</option>
-        </select>
+        <select id="cPos" style="min-width:170px"><option value="">Preferred position…</option></select>
+        <input id="cPass" type="password" placeholder="Password (to edit later)" style="flex:1;min-width:160px" />
       </div>
-      <div class="row"><input id="fDiscord" type="text" placeholder="💬 Discord (how people reach you)" style="flex:1;min-width:200px" /></div>
       <div class="row" style="flex-direction:column;align-items:stretch;gap:6px">
-        <textarea id="fMsg" rows="3" placeholder="Short message — e.g. rank, availability, what you're looking for" style="width:100%"></textarea>
+        <textarea id="cBio" rows="2" placeholder="Short bio (optional) — rank, playstyle, etc." style="width:100%"></textarea>
       </div>
-      <div class="row"><button class="btn" id="postBtn">Post to the board →</button><span class="msg" id="postMsg" style="color:var(--muted);font-size:13px"></span></div>
+      <div class="row" style="align-items:center">
+        <label class="uploader" id="cUpAvatar" style="max-width:150px"><div class="lbl">📸 Profile pic</div><input type="file" accept="image/*" hidden /><img /></label>
+        <button class="btn" id="createBtn">Create profile →</button>
+        <span class="msg" id="createMsg" style="color:var(--muted);font-size:13px"></span>
+      </div>
     </div>
   </section>
 
-  <!-- board -->
-  <section class="section" style="max-width:960px">
-    <div class="section-head">
-      <h2><span class="bar"></span>Listings</h2>
-      <div class="spacer"></div>
-      <div class="seg" id="filterSeg">
-        <button class="on" data-filter="all">All</button>
-        <button data-filter="LFT">LFT</button>
-        <button data-filter="LFP">LFP</button>
-      </div>
-    </div>
-    <div class="board-grid" id="boardGrid"><p class="empty">Loading the board…</p></div>
+  <!-- profiles -->
+  <section class="section" style="max-width:1000px">
+    <div class="section-head"><h2><span class="bar"></span>League Players</h2></div>
+    <div class="pf-grid" id="profileGrid"><p class="empty">Loading players…</p></div>
   </section>
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · Binsu Star</p>
 
   <script src="js/api.js"></script>
-  <script src="js/board.js"></script>
+  <script src="js/players.js"></script>
 </body>
 </html>
