@@ -50,10 +50,15 @@
 body {
   margin: 0;
   font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", sans-serif;
-  background: var(--bg);
   color: var(--ink);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(1100px 520px at 88% -6%, rgba(198,151,31,0.12), transparent 60%),
+    radial-gradient(820px 480px at -8% 8%, rgba(255,210,30,0.07), transparent 55%),
+    radial-gradient(900px 700px at 50% 120%, rgba(198,151,31,0.05), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
 }
 
 /* ---------- Header ---------- */
@@ -92,15 +97,22 @@ body {
 @media (max-width: 880px) { .container { grid-template-columns: 1fr; } }
 
 .card {
-  background: var(--panel);
+  position: relative;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 100%, #fff 0%), var(--panel));
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 20px;
   box-shadow: var(--shadow-sm);
   margin-bottom: 22px;
-  transition: box-shadow .18s ease, transform .18s ease;
+  transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
 }
-.card:hover { box-shadow: var(--shadow); }
+.card::before {
+  content: ""; position: absolute; left: 20px; right: 20px; top: 0; height: 2px;
+  background: linear-gradient(92deg, transparent, color-mix(in srgb, var(--gold) 60%, transparent), transparent);
+  opacity: 0; transition: opacity .2s ease;
+}
+.card:hover { box-shadow: var(--shadow); border-color: color-mix(in srgb, var(--gold) 34%, var(--line)); }
+.card:hover::before { opacity: 1; }
 .card h2 {
   margin: 0 0 14px; font-size: 17px; font-weight: 800; letter-spacing: .2px;
   display: flex; align-items: center; gap: 9px;
@@ -133,10 +145,11 @@ select:focus, input:focus { outline: none; border-color: var(--gold); box-shadow
 .btn {
   display: inline-block; font: inherit; font-weight: 800; cursor: pointer; border: none; border-radius: 11px;
   padding: 10px 16px; font-size: 14px; letter-spacing: .2px; text-decoration: none;
-  background: linear-gradient(92deg, var(--gold), var(--gold-lite)); color: #0d0d10;
-  box-shadow: var(--shadow-sm); transition: transform .12s ease, filter .12s ease;
+  background: linear-gradient(100deg, #b8871a, #d3a428 42%, #f0cb52); color: #1a1400;
+  box-shadow: 0 4px 14px rgba(184,135,26,.28), inset 0 1px 0 rgba(255,255,255,.35);
+  transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
 }
-.btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.btn:hover { filter: brightness(1.05); transform: translateY(-1px); box-shadow: 0 7px 20px rgba(184,135,26,.38), inset 0 1px 0 rgba(255,255,255,.4); }
 .btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--gold); box-shadow: none; }
 .btn.ghost:hover { background: rgba(198,151,31,.08); }
 .btn.warn { background: var(--black); color: #fff; }
@@ -151,7 +164,7 @@ select:focus, input:focus { outline: none; border-color: var(--gold); box-shadow
 
 /* ---------- Stat tiles ---------- */
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
-.tile { background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.tile { background: linear-gradient(160deg, color-mix(in srgb, var(--gold) 9%, var(--panel)), var(--bg)); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
 .tile .num { font-size: 27px; font-weight: 900; line-height: 1; color: var(--gold); }
 .tile .lbl { font-size: 12px; color: var(--muted); margin-top: 5px; }
 .tile .num.good { color: var(--good); }
