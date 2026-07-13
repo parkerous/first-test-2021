@@ -29,9 +29,21 @@
       <div class="card">
         <h2>1️⃣ Who are you?</h2>
         <div class="row">
-          <input id="pName" type="text" placeholder="Your name" list="names" style="flex:1;min-width:160px" />
-          <input id="pEmail" type="email" placeholder="Your email (so we can send your report)" style="flex:2;min-width:220px" />
+          <input id="pName" type="text" placeholder="Your name" list="names" style="flex:1;min-width:140px" />
+          <input id="pEmail" type="email" placeholder="Your email (so we can send your report)" style="flex:2;min-width:200px" />
           <datalist id="names"></datalist>
+        </div>
+        <div class="row">
+          <label>My role:</label>
+          <select id="pRole" style="min-width:160px">
+            <option value="Any">Any / not sure</option>
+            <option value="Setter">Setter</option>
+            <option value="Outside">Outside hitter</option>
+            <option value="Opposite">Opposite (right side)</option>
+            <option value="Middle">Middle blocker</option>
+            <option value="Libero">Libero</option>
+          </select>
+          <span class="mini-note" style="margin:0">Your role picks which skills &amp; stats matter most.</span>
         </div>
         <div class="row">
           <input id="ytUrl" type="text" placeholder="Paste a YouTube link…" style="flex:1;min-width:200px" />
@@ -58,6 +70,24 @@
         <p class="hint" id="hint">Enter your name &amp; email, upload your clip, then tap a button for each touch.</p>
 
         <div id="skills" style="margin-top:12px"></div>
+      </div>
+
+      <div class="card">
+        <h2>📢 Read the "who hit" banner <span class="tag">experimental</span></h2>
+        <p class="mini-note">Pause on a frame where Binsu's announcement shows at the top, then read it. Works on <b>uploaded clips only</b> (browsers block reading YouTube pixels). OCR isn't perfect on low-quality video — check the name before logging.</p>
+        <div class="row">
+          <label>Top region %<input id="annPct" type="number" value="15" min="3" max="60" style="width:70px" /></label>
+          <button class="btn" id="readAnnBtn">🔍 Read who hit</button>
+        </div>
+        <canvas id="annCanvas" style="display:none;width:100%;border-radius:8px;margin:6px 0;border:1px solid var(--line)"></canvas>
+        <p class="hint" id="annOut">Load an uploaded clip, pause on the announcement, then press “Read who hit”.</p>
+        <div class="row">
+          <input id="annName" type="text" placeholder="Detected hitter" style="flex:1" />
+          <span class="mini-note" style="margin:0">Log this hit for them:</span>
+          <button class="tagbtn good" data-annhit="kill">Kill</button>
+          <button class="tagbtn mid" data-annhit="in">In</button>
+          <button class="tagbtn bad" data-annhit="error">Error</button>
+        </div>
       </div>
     </div>
 
