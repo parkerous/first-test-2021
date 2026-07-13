@@ -1,13 +1,10 @@
-# Netlify settings for the Soai static site.
-# The site is plain HTML/CSS/JS — there is NO build step. This file stops
-# Netlify from auto-detecting wrangler.toml and trying to build it as a
-# Cloudflare Workers project (which is what made the deploy fail).
+# Netlify settings for the Binsu Star static site.
+# Plain HTML/CSS/JS — no build step. Just publish the repo root as-is.
 [build]
   publish = "."
-  command = "echo 'Static site — nothing to build.'"
 
-# The Cloudflare Worker source, its config, and the api/ folder only need to
-# run on Cloudflare. Don't serve them from the public Netlify site.
+# The Cloudflare Worker source, its config, and the api/ folder only run on
+# Cloudflare — keep them off the public Netlify site.
 [[redirects]]
   from = "/api-worker.js"
   to = "/index.html"
