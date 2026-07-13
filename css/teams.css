@@ -9,7 +9,31 @@
 .uploader img { max-width: 100%; max-height: 120px; border-radius: 8px; margin-top: 8px; display: none; }
 .uploader.has img { display: inline-block; }
 
-.team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+/* teams listing — expandable accordion per team */
+.team-grid { display: flex; flex-direction: column; gap: 14px; }
+.team-acc { background: linear-gradient(180deg, var(--panel), color-mix(in srgb, var(--panel) 93%, var(--bg))); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-sm); overflow: hidden; transition: border-color .15s ease; }
+.team-acc[open] { border-color: color-mix(in srgb, var(--gold) 40%, var(--line)); }
+.team-acc > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+.team-acc > summary::-webkit-details-marker { display: none; }
+.team-acc > summary:hover { background: color-mix(in srgb, var(--gold) 6%, transparent); }
+.team-acc .ta-meta { flex: 1; min-width: 0; }
+.team-acc .ta-meta .nm { font-weight: 800; font-size: 18px; }
+.team-acc .ta-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+.team-acc .ta-chev { font-size: 18px; color: var(--muted); transition: transform .2s ease; flex: none; }
+.team-acc[open] .ta-chev { transform: rotate(180deg); }
+.team-acc .ta-body { padding: 6px 16px 18px; }
+.team-acc .ta-h { margin: 8px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--gold); }
+.team-acc .ta-open { margin-top: 16px; display: inline-block; }
+.team-acc .jerseys figure { max-width: 220px; }
+
+/* big profile-pic roster */
+.roster-big { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 16px; margin-top: 12px; }
+.pbig { text-align: center; }
+.pbig .shot { width: 100%; aspect-ratio: 1 / 1; border-radius: 18px; overflow: hidden; border: 2px solid var(--gold); background: linear-gradient(160deg, var(--gold-lite), var(--gold)); display: grid; place-items: center; box-shadow: var(--shadow-sm); }
+.pbig .shot img { width: 100%; height: 100%; object-fit: cover; }
+.pbig .shot span { font-size: 52px; font-weight: 900; color: #0d0d10; }
+.pbig .nm { margin-top: 9px; font-weight: 800; font-size: 15px; line-height: 1.2; }
+.pbig .rk { color: var(--muted); font-size: 12px; font-weight: 700; margin-top: 2px; }
 .team-card { background: linear-gradient(180deg, var(--panel), color-mix(in srgb, var(--panel) 93%, var(--bg))); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: var(--shadow-sm); }
 .team-card .head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .team-logo { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); background: #111; flex: none; }

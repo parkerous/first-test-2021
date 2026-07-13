@@ -36,7 +36,7 @@ function render() {
       </div>
 
       <h3 style="margin:18px 0 10px;color:var(--gold)">Roster</h3>
-      <div id="rosterView">${rosterCardsHtml(players)}</div>
+      <div id="rosterView">${rosterBigHtml(players)}</div>
 
       <h3 style="margin:22px 0 10px;color:var(--gold)">Jersey</h3>
       <div class="jerseys jerseys-big">

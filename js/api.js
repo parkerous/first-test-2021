@@ -45,6 +45,18 @@ function rosterCardsHtml(players) {
       <div class="pmeta"><span class="rn">#${i + 1}</span><span class="pn">${escHtml(p.name)}</span></div>
     </div>`).join("") + `</div>`;
 }
+/* big-profile-pic roster: large square photo cards per player */
+function rosterBigHtml(players) {
+  players = normPlayers(players);
+  if (!players.length) return `<p class="empty" style="padding:14px">No players added yet.</p>`;
+  return `<div class="roster-big">` + players.map((p, i) => `
+    <div class="pbig">
+      <div class="shot">${p.photo ? `<img src="${escHtml(p.photo)}" alt="" />` : `<span>${escHtml((p.name[0] || "?").toUpperCase())}</span>`}</div>
+      <div class="nm">${escHtml(p.name)}</div>
+      <div class="rk">#${i + 1}</div>
+    </div>`).join("") + `</div>`;
+}
+
 /* editable roster: rows of [mugshot upload][name][remove] + add button.
    Mount into an element; returns { get } to read the current [{name,photo}]. */
 function makeRosterEditor(mountEl, initial) {

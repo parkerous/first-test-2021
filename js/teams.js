@@ -30,20 +30,28 @@ async function loadTeams() {
     const teams = await apiGet("/teams" + (cat ? "?category=" + encodeURIComponent(cat) : ""));
     if (!teams.length) { grid.innerHTML = `<p class="empty">No teams${cat ? " in " + cat : ""} yet — be the first to register!</p>`; return; }
     grid.innerHTML = teams.map(t => {
-      const n = Array.isArray(t.players) ? t.players.length : 0;
+      const players = normPlayers(t.players);
+      const n = players.length;
       return `
-      <a class="team-card" href="team.html?id=${encodeURIComponent(t.id)}" style="text-decoration:none;color:inherit;display:block">
-        <div class="head">
+      <details class="team-acc">
+        <summary>
           <img class="team-logo" src="${esc(t.logo || "img/mikasa.svg")}" alt="" />
-          <div><div class="nm">${esc(t.name)}</div><span class="pending-pill">${esc(t.category || "League")}</span></div>
+          <div class="ta-meta">
+            <div class="nm">${esc(t.name)}</div>
+            <div class="ta-pills"><span class="pending-pill">${esc(t.category || "League")}</span><span class="pending-pill">👥 ${n} player${n === 1 ? "" : "s"}</span></div>
+          </div>
+          <span class="ta-chev" aria-hidden="true">▾</span>
+        </summary>
+        <div class="ta-body">
+          <h4 class="ta-h">Roster</h4>
+          ${rosterBigHtml(players)}
+          <div class="jerseys" style="margin-top:16px">
+            <figure><img src="${esc(t.jerseyFront || "img/mikasa.svg")}" alt="jersey front" /><figcaption>Jersey front</figcaption></figure>
+            <figure><img src="${esc(t.jerseyBack || "img/mikasa.svg")}" alt="jersey back" /><figcaption>Jersey back</figcaption></figure>
+          </div>
+          <a class="btn ghost ta-open" href="team.html?id=${encodeURIComponent(t.id)}">Open full team page →</a>
         </div>
-        <div class="jerseys">
-          <figure><img src="${esc(t.jerseyFront || "img/mikasa.svg")}" alt="jersey front" /><figcaption>Front</figcaption></figure>
-          <figure><img src="${esc(t.jerseyBack || "img/mikasa.svg")}" alt="jersey back" /><figcaption>Back</figcaption></figure>
-        </div>
-        <div class="roster-mini">${n ? `👥 ${n} player${n === 1 ? "" : "s"}` : "👥 No roster yet"}</div>
-        <div class="mini-note" style="margin:8px 0 0;color:var(--gold);font-weight:700">View team page →</div>
-      </a>`;
+      </details>`;
     }).join("");
   } catch (e) { grid.innerHTML = `<p class="empty">Couldn't load teams (${esc(e.message)}).</p>`; }
 }
