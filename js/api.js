@@ -39,10 +39,6 @@ function normPlayers(arr) {
     : { name: (p && p.name) || "", photo: (p && p.photo) || "", role: (p && PLAYER_ROLES.includes(p.role) ? p.role : "") }
   ).filter(p => p.name);
 }
-/* short label for a role pill */
-function roleShort(role) {
-  return ({ "Setter": "S", "Outside Hitter": "OH", "Middle Blocker": "MB", "Opposite": "OPP", "Libero": "L", "All Rounder": "AR", "Sub": "SUB" })[role] || "";
-}
 /* read-only roster display: mugshot + name cards */
 function rosterCardsHtml(players) {
   players = normPlayers(players);
@@ -59,7 +55,7 @@ function rosterBigHtml(players) {
   if (!players.length) return `<p class="empty" style="padding:14px">No players added yet.</p>`;
   return `<div class="roster-big">` + players.map((p, i) => `
     <div class="pbig">
-      <div class="shot">${p.photo ? `<img src="${escHtml(p.photo)}" alt="" />` : `<span>${escHtml((p.name[0] || "?").toUpperCase())}</span>`}${p.role ? `<span class="role-badge" title="${escHtml(p.role)}">${escHtml(roleShort(p.role))}</span>` : ""}</div>
+      <div class="shot">${p.photo ? `<img src="${escHtml(p.photo)}" alt="" />` : `<span>${escHtml((p.name[0] || "?").toUpperCase())}</span>`}</div>
       <div class="nm">${escHtml(p.name)}</div>
       <div class="rk">#${i + 1}${p.role ? ` · ${escHtml(p.role)}` : ""}</div>
     </div>`).join("") + `</div>`;
