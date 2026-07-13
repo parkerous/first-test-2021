@@ -79,7 +79,12 @@
         </label>
         <span class="mini-note" style="margin:0">Tap a button the moment you make each play.</span>
       </div>
-      <p class="hint" id="hint" style="text-align:center">Enter your name, upload your clip, then tap a button for each touch.</p>
+      <div class="row controls" style="margin-top:6px;justify-content:center">
+        <button class="btn" id="markBtn">📌 Mark this moment</button>
+        <label style="color:var(--muted);font-size:13px">or add at <input id="manualTime" type="text" placeholder="m:ss" style="width:66px" /></label>
+        <button class="btn ghost" id="addTimeBtn">＋ Add</button>
+      </div>
+      <p class="hint" id="hint" style="text-align:center">Enter your name, upload your clip, then tap a button (or “Mark this moment”) for each play.</p>
 
       <div id="skills" class="skills-grid" style="margin-top:14px"></div>
     </div>
@@ -113,6 +118,12 @@
       <h2>📊 My stat line</h2>
       <div class="pts-hero" id="ptsHero"></div>
       <div class="statline" id="statline"></div>
+    </div>
+
+    <!-- what the tool learned -->
+    <div class="card">
+      <h2>🧠 What Soai learned from this footage</h2>
+      <div id="learning"></div>
     </div>
 
     <!-- save / email -->

@@ -54,6 +54,7 @@
   content: ""; position: absolute; right: -60px; top: -40px; width: 340px; height: 340px; pointer-events: none;
   background: radial-gradient(circle, rgba(255,210,30,0.18), transparent 62%); filter: blur(6px);
 }
+.hero-ball { position: absolute; right: 3%; bottom: -40px; width: 360px; max-width: 40%; opacity: 0.10; filter: grayscale(1) contrast(1.15); pointer-events: none; z-index: 0; user-select: none; }
 .intro-inner { position: relative; z-index: 1; max-width: 1140px; margin: 0 auto; padding: 48px 22px; display: flex; align-items: center; gap: 30px; flex-wrap: wrap; }
 .binsu-logo {
   width: 136px; height: 136px; border-radius: 50%; object-fit: cover; flex: none; background: #111;

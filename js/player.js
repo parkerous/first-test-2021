@@ -134,6 +134,29 @@ function tag(action, result, whoOverride) {
 function removeEvent(id) { events = events.filter(e => e.id !== id); saveEvents(); render(); }
 function jumpTo(t) { if (player) { player.seek(t); setHint("Jumped to " + fmtTime(t)); } }
 
+/* ---- manual timestamps (mark a moment, add at a typed time, edit note, remove) ---- */
+function markMoment() {
+  const t = +(player ? player.time() : 0).toFixed(2);
+  events.push({ id: "mk-" + events.length + "-" + Math.round(t * 1000), player: profile().name, action: "moment", note: "", t, video: videoLabel });
+  saveEvents(); render();
+  setHint(`📌 Marked ${fmtTime(t)} — add a note in the log below.`);
+}
+function parseTimeInput(s) {
+  s = String(s || "").trim();
+  if (/^\d+(\.\d+)?$/.test(s)) return +s;
+  const m = s.match(/^(\d+):([0-5]?\d)$/);
+  return m ? (+m[1] * 60 + +m[2]) : null;
+}
+function addAtTime() {
+  const t = parseTimeInput(document.getElementById("manualTime").value);
+  if (t == null) { setHint("⚠️ Type a time like 1:23 or 83 (seconds)."); return; }
+  events.push({ id: "mk-" + events.length + "-" + Math.round(t * 1000), player: profile().name, action: "moment", note: "", t: +t.toFixed(2), video: videoLabel });
+  saveEvents(); render();
+  document.getElementById("manualTime").value = "";
+  setHint(`📌 Added a marker at ${fmtTime(t)}.`);
+}
+function editNote(id, val) { const e = events.find(x => x.id === id); if (e) { e.note = val; saveEvents(); } }
+
 /* ============================================================
    Stats
    ============================================================ */
@@ -176,7 +199,7 @@ function computeStats() {
 /* ============================================================
    Render
    ============================================================ */
-function render() { drawStats(); drawLog(); refreshPlayerList(); }
+function render() { drawStats(); drawLog(); drawLearning(); refreshPlayerList(); }
 
 /* map each skill to a stat-line group renderer */
 function groupFor(skill, s) {
@@ -207,15 +230,48 @@ function drawLog() {
   document.getElementById("logCount").textContent = ev.length;
   if (!ev.length) { body.innerHTML = `<tr><td colspan="4" class="empty">No touches logged yet.</td></tr>`; return; }
   body.innerHTML = ev.map(e => {
+    const actions = `<button class="del" style="color:var(--accent2)" onclick="jumpTo(${e.t})" title="Jump to this moment">⏱</button>
+          <button class="del" onclick="removeEvent('${e.id}')" title="Delete">×</button>`;
+    if (e.action === "moment") {
+      return `<tr>
+        <td><b>${fmtTime(e.t)}</b></td>
+        <td>📌 Marker</td>
+        <td><input type="text" value="${escapeHtml(e.note || "")}" placeholder="note…" onchange="editNote('${e.id}', this.value)" style="width:100%;padding:5px 8px;font-size:12.5px" /></td>
+        <td>${actions}</td>
+      </tr>`;
+    }
     const r = SKILLS[e.action].results.find(x => x[0] === e.result);
     return `<tr>
       <td><b>${fmtTime(e.t)}</b></td>
       <td>${SKILLS[e.action].label.slice(2)}</td>
       <td>${r ? r[2] : e.result}</td>
-      <td><button class="del" style="color:var(--accent2)" onclick="jumpTo(${e.t})" title="Jump">⏱</button>
-          <button class="del" onclick="removeEvent('${e.id}')" title="Delete">×</button></td>
+      <td>${actions}</td>
     </tr>`;
   }).join("");
+}
+
+/* ---- what Soai learns from this footage ---- */
+function drawLearning() {
+  const el = document.getElementById("learning");
+  if (!el) return;
+  const ev = myEvents();
+  const skillEv = ev.filter(e => SKILLS[e.action]);
+  const markers = ev.filter(e => e.action === "moment").length;
+  if (!skillEv.length && !markers) {
+    el.innerHTML = `<p class="empty">Tag touches (or mark moments) and Soai will surface what it learns from this footage here.</p>`;
+    return;
+  }
+  const s = computeStats();
+  const counts = {};
+  skillEv.forEach(e => counts[e.action] = (counts[e.action] || 0) + 1);
+  const top = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+  const span = skillEv.length ? Math.max(...skillEv.map(e => e.t)) - Math.min(...skillEv.map(e => e.t)) : 0;
+  let html = `<div class="insight">Learned from <b>${skillEv.length}</b> tagged touches${markers ? ` + <b>${markers}</b> markers` : ""} across <b>${fmtTime(span)}</b> of footage.</div>`;
+  if (top) html += `<div class="insight">Most-used skill: <b>${SKILLS[top].label.slice(2).trim()}</b> (${Math.round(counts[top] / skillEv.length * 100)}%).</div>`;
+  if (s.hit.n) html += `<div class="insight">Hitting tendency: <b>${s.hit.killPct}% kills</b> over ${s.hit.n} swings.</div>`;
+  if (s.serve.n) html += `<div class="insight">Serving: <b>${s.serve.aces} aces</b> from ${s.serve.n} (${s.serve.acePct}%).</div>`;
+  if (s.receive.n) html += `<div class="insight">Passing average: <b>${s.receive.avg.toFixed(2)}/3</b>.</div>`;
+  el.innerHTML = html;
 }
 
 function refreshPlayerList() {
@@ -503,6 +559,9 @@ function init() {
   const gameSel = document.getElementById("pGame");
   if (gameSel) gameSel.addEventListener("change", () => { saveProfile(); document.getElementById("annPct").value = gameProfile().topPct; });
   document.getElementById("scanBtn").addEventListener("click", selfStudy);
+  document.getElementById("markBtn").addEventListener("click", markMoment);
+  document.getElementById("addTimeBtn").addEventListener("click", addAtTime);
+  document.getElementById("manualTime").addEventListener("keydown", e => { if (e.key === "Enter") addAtTime(); });
   document.getElementById("pName").addEventListener("input", render);
   document.getElementById("pName").addEventListener("change", saveProfile);
   document.getElementById("pEmail").addEventListener("change", saveProfile);
