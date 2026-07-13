@@ -41,6 +41,7 @@ async function loadAll() {
   renderTeamAdmin();
   loadSite();
   loadProfiles();
+  loadCoaching();
 }
 
 /* ---------- player profile moderation (titles / verified / tagline) ---------- */
@@ -248,12 +249,60 @@ async function saveRoster(id) {
   } catch (e) { m.textContent = "⚠️ " + e.message; }
 }
 
+/* ---------- coaching admin (coaches + requests) ---------- */
+let COACHES = [], REQS = [], coachPhoto = "";
+async function loadCoaching() {
+  try { COACHES = await apiGet("/coaches"); } catch (e) { COACHES = []; }
+  renderCoachAdmin();
+  try { REQS = await adminGet("/admin/coaching/requests"); } catch (e) { REQS = []; }
+  renderReqAdmin();
+}
+function renderCoachAdmin() {
+  const el = document.getElementById("coachAdmin");
+  if (!COACHES.length) { el.innerHTML = `<p class="empty">No coaches yet.</p>`; return; }
+  el.innerHTML = COACHES.map(c => `
+    <div class="card" style="background:var(--bg);margin-bottom:8px">
+      <div class="row" style="align-items:center">
+        <b>${esc(c.name)}</b>${c.pos ? ` <span class="pending-pill">${esc(c.pos)}</span>` : ""}
+        ${c.discord ? `<span class="mini-note" style="margin:0">💬 ${esc(c.discord)}</span>` : ""}
+        <span class="spacer"></span>
+        <button class="btn warn" onclick="deleteCoach('${c.id}')">🗑 Delete</button>
+      </div>
+      ${c.blurb ? `<p style="margin:8px 0 0;font-size:13.5px">${esc(c.blurb)}</p>` : ""}
+    </div>`).join("");
+}
+async function pickCoachPhoto(input) { const f = input.files[0]; if (!f) return; coachPhoto = await fileToDataUrl(f, 400); document.getElementById("coMsg").textContent = "📸 Photo ready — click Add coach."; }
+async function addCoach() {
+  const m = document.getElementById("coMsg");
+  const name = document.getElementById("coName").value.trim();
+  if (!name) { m.textContent = "Enter a coach name."; return; }
+  m.textContent = "Adding…";
+  try {
+    const r = await apiPost("/admin/coaches/add", { name, pos: document.getElementById("coPos").value, discord: document.getElementById("coDiscord").value.trim(), blurb: document.getElementById("coBlurb").value.trim(), photo: coachPhoto }, true);
+    if (r && r.ok) { m.textContent = "✅ Coach added"; ["coName", "coDiscord", "coBlurb"].forEach(id => document.getElementById(id).value = ""); document.getElementById("coPos").value = ""; coachPhoto = ""; await loadCoaching(); }
+    else m.textContent = "⚠️ " + ((r && r.error) || "failed");
+  } catch (e) { m.textContent = "⚠️ " + e.message; }
+}
+async function deleteCoach(id) { if (!confirm("Delete this coach?")) return; await apiPost("/admin/coaches/delete", { id }, true); COACHES = COACHES.filter(c => c.id !== id); renderCoachAdmin(); }
+function renderReqAdmin() {
+  const el = document.getElementById("reqAdmin");
+  if (!REQS.length) { el.innerHTML = `<p class="empty">No coaching requests.</p>`; return; }
+  el.innerHTML = REQS.map(r => `
+    <div class="card" style="background:var(--bg);margin-bottom:8px">
+      <div class="row" style="align-items:center"><b>${esc(r.name)}</b>${r.pos ? ` <span class="pending-pill">${esc(r.pos)}</span>` : ""}${r.roblox ? ` <span class="mini-note" style="margin:0">🎮 ${esc(r.roblox)}</span>` : ""}<span class="spacer"></span><button class="btn warn" onclick="deleteReq('${r.id}')">🗑</button></div>
+      <p style="margin:8px 0 0;font-size:13.5px">${esc(r.msg)}</p>
+      ${r.coach ? `<div class="mini-note" style="margin:4px 0 0">Prefers coach: ${esc(r.coach)}</div>` : ""}
+    </div>`).join("");
+}
+async function deleteReq(id) { await apiPost("/admin/coaching/requests/delete", { id }, true); REQS = REQS.filter(x => x.id !== id); renderReqAdmin(); }
+
 /* ---------- tabs ---------- */
 function switchTab(name) {
   document.querySelectorAll(".atab").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
   document.getElementById("pane-teams").style.display = name === "teams" ? "block" : "none";
   document.getElementById("pane-ann").style.display = name === "ann" ? "block" : "none";
   document.getElementById("pane-players").style.display = name === "players" ? "block" : "none";
+  document.getElementById("pane-coaching").style.display = name === "coaching" ? "block" : "none";
 }
 
 function init() {
@@ -263,6 +312,10 @@ function init() {
   document.getElementById("saveAnnBtn").addEventListener("click", saveAnns);
   document.getElementById("refreshBtn").addEventListener("click", refresh);
   document.getElementById("refreshProfilesBtn").addEventListener("click", loadProfiles);
+  (typeof PLAYER_ROLES !== "undefined" ? PLAYER_ROLES : []).forEach(r => { const o = document.createElement("option"); o.value = r; o.textContent = r; document.getElementById("coPos").appendChild(o); });
+  document.getElementById("coAddBtn").addEventListener("click", addCoach);
+  document.getElementById("coPhoto").addEventListener("change", e => pickCoachPhoto(e.target));
+  document.getElementById("refreshCoachBtn").addEventListener("click", loadCoaching);
   document.getElementById("brandFile").addEventListener("change", e => pickBrand(e.target));
   document.getElementById("brandSave").addEventListener("click", saveBrand);
   document.querySelectorAll(".atab").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));

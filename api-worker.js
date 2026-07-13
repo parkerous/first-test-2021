@@ -62,6 +62,9 @@ function appendLog(t, texts) {
   if (t.log.length > 100) t.log = t.log.slice(-100);
 }
 function cleanTitles(arr) { if (!Array.isArray(arr)) return []; return arr.map(s => cleanStr(s, 30)).filter(Boolean).slice(0, 6); }
+function publicCoach(c) {
+  return { id: c.id, name: c.name, pos: c.pos || "", discord: c.discord || "", blurb: c.blurb || "", photo: c.photo || "", createdAt: c.createdAt };
+}
 function publicProfile(pr) {
   return {
     id: pr.id, name: pr.name, roblox: pr.roblox || "", pos: pr.pos || "", bio: pr.bio || "",
@@ -275,6 +278,55 @@ async function handleApi(req, env, url) {
     if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
     const { id } = await req.json();
     await KV.delete("profile:" + id);
+    return json({ ok: true });
+  }
+
+  /* ---- Coaching: admin-managed coaches + coaching requests ---- */
+  if (p === "/coaches" && req.method === "GET") {
+    const list = await KV.list({ prefix: "coach:" });
+    const out = [];
+    for (const k of list.keys) out.push(publicCoach(JSON.parse(await KV.get(k.name))));
+    out.sort((a, b) => a.createdAt - b.createdAt);
+    return json(out);
+  }
+  if (p === "/admin/coaches/add" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const b = await req.json();
+    const name = cleanStr(b.name, 40);
+    if (!name) return json({ error: "name is required" }, 400);
+    const id = "c_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const c = { id, name, pos: ROLES.includes(b.pos) ? b.pos : "", discord: cleanStr(b.discord, 60), blurb: cleanStr(b.blurb, 200), photo: b.photo || "", createdAt: Date.now() };
+    await KV.put("coach:" + id, JSON.stringify(c));
+    return json({ ok: true, id });
+  }
+  if (p === "/admin/coaches/delete" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const { id } = await req.json();
+    await KV.delete("coach:" + id);
+    return json({ ok: true });
+  }
+  if (p === "/coaching/request" && req.method === "POST") {
+    const b = await req.json();
+    const name = cleanStr(b.name, 40), msg = cleanStr(b.msg, 280);
+    if (!name || !msg) return json({ error: "name and message are required" }, 400);
+    const raw = await KV.get("coachreqs");
+    const list = raw ? JSON.parse(raw) : [];
+    list.unshift({ id: "r_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, roblox: cleanStr(b.roblox, 40), pos: ROLES.includes(b.pos) ? b.pos : "", coach: cleanStr(b.coach, 40), msg, createdAt: Date.now() });
+    if (list.length > 200) list.length = 200;
+    await KV.put("coachreqs", JSON.stringify(list));
+    return json({ ok: true });
+  }
+  if (p === "/admin/coaching/requests" && req.method === "GET") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const raw = await KV.get("coachreqs");
+    return json(raw ? JSON.parse(raw) : []);
+  }
+  if (p === "/admin/coaching/requests/delete" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const { id } = await req.json();
+    const raw = await KV.get("coachreqs");
+    const list = (raw ? JSON.parse(raw) : []).filter(x => x.id !== id);
+    await KV.put("coachreqs", JSON.stringify(list));
     return json({ ok: true });
   }
   if (p === "/learn" && req.method === "POST") {

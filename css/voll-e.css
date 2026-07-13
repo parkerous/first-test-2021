@@ -212,6 +212,16 @@ td select { padding: 4px 6px; font-size: 12px; }
   .card { padding: 16px; }
 }
 
+/* ---------- Site footer (Discord + links, moved from the top bar) ---------- */
+.site-footer { margin-top: 44px; border-top: 2px solid var(--gold); background: radial-gradient(900px 240px at 15% -60%, rgba(255,210,30,.12), transparent 60%), linear-gradient(120deg, #0d0d10, #1c1c22); }
+.sf-inner { max-width: 1140px; margin: 0 auto; padding: 28px 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+.sf-discord { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 15px; text-decoration: none; color: #fff; background: linear-gradient(92deg, #5865F2, #7289da); padding: 12px 22px; border-radius: 999px; box-shadow: 0 6px 18px rgba(88,101,242,.35); transition: transform .12s ease, filter .12s ease; }
+.sf-discord:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.sf-links { display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: center; }
+.sf-links a { color: #cfcfd6; text-decoration: none; font-weight: 700; font-size: 14px; }
+.sf-links a:hover { color: var(--gold-lite); }
+.sf-copy { color: #9a9aa4; font-size: 12.5px; }
+
 /* ---------- Footer / credit ---------- */
 .footer-note { text-align: center; color: var(--muted); font-size: 13px; margin: 14px 0 40px; }
 .footer-note a { color: var(--gold); font-weight: 600; }

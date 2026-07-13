@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Coaching — Binsu Star</title>
+  <meta name="description" content="Binsu Star coaching — find a coach by position, message them on Discord or request coaching from the site." />
+  <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
+  <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
+  <link href="css/voll-e.css" rel="stylesheet" />
+  <link href="css/home.css" rel="stylesheet" />
+  <link href="css/teams.css" rel="stylesheet" />
+  <script src="js/theme.js"></script>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="wrap">
+      <a class="brand" href="index.html"><img class="brand-logo" src="img/binsu-pfp.jpg" alt="Binsu Star logo" /><span class="word">Binsu Star</span></a>
+      <div class="links menubar">
+        <a href="index.html">Home</a>
+        <a href="guide.html">Guide</a>
+        <details class="menu-dd">
+          <summary>League ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">League</span>
+            <a href="rankings.html">S1 League Rankings</a>
+            <a href="rules.html">League Rules</a>
+            <a href="schedule.html">📅 S2 Schedule</a>
+            <a href="standings.html">📊 S2 Standings</a>
+          </div>
+        </details>
+        <details class="menu-dd">
+          <summary>Teams ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">Teams</span>
+            <a href="teams.html?cat=Binsu">Teams in Binsu</a>
+            <a href="teams.html?cat=League">Teams in League</a>
+            <a href="teams.html">All teams</a>
+            <a href="players.html">👤 Player Profiles</a>
+          </div>
+        </details>
+        <a href="coaching.html" class="on">Coaching</a>
+        <details class="menu-dd">
+          <summary>More ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">Other volleyball tools</span>
+            <a href="player.html">🎥 Analyze a match</a>
+            <a href="voll-e.html">📊 Team Stats</a>
+            <a href="film.html">🎬 Film Room</a>
+          </div>
+        </details>
+      </div>
+    </div>
+  </nav>
+
+  <!-- featured coaching video (auto-plays, muted, when scrolled into view) -->
+  <section class="section" style="max-width:1000px">
+    <div class="section-head"><h2><span class="bar"></span>🏐 Coaching</h2></div>
+    <p class="mini-note" style="margin-top:-6px">Level up your game — watch the featured breakdown, then find a coach by position. Message them on Discord, or request coaching straight from the site.</p>
+    <figure class="feature-video">
+      <div class="fv-frame"><div id="featVideo"></div></div>
+      <figcaption>▶ Featured — plays automatically as you scroll to it (tap for sound)</figcaption>
+    </figure>
+  </section>
+
+  <!-- coaches by position -->
+  <section class="section" style="max-width:1000px">
+    <div class="section-head"><h2><span class="bar"></span>Coaches by position</h2></div>
+    <div id="coachesByPos"><p class="empty">Loading coaches…</p></div>
+  </section>
+
+  <!-- request coaching -->
+  <section class="section" style="max-width:720px">
+    <div class="section-head"><h2><span class="bar"></span>Request coaching</h2></div>
+    <p class="mini-note" style="margin-top:-6px">Prefer to ask through the site? Send a request and a coach will reach out.</p>
+    <div class="card" id="reqCard">
+      <div class="row">
+        <input id="rqName" type="text" placeholder="Your name" style="flex:1;min-width:150px" />
+        <input id="rqRoblox" type="text" placeholder="🎮 Roblox username" style="flex:1;min-width:150px" />
+      </div>
+      <div class="row">
+        <select id="rqPos" style="min-width:170px"><option value="">Position you want help with…</option></select>
+        <input id="rqCoach" type="text" placeholder="Preferred coach (optional)" style="flex:1;min-width:150px" />
+      </div>
+      <div class="row" style="flex-direction:column;align-items:stretch;gap:6px">
+        <textarea id="rqMsg" rows="3" placeholder="What do you want to work on?" style="width:100%"></textarea>
+      </div>
+      <div class="row"><button class="btn" id="rqBtn">Send request →</button><span class="msg" id="rqMsgOut" style="color:var(--muted);font-size:13px"></span></div>
+    </div>
+  </section>
+
+  <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · Binsu Star · Coaching</p>
+
+  <script src="js/api.js"></script>
+  <script src="js/coaching.js"></script>
+</body>
+</html>
