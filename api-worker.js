@@ -63,7 +63,7 @@ function appendLog(t, texts) {
 }
 function cleanTitles(arr) { if (!Array.isArray(arr)) return []; return arr.map(s => cleanStr(s, 30)).filter(Boolean).slice(0, 6); }
 function publicCoach(c) {
-  return { id: c.id, name: c.name, pos: c.pos || "", discord: c.discord || "", blurb: c.blurb || "", photo: c.photo || "", createdAt: c.createdAt };
+  return { id: c.id, name: c.name, pos: c.pos || "", discord: c.discord || "", blurb: c.blurb || "", photo: c.photo || "", banner: c.banner || "", createdAt: c.createdAt };
 }
 function publicProfile(pr) {
   return {
@@ -295,7 +295,7 @@ async function handleApi(req, env, url) {
     const name = cleanStr(b.name, 40);
     if (!name) return json({ error: "name is required" }, 400);
     const id = "c_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    const c = { id, name, pos: ROLES.includes(b.pos) ? b.pos : "", discord: cleanStr(b.discord, 60), blurb: cleanStr(b.blurb, 200), photo: b.photo || "", createdAt: Date.now() };
+    const c = { id, name, pos: ROLES.includes(b.pos) ? b.pos : "", discord: cleanStr(b.discord, 60), blurb: cleanStr(b.blurb, 200), photo: b.photo || "", banner: b.banner || "", createdAt: Date.now() };
     await KV.put("coach:" + id, JSON.stringify(c));
     return json({ ok: true, id });
   }

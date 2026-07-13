@@ -59,19 +59,21 @@
 .fv-frame iframe, .fv-frame > div { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .feature-video figcaption { margin-top: 8px; color: var(--muted); font-size: 13px; text-align: center; }
 
-/* coaches by position */
-.pos-group { margin-bottom: 24px; }
-.pos-h { color: var(--gold); font-size: 15px; text-transform: uppercase; letter-spacing: .6px; margin: 0 0 12px; border-left: 3px solid var(--gold); padding-left: 10px; }
-.coach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
-.coach-card { display: flex; gap: 12px; background: linear-gradient(180deg, var(--panel), color-mix(in srgb, var(--panel) 93%, var(--bg))); border: 1px solid var(--line); border-radius: 16px; padding: 14px; box-shadow: var(--shadow-sm); }
-.cc-avatar { width: 54px; height: 54px; border-radius: 50%; flex: none; overflow: hidden; border: 2px solid var(--gold); background: linear-gradient(160deg, var(--gold-lite), var(--gold)); display: grid; place-items: center; }
-.cc-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.cc-avatar span { font-weight: 900; font-size: 22px; color: #0d0d10; }
-.cc-body { min-width: 0; }
-.cc-name { font-weight: 800; font-size: 16px; }
-.cc-blurb { margin: 4px 0 9px; font-size: 13px; color: var(--muted); line-height: 1.45; }
-a.cc-dc { font-size: 13px; padding: 8px 13px; }
-.cc-dc.chip { display: inline-block; font-size: 12.5px; font-weight: 700; color: var(--muted); background: var(--bg); border: 1px solid var(--line); padding: 5px 11px; border-radius: 999px; }
+/* coaches collection — big banner tiles, 3 in a row */
+.coach-collection { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.coach-tile { background: linear-gradient(180deg, var(--panel), color-mix(in srgb, var(--panel) 93%, var(--bg))); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow-sm); transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+.coach-tile:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: color-mix(in srgb, var(--gold) 40%, var(--line)); }
+.ct-banner { position: relative; aspect-ratio: 16 / 10; background: linear-gradient(150deg, var(--gold-lite), var(--gold) 60%, var(--black)); display: grid; place-items: center; overflow: hidden; }
+.ct-banner img { width: 100%; height: 100%; object-fit: cover; }
+.ct-ph { font-size: 64px; font-weight: 900; color: rgba(13,13,16,.55); }
+.ct-pos { position: absolute; left: 10px; bottom: 10px; font-size: 11px; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; color: #0d0d10; background: linear-gradient(92deg, var(--gold-lite), var(--yellow)); padding: 4px 11px; border-radius: 999px; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+.ct-body { padding: 14px 16px 16px; }
+.ct-name { font-weight: 800; font-size: 18px; }
+.ct-blurb { margin: 6px 0 12px; font-size: 13px; color: var(--muted); line-height: 1.45; }
+a.ct-dc { font-size: 13px; padding: 9px 14px; }
+.ct-dc.chip { display: inline-block; font-size: 12.5px; font-weight: 700; color: var(--muted); background: var(--bg); border: 1px solid var(--line); padding: 6px 12px; border-radius: 999px; }
+@media (max-width: 860px) { .coach-collection { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .coach-collection { grid-template-columns: 1fr; } }
 
 /* player profiles */
 .pf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
