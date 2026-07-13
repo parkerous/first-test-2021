@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Mikasa volleyball">
+  <defs>
+    <clipPath id="ball"><circle cx="50" cy="50" r="47"/></clipPath>
+    <radialGradient id="sh" cx="38%" cy="34%" r="70%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="78%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e9e9ee"/>
+    </radialGradient>
+  </defs>
+  <g clip-path="url(#ball)">
+    <circle cx="50" cy="50" r="47" fill="url(#sh)"/>
+    <!-- blue panel (upper) -->
+    <path d="M -6,-6 H 106 V 26 Q 66,30 46,50 Q 28,68 -6,70 Z" fill="#1663c6"/>
+    <!-- yellow panel (lower-right) -->
+    <path d="M 106,106 H 28 Q 40,66 60,52 Q 82,38 106,40 Z" fill="#ffcb14"/>
+    <!-- seam lines -->
+    <path d="M 106,26 Q 66,30 46,50 Q 28,68 -6,70" fill="none" stroke="#0e2f6b" stroke-width="2.4"/>
+    <path d="M 28,106 Q 40,66 60,52 Q 82,38 106,40" fill="none" stroke="#0e2f6b" stroke-width="2.4"/>
+    <!-- subtle highlight -->
+    <ellipse cx="36" cy="30" rx="15" ry="9" fill="#ffffff" opacity="0.35"/>
+  </g>
+  <circle cx="50" cy="50" r="47" fill="none" stroke="#0e2f6b" stroke-width="2.6"/>
+</svg>

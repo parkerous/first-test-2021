@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Soai — My Player Report</title>
   <meta name="description" content="Upload your own volleyball clip, tag your serves, receives, sets and hits, and email yourself a performance report." />
+  <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
   <link href="css/voll-e.css" rel="stylesheet" />
   <link href="css/player.css" rel="stylesheet" />
@@ -13,135 +14,138 @@
 
   <header class="topbar">
     <div class="wrap">
-      <span class="logo">🏐</span>
+      <img class="logo" src="img/mikasa.svg" alt="Soai" />
       <div>
         <h1>My Player Report</h1>
-        <p>Upload your clip · tag your touches · get your stats emailed to you</p>
+        <p>Upload your clip · tap your touches · save or email your report</p>
       </div>
       <span class="made-by">Made by ight</span>
       <a class="home-link" href="index.html">← Home</a>
     </div>
   </header>
 
-  <div class="container">
+  <div class="container" style="grid-template-columns:1fr;max-width:1040px">
 
     <!-- profile -->
-    <div style="grid-column: 1 / -1">
-      <div class="card">
-        <h2>1️⃣ Who are you?</h2>
-        <div class="row">
-          <input id="pName" type="text" placeholder="Your name" list="names" style="flex:1;min-width:140px" />
-          <input id="pEmail" type="email" placeholder="Your email (so we can send your report)" style="flex:2;min-width:200px" />
-          <datalist id="names"></datalist>
-        </div>
-        <div class="row">
-          <label>My role:</label>
-          <select id="pRole" style="min-width:160px">
-            <option value="Any">Any / not sure</option>
-            <option value="Setter">Setter</option>
-            <option value="Outside">Outside hitter</option>
-            <option value="Opposite">Opposite (right side)</option>
-            <option value="Middle">Middle blocker</option>
-            <option value="Libero">Libero</option>
-          </select>
-          <label>Game:</label>
-          <select id="pGame" style="min-width:120px">
-            <option value="Binsu">Binsu</option>
-            <option value="BVL">BVL</option>
-            <option value="CVR">CVR</option>
-            <option value="Other">Other</option>
-          </select>
-          <span class="mini-note" style="margin:0">Role picks your stats; game tunes the announcement reader.</span>
-        </div>
-        <div class="row">
-          <input id="ytUrl" type="text" placeholder="Paste a YouTube or TikTok link…" style="flex:1;min-width:200px" />
-          <button class="btn" id="loadYt">Load link</button>
-          <label class="btn ghost" style="cursor:pointer">📁 Upload my clip<input id="localFile" type="file" accept="video/*" hidden /></label>
-        </div>
+    <div class="card">
+      <h2>1️⃣ Who are you?</h2>
+      <div class="row">
+        <input id="pName" type="text" placeholder="Your name" list="names" style="flex:1;min-width:140px" />
+        <input id="pEmail" type="email" placeholder="Your email (to send your report)" style="flex:2;min-width:200px" />
+        <datalist id="names"></datalist>
+      </div>
+      <div class="row">
+        <label>My role:</label>
+        <select id="pRole" style="min-width:150px">
+          <option value="Any">Any / not sure</option>
+          <option value="Setter">Setter</option>
+          <option value="Outside">Outside hitter</option>
+          <option value="Opposite">Opposite (right side)</option>
+          <option value="Middle">Middle blocker</option>
+          <option value="Libero">Libero</option>
+        </select>
+        <label>Game:</label>
+        <select id="pGame" style="min-width:110px">
+          <option value="Binsu">Binsu</option>
+          <option value="BVL">BVL</option>
+          <option value="CVR">CVR</option>
+          <option value="Other">Other</option>
+        </select>
+        <span class="mini-note" style="margin:0">Role picks your stats; game tunes the announcement reader.</span>
+      </div>
+      <div class="row">
+        <input id="ytUrl" type="text" placeholder="Paste a YouTube or TikTok link…" style="flex:1;min-width:200px" />
+        <button class="btn" id="loadYt">Load link</button>
+        <label class="btn ghost" style="cursor:pointer">📁 Upload my clip<input id="localFile" type="file" accept="video/*" hidden /></label>
       </div>
     </div>
 
-    <!-- video + tag buttons -->
-    <div>
-      <div class="card">
-        <h2>2️⃣ Watch &amp; tap your touches</h2>
-        <div id="stage" class="stage"><div class="stage-empty">Upload your clip or paste a YouTube link above ↑</div></div>
-        <div class="row controls" style="margin-top:10px">
-          <label>Speed
-            <select id="speed">
-              <option value="0.25">0.25×</option><option value="0.5">0.5×</option>
-              <option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option>
-            </select>
-          </label>
-          <span class="mini-note" style="margin:0">Tap a button the moment you make each play.</span>
-        </div>
-        <p class="hint" id="hint">Enter your name &amp; email, upload your clip, then tap a button for each touch.</p>
+    <!-- NOT SAVED warning -->
+    <div class="warnbar">
+      <span style="font-size:20px">⚠️</span>
+      <span><b>Nothing here is saved.</b> When you're done, <b>Email your report</b> or <b>Save it as an image</b> — otherwise it's gone when you leave or clear.</span>
+    </div>
 
-        <div id="skills" style="margin-top:12px"></div>
+    <!-- big video + tag buttons -->
+    <div class="card">
+      <h2>2️⃣ Watch &amp; tap your touches</h2>
+      <div id="stage" class="stage"><div class="stage-empty">Upload your clip or paste a YouTube / TikTok link above ↑</div></div>
+      <div class="row controls" style="margin-top:12px;justify-content:center">
+        <label>Speed
+          <select id="speed">
+            <option value="0.25">0.25×</option><option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option>
+          </select>
+        </label>
+        <span class="mini-note" style="margin:0">Tap a button the moment you make each play.</span>
       </div>
+      <p class="hint" id="hint" style="text-align:center">Enter your name, upload your clip, then tap a button for each touch.</p>
 
-      <div class="card">
-        <h2>📢 Read the "who hit" banner + 🤖 Self-study <span class="tag">experimental</span></h2>
-        <p class="mini-note">Reads the game's announcement (Binsu, BVL, CVR…) to find who hit. Works on <b>uploaded clips only</b> — browsers block reading pixels from YouTube/TikTok embeds. OCR isn't perfect on low-quality video, so check names before trusting them. Pick your <b>Game</b> above first.</p>
-        <div class="row">
-          <label>Top region %<input id="annPct" type="number" value="14" min="3" max="60" style="width:70px" /></label>
-          <button class="btn" id="readAnnBtn">🔍 Read one frame</button>
-        </div>
-        <canvas id="annCanvas" style="display:none;width:100%;border-radius:8px;margin:6px 0;border:1px solid var(--line)"></canvas>
-        <p class="hint" id="annOut">Upload a clip, pick your game, pause on the announcement, then read a frame — or run self-study below.</p>
-        <div class="row">
-          <input id="annName" type="text" placeholder="Detected hitter" style="flex:1" />
-          <span class="mini-note" style="margin:0">Log this hit for them:</span>
-          <button class="tagbtn good" data-annhit="kill">Kill</button>
-          <button class="tagbtn mid" data-annhit="in">In</button>
-          <button class="tagbtn bad" data-annhit="error">Error</button>
-        </div>
-        <div class="row" style="margin-top:10px;border-top:1px solid var(--line);padding-top:12px">
-          <label>Scan every<input id="scanStep" type="number" value="1.5" min="0.5" max="10" step="0.5" style="width:64px" />s</label>
-          <button class="btn" id="scanBtn">🤖 Self-study (auto-scan)</button>
-          <span class="mini-note" style="margin:0">Auto-scans the whole uploaded clip and logs each detected hit.</span>
-        </div>
+      <div id="skills" class="skills-grid" style="margin-top:14px"></div>
+    </div>
+
+    <!-- announcement + self-study -->
+    <div class="card">
+      <h2>📢 Read the "who hit" banner + 🤖 Self-study <span class="tag">experimental</span></h2>
+      <p class="mini-note">Reads the game's announcement (Binsu, BVL, CVR…) to find who hit. Works on <b>uploaded clips only</b> — browsers block reading pixels from YouTube/TikTok embeds. OCR isn't perfect on low-quality video, so check names before trusting them. Pick your <b>Game</b> above first.</p>
+      <div class="row">
+        <label>Top region %<input id="annPct" type="number" value="14" min="3" max="60" style="width:70px" /></label>
+        <button class="btn" id="readAnnBtn">🔍 Read one frame</button>
+      </div>
+      <canvas id="annCanvas" style="display:none;width:100%;border-radius:8px;margin:6px 0;border:1px solid var(--line)"></canvas>
+      <p class="hint" id="annOut">Upload a clip, pick your game, pause on the announcement, then read a frame — or run self-study below.</p>
+      <div class="row">
+        <input id="annName" type="text" placeholder="Detected hitter" style="flex:1" />
+        <span class="mini-note" style="margin:0">Log this hit for them:</span>
+        <button class="tagbtn good" data-annhit="kill">Kill</button>
+        <button class="tagbtn mid" data-annhit="in">In</button>
+        <button class="tagbtn bad" data-annhit="error">Error</button>
+      </div>
+      <div class="row" style="margin-top:10px;border-top:1px solid var(--line);padding-top:12px">
+        <label>Scan every<input id="scanStep" type="number" value="1.5" min="0.5" max="10" step="0.5" style="width:64px" />s</label>
+        <button class="btn" id="scanBtn">🤖 Self-study (auto-scan)</button>
+        <span class="mini-note" style="margin:0">Auto-scans the whole uploaded clip and logs each detected hit.</span>
       </div>
     </div>
 
-    <!-- stat line + report -->
-    <div>
-      <div class="card">
-        <h2>📊 My stat line</h2>
-        <div class="pts-hero" id="ptsHero"></div>
-        <div class="statline" id="statline"></div>
+    <!-- stat line -->
+    <div class="card">
+      <h2>📊 My stat line</h2>
+      <div class="pts-hero" id="ptsHero"></div>
+      <div class="statline" id="statline"></div>
+    </div>
+
+    <!-- save / email -->
+    <div class="card">
+      <h2>💾 Save or send my report</h2>
+      <p class="mini-note">Your report isn't stored anywhere — keep it by emailing it or saving it as an image before you clear or leave.</p>
+      <div class="row">
+        <button class="btn" id="emailBtn">📧 Email me my report</button>
+        <button class="btn" id="saveImgBtn">🖼️ Save as image</button>
+        <button class="btn warn" id="clearBtn">🧹 Finish &amp; clear</button>
       </div>
+      <details class="setup">
+        <summary>⚙️ Optional: auto-send without opening your mail app (EmailJS)</summary>
+        <p class="mini-note">Make a free account at emailjs.com, then paste your IDs here. When all three are filled, reports send automatically.</p>
+        <div class="row"><input id="ejService" type="text" placeholder="Service ID" style="flex:1" /></div>
+        <div class="row"><input id="ejTemplate" type="text" placeholder="Template ID" style="flex:1" /></div>
+        <div class="row"><input id="ejKey" type="text" placeholder="Public key" style="flex:1" /><button class="btn ghost" id="saveEjBtn">Save</button></div>
+      </details>
+    </div>
 
-      <div class="card">
-        <h2>📧 Email my report</h2>
-        <p class="mini-note">We'll build your performance summary and send it to your email. By default it opens your mail app with everything pre-filled — just press Send.</p>
-        <div class="row">
-          <button class="btn" id="emailBtn">📧 Email me my report</button>
-          <button class="btn warn" id="clearBtn">🗑 Clear my touches</button>
-        </div>
-
-        <details class="setup">
-          <summary>⚙️ Optional: auto-send without opening your mail app (EmailJS)</summary>
-          <p class="mini-note">Make a free account at emailjs.com, then paste your IDs here. When all three are filled, reports send automatically.</p>
-          <div class="row"><input id="ejService" type="text" placeholder="Service ID" style="flex:1" /></div>
-          <div class="row"><input id="ejTemplate" type="text" placeholder="Template ID" style="flex:1" /></div>
-          <div class="row"><input id="ejKey" type="text" placeholder="Public key" style="flex:1" /><button class="btn ghost" id="saveEjBtn">Save</button></div>
-        </details>
-      </div>
-
-      <div class="card">
-        <h2>📋 My touches (<span id="logCount">0</span>)</h2>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Time</th><th>Skill</th><th>Result</th><th></th></tr></thead>
-            <tbody id="logBody"></tbody>
-          </table>
-        </div>
+    <!-- touch log -->
+    <div class="card">
+      <h2>📋 My touches (<span id="logCount">0</span>)</h2>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Time</th><th>Skill</th><th>Result</th><th></th></tr></thead>
+          <tbody id="logBody"></tbody>
+        </table>
       </div>
     </div>
   </div>
 
-  <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · your data stays in your browser</p>
+  <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · nothing is saved — email or save an image to keep it</p>
 
   <script src="js/player.js"></script>
 </body>

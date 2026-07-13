@@ -11,7 +11,7 @@
 }
 .nav .wrap { max-width: 1200px; margin: 0 auto; padding: 12px 18px; display: flex; align-items: center; gap: 18px; }
 .nav .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-.nav .brand .logo { font-size: 26px; }
+.nav .brand .logo { width: 30px; height: 30px; display: block; }
 .nav .brand .word {
   font-size: 22px; font-weight: 900; letter-spacing: .5px;
   background: linear-gradient(92deg, var(--gold-lite), var(--gold) 55%, var(--yellow));
@@ -90,7 +90,10 @@
 .ncard .body .row2 { display: flex; align-items: center; justify-content: space-between; }
 .ncard .body .src { font-size: 11.5px; color: var(--muted); }
 .ncard .body a.go { text-decoration: none; font-weight: 800; font-size: 13px; color: var(--gold); }
-.ncard .del { position: absolute; right: 8px; top: 8px; border: none; background: rgba(0,0,0,.35); color: #fff; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-weight: 700; }
+.ncard .del { position: absolute; right: 8px; top: 8px; border: none; background: rgba(0,0,0,.45); color: #fff; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-weight: 700; }
+.ncard .feat { position: absolute; right: 36px; top: 8px; border: none; background: rgba(0,0,0,.45); color: #ffd21e; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 12px; line-height: 1; }
+.ncard .feat:hover { background: var(--yellow); color: #0d0d10; }
+.ncard .feat-badge { position: absolute; left: 12px; bottom: 10px; font-size: 10.5px; font-weight: 900; letter-spacing: .5px; color: #0d0d10; background: linear-gradient(92deg, var(--gold-lite), var(--yellow)); padding: 3px 8px; border-radius: 999px; }
 
 .addform { background: var(--panel); border: 1px dashed var(--gold); border-radius: 14px; padding: 14px; margin-bottom: 16px; }
 .addform .row { margin-bottom: 8px; }

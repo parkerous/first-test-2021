@@ -65,7 +65,7 @@ body {
   position: relative;
 }
 .topbar .wrap { max-width: 1140px; margin: 0 auto; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.logo { font-size: 38px; filter: drop-shadow(0 2px 6px rgba(255,210,30,.35)); }
+.logo { width: 42px; height: 42px; display: block; filter: drop-shadow(0 2px 6px rgba(255,210,30,.35)); }
 .topbar h1 {
   margin: 0; font-size: 27px; font-weight: 800; letter-spacing: .3px;
   background: linear-gradient(92deg, var(--gold-lite), var(--gold) 55%, var(--yellow));

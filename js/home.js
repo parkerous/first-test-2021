@@ -36,10 +36,10 @@ function renderSlides() {
   const items = news.slice(0, 6);
   host.innerHTML = items.map((n, i) => `
     <div class="slide ${i === 0 ? "on" : ""}" data-i="${i}">
-      <div class="bg"></div>
+      <div class="bg" ${n.img ? `style="background-image:linear-gradient(90deg,rgba(13,13,16,.94),rgba(13,13,16,.4)),url('${esc(n.img)}');background-size:cover;background-position:center"` : ""}></div>
       <div class="glow">🏐</div>
       <div class="inner">
-        <span class="league">${esc(n.lg)}</span>
+        <span class="league">${i === 0 ? "⭐ Featured · " : ""}${esc(n.lg)}</span>
         <h2>${esc(n.title)}</h2>
         <p>${esc(n.desc || "")}</p>
         <a class="cta" href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener">Read the latest →</a>
@@ -70,9 +70,11 @@ function renderNews() {
   const grid = document.getElementById("newsGrid");
   grid.innerHTML = news.map((n, i) => `
     <div class="ncard">
-      <div class="top">
+      <div class="top" ${n.img ? `style="background-image:url('${esc(n.img)}');background-size:cover;background-position:center"` : ""}>
         <span class="lg">${esc(n.lg)}</span>
-        <span class="emoji">${esc(n.emoji || "🏐")}</span>
+        ${i === 0 ? `<span class="feat-badge">⭐ Featured</span>` : ""}
+        ${n.img ? "" : `<span class="emoji">${esc(n.emoji || "🏐")}</span>`}
+        <button class="feat" title="Feature this (put it first in the slideshow)" onclick="featureNews(${i})">⭐</button>
         <button class="del" title="Remove" onclick="delNews(${i})">×</button>
       </div>
       <div class="body">
@@ -86,14 +88,18 @@ function renderNews() {
     </div>`).join("");
 }
 function delNews(i) { news.splice(i, 1); save(); renderNews(); renderSlides(); }
+function featureNews(i) {
+  const item = news.splice(i, 1)[0];
+  if (item) { news.unshift(item); save(); renderNews(); renderSlides(); msg(`⭐ Featured “${item.title.slice(0, 40)}” — now leading the slideshow.`); }
+}
 function addNews() {
-  const lg = val("nLg") || "News", title = val("nTitle"), url = val("nUrl"), desc = val("nDesc");
+  const lg = val("nLg") || "News", title = val("nTitle"), url = val("nUrl"), desc = val("nDesc"), img = val("nImg");
   if (!title || !url) { msg("Add at least a headline and a link."); return; }
-  news.unshift({ lg, emoji: "📰", title, desc, src: safeUrl(url).replace(/^https?:\/\//, "").split("/")[0], url });
+  news.unshift({ lg, emoji: "📰", title, desc, img, src: safeUrl(url).replace(/^https?:\/\//, "").split("/")[0], url });
   save(); renderNews(); renderSlides();
-  ["nLg", "nTitle", "nUrl", "nDesc"].forEach(id => document.getElementById(id).value = "");
+  ["nLg", "nTitle", "nUrl", "nDesc", "nImg"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("addform").style.display = "none";
-  msg("Added.");
+  msg("Added — it's now the featured story at the top.");
 }
 function resetNews() { news = DEFAULT_NEWS.slice(); save(); renderNews(); renderSlides(); msg("Reset to the default sources."); }
 

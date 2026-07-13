@@ -15,7 +15,7 @@ const EVENTS_KEY = "volle_player_events_v1";
 const PROFILE_KEY = "volle_player_profile_v1";
 const EMAILJS_KEY = "volle_emailjs_v1";
 
-let events = load(EVENTS_KEY, []);
+let events = [];             // SESSION ONLY — never persisted; cleared when you leave/finish
 let player = null;           // playback abstraction
 let videoLabel = "";
 let lastDetected = "";       // last hitter name read from the announcement
@@ -55,7 +55,7 @@ let scanning = false;   // true while a self-study auto-scan is running
    Storage
    ============================================================ */
 function load(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; } }
-function saveEvents() { localStorage.setItem(EVENTS_KEY, JSON.stringify(events)); }
+function saveEvents() { /* intentionally not persisted — touches live only for this session */ }
 function profile() {
   return {
     name: (document.getElementById("pName").value.trim()) || "Me",
@@ -415,6 +415,64 @@ function saveEmailJS() {
 }
 
 /* ============================================================
+   Save the report as a PNG image (self-contained — draws a canvas)
+   ============================================================ */
+function wrapLines(ctx, text, maxW) {
+  const words = String(text).split(" "), out = []; let cur = "";
+  for (const w of words) { const t = cur ? cur + " " + w : w; if (ctx.measureText(t).width > maxW && cur) { out.push(cur); cur = w; } else cur = t; }
+  if (cur) out.push(cur);
+  return out;
+}
+function saveImage() {
+  const p = profile(), s = computeStats();
+  const order = [...roleDef().key, ...roleDef().skills.filter(k => !roleDef().key.includes(k))];
+  const statLines = order.map(sk => reportLine(sk, s)).filter(Boolean);
+  const W = 780, PAD = 44, scale = 2;
+  const measure = document.createElement("canvas").getContext("2d");
+
+  measure.font = "600 17px sans-serif";
+  const wrapped = statLines.flatMap(l => wrapLines(measure, l, W - PAD * 2));
+  measure.font = "italic 15px sans-serif";
+  const coachLines = wrapLines(measure, coach(s, p.role), W - PAD * 2);
+
+  const H = PAD + 30 + 26 + 118 + wrapped.length * 28 + 16 + coachLines.length * 22 + 40 + PAD;
+  const c = document.createElement("canvas");
+  c.width = W * scale; c.height = H * scale;
+  const ctx = c.getContext("2d"); ctx.scale(scale, scale);
+  ctx.textBaseline = "alphabetic";
+
+  ctx.fillStyle = "#0d0d10"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#c6971f"; ctx.fillRect(0, 0, W, 7);
+
+  let y = PAD + 20;
+  ctx.fillStyle = "#e7c766"; ctx.font = "800 25px sans-serif"; ctx.fillText("SOAI PERFORMANCE REPORT", PAD, y); y += 28;
+  ctx.fillStyle = "#9a9aa4"; ctx.font = "14px sans-serif"; ctx.fillText(`${p.name}  ·  ${p.role}  ·  ${p.game}`, PAD, y); y += 30;
+
+  // points hero
+  ctx.fillStyle = "#161610"; roundRect(ctx, PAD, y, W - PAD * 2, 92, 14); ctx.fill();
+  ctx.font = "900 56px sans-serif"; const ptsW = ctx.measureText(String(s.pts)).width;
+  ctx.fillStyle = "#ffd21e"; ctx.fillText(String(s.pts), PAD + 24, y + 62);
+  ctx.fillStyle = "#cfcfd4"; ctx.font = "700 14px sans-serif"; ctx.fillText("POINTS", PAD + 24 + ptsW + 26, y + 40);
+  ctx.fillStyle = "#9a9aa4"; ctx.font = "12px sans-serif"; ctx.fillText("kills + aces + blocks", PAD + 24 + ptsW + 26, y + 60);
+  y += 92 + 26;
+
+  ctx.font = "600 17px sans-serif"; ctx.fillStyle = "#f0f0f2";
+  for (const line of wrapped) { ctx.fillText(line, PAD, y); y += 28; }
+  y += 8;
+  ctx.font = "italic 15px sans-serif"; ctx.fillStyle = "#e7c766";
+  for (const line of coachLines) { ctx.fillText(line, PAD, y); y += 22; }
+  y += 24;
+  ctx.fillStyle = "#7a7a84"; ctx.font = "13px sans-serif"; ctx.fillText("Made by ight  ·  Soai", PAD, y);
+
+  const a = document.createElement("a");
+  a.href = c.toDataURL("image/png");
+  a.download = `soai-report-${(p.name || "player").replace(/\s+/g, "_")}.png`;
+  a.click();
+  setHint("🖼️ Saved your report as an image to your device.");
+}
+function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+/* ============================================================
    Helpers
    ============================================================ */
 function v(id) { return document.getElementById(id).value.trim(); }
@@ -450,16 +508,23 @@ function init() {
   document.getElementById("pEmail").addEventListener("change", saveProfile);
   document.getElementById("pRole").addEventListener("change", () => { saveProfile(); buildSkillButtons(); render(); });
   document.getElementById("emailBtn").addEventListener("click", emailReport);
+  document.getElementById("saveImgBtn").addEventListener("click", saveImage);
   document.getElementById("saveEjBtn").addEventListener("click", saveEmailJS);
   document.getElementById("readAnnBtn").addEventListener("click", readAnnouncement);
   document.querySelectorAll("[data-annhit]").forEach(b => b.addEventListener("click", () => logAnnouncedHit(b.dataset.annhit)));
   document.getElementById("speed").addEventListener("change", e => { if (player) player.rate(parseFloat(e.target.value)); });
   document.getElementById("clearBtn").addEventListener("click", () => {
-    if (confirm("Clear all touches for " + profile().name + "?")) { events = events.filter(e => e.player !== profile().name); saveEvents(); render(); }
+    if (confirm("Finish & clear all touches for " + profile().name + "?\n\nMake sure you've EMAILED or SAVED AN IMAGE first — this is not saved and can't be undone.")) {
+      events = events.filter(e => e.player !== profile().name); render();
+      setHint("🧹 Cleared. Ready for the next player.");
+    }
   });
 
   render();
   setHint("Enter your name, email & role, upload your clip, then tap a button for each touch.");
+
+  // warn before leaving if there are unsaved touches
+  window.addEventListener("beforeunload", e => { if (events.length) { e.preventDefault(); e.returnValue = ""; } });
 
   // auto-load a link handed over from the front-page search (?v=... or legacy ?yt=...)
   const src = new URLSearchParams(location.search).get("v") || new URLSearchParams(location.search).get("yt");
