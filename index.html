@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Soai — Volleyball News & AI</title>
-  <meta name="description" content="Soai: volleyball news from the world's top leagues, plus AI tools to learn from your own match footage." />
+  <title>Binsu Star — Soai</title>
+  <meta name="description" content="Binsu Star volleyball league: rankings, rules, strategy guide, volleyball news, and match analysis tools." />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
   <link href="css/voll-e.css" rel="stylesheet" />
@@ -12,32 +12,53 @@
 </head>
 <body>
 
-  <!-- top nav -->
+  <!-- top nav — menu bar sits at the far right -->
   <nav class="nav">
     <div class="wrap">
-      <a class="brand" href="index.html"><img class="logo" src="img/mikasa.svg" alt="" /><span class="word">Soai</span></a>
-      <div class="links">
+      <a class="brand" href="index.html"><span class="logo">🏐</span><span class="word">Soai</span></a>
+      <div class="links menubar">
         <a href="index.html" class="on">Home</a>
-        <a href="rankings.html">Rankings</a>
-        <a href="rules.html">Rules</a>
         <a href="guide.html">Guide</a>
+        <a href="rankings.html">Binsu League Rankings</a>
+        <a href="rules.html">Rules</a>
         <a href="player.html">Analyze</a>
-        <a href="#news">News</a>
+        <a href="#news">Volleyball News</a>
         <a href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">Discord</a>
       </div>
     </div>
   </nav>
 
-  <!-- hero slideshow -->
-  <section class="hero">
-    <div class="slides" id="slides"></div>
-    <button class="arrow left" aria-label="Previous">‹</button>
-    <button class="arrow right" aria-label="Next">›</button>
-    <div class="dots" id="dots"></div>
+  <!-- Binsu Star intro -->
+  <section class="intro-hero">
+    <div class="intro-inner">
+      <img class="binsu-logo" src="img/mikasa.svg" alt="Binsu Star logo" />
+      <div class="intro-txt">
+        <span class="league-pill">Binsu Star League</span>
+        <h1>Welcome to Binsu Star</h1>
+        <p>The home of the Binsu Star volleyball league — official player rankings, league rules, and a full strategy guide, all in one place. New here? Start with the guide, then see where you stack up in the rankings.</p>
+        <div class="cta-row">
+          <a class="btn" href="guide.html">📖 Guide</a>
+          <a class="btn" href="rankings.html">🏆 Rankings</a>
+          <a class="btn" href="rules.html">📜 Rules</a>
+          <a class="btn ghost" href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">💬 Discord</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- prioritized quick access -->
+  <section class="section">
+    <div class="section-head"><h2><span class="bar"></span>Binsu Star</h2></div>
+    <div class="tools">
+      <a class="tool" href="guide.html"><div class="t">📖 General Guide</div><div class="d">Settings, key binds, hitter &amp; setter play, and callouts.</div></a>
+      <a class="tool" href="rankings.html"><div class="t">🏆 Binsu League Rankings</div><div class="d">Season 1 Top 5 + Honorable Mentions for every position.</div></a>
+      <a class="tool" href="rules.html"><div class="t">📜 League Rules</div><div class="d">The league's official rules, all in one place.</div></a>
+      <a class="tool" href="player.html"><div class="t">🎥 Analyze a match</div><div class="d">Paste a YouTube/TikTok link or upload a clip to tag touches.</div></a>
+    </div>
   </section>
 
   <!-- analyze / learn search -->
-  <section class="analyze">
+  <section class="analyze" style="margin-top:30px">
     <div class="box">
       <h2>🎥 Analyze a match — paste a YouTube or TikTok link</h2>
       <p class="sub">Drop a game link and Soai opens the analyzer, where it learns from the footage (tag touches, stats, spike habits). Upload the clip for automatic self-study.</p>
@@ -49,7 +70,7 @@
     </div>
   </section>
 
-  <!-- news -->
+  <!-- Volleyball News -->
   <section class="section" id="news">
     <div class="section-head">
       <h2><span class="bar"></span>Volleyball News</h2>
@@ -58,8 +79,16 @@
       <button class="btn ghost" id="resetNews">↺ Reset</button>
     </div>
     <p class="mini-note" style="color:var(--muted);font-size:13px;margin:-6px 0 14px">
-      Curated launchers to real, credited outlets — tap any card to read the latest. Add your own headlines, or try live RSS below.
+      Volleyball news — curated launchers to real, credited outlets. Tap any card to read the latest, or add your own headlines.
     </p>
+
+    <!-- hero news carousel -->
+    <div class="hero news-carousel" style="margin-bottom:18px;border-radius:16px">
+      <div class="slides" id="slides"></div>
+      <button class="arrow left" aria-label="Previous">‹</button>
+      <button class="arrow right" aria-label="Next">›</button>
+      <div class="dots" id="dots"></div>
+    </div>
 
     <!-- Binsu Star Discord — league announcements -->
     <div class="discord-banner">
@@ -87,19 +116,7 @@
     <div class="news-grid" id="newsGrid"></div>
   </section>
 
-  <!-- tools -->
-  <section class="section">
-    <div class="section-head"><h2><span class="bar"></span>Soai</h2></div>
-    <div class="tools">
-      <a class="tool" href="rankings.html"><div class="t">🏆 Rankings</div><div class="d">Tier-list rankings for every position — Setter, Outside, Opposite, Middle, Libero.</div></a>
-      <a class="tool" href="rules.html"><div class="t">📜 League Rules</div><div class="d">The league's official rules, all in one place.</div></a>
-      <a class="tool" href="guide.html"><div class="t">📖 General Guide</div><div class="d">Settings, key binds, hitter & setter play, and callouts.</div></a>
-      <a class="tool" href="player.html"><div class="t">🎥 Analyze a match</div><div class="d">Paste a YouTube/TikTok link or upload a clip to tag touches.</div></a>
-      <a class="tool" href="html-only.html"><div class="t">📄 My first website (2021)</div><div class="d">The very first page I made learning HTML &amp; CSS.</div></a>
-    </div>
-  </section>
-
-  <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · &copy; 2026</p>
+  <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · Binsu Star · &copy; 2026</p>
 
   <script src="js/home.js"></script>
 </body>
