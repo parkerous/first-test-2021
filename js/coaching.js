@@ -36,39 +36,35 @@ function watchVideoScroll() {
   io.observe(el);
 }
 
-/* ---------- coaches by position ---------- */
-function coachCard(c) {
+/* ---------- coaches collection (big banner tiles, 3 in a row) ---------- */
+function coachTile(c) {
   const initial = (c.name[0] || "?").toUpperCase();
+  const bannerImg = c.banner || c.photo;
+  const banner = bannerImg
+    ? `<img src="${esc(bannerImg)}" alt="" />`
+    : `<span class="ct-ph">${esc(initial)}</span>`;
   const dc = c.discord
     ? (/^https?:\/\//i.test(c.discord)
-        ? `<a class="btn ghost cc-dc" href="${esc(c.discord)}" target="_blank" rel="noopener">💬 Message on Discord</a>`
-        : `<span class="cc-dc chip">💬 ${esc(c.discord)}</span>`)
+        ? `<a class="btn ghost ct-dc" href="${esc(c.discord)}" target="_blank" rel="noopener">💬 Message on Discord</a>`
+        : `<span class="ct-dc chip">💬 ${esc(c.discord)}</span>`)
     : "";
   return `
-    <div class="coach-card">
-      <div class="cc-avatar">${c.photo ? `<img src="${esc(c.photo)}" alt="" />` : `<span>${esc(initial)}</span>`}</div>
-      <div class="cc-body">
-        <div class="cc-name">${esc(c.name)}</div>
-        ${c.blurb ? `<p class="cc-blurb">${esc(c.blurb)}</p>` : ""}
+    <div class="coach-tile">
+      <div class="ct-banner">${banner}${c.pos ? `<span class="ct-pos">${esc(c.pos)}</span>` : ""}</div>
+      <div class="ct-body">
+        <div class="ct-name">${esc(c.name)}</div>
+        ${c.blurb ? `<p class="ct-blurb">${esc(c.blurb)}</p>` : ""}
         ${dc}
       </div>
     </div>`;
 }
 function renderCoaches() {
-  const host = document.getElementById("coachesByPos");
+  const host = document.getElementById("coachCollection");
   if (!COACHES.length) { host.innerHTML = `<p class="empty">No coaches added yet — check back soon, or send a request below.</p>`; return; }
-  const byPos = {};
-  COACHES.forEach(c => { const k = c.pos || "General"; (byPos[k] = byPos[k] || []).push(c); });
-  const order = (typeof PLAYER_ROLES !== "undefined" ? PLAYER_ROLES : []).concat(["General"]);
-  let html = "";
-  order.forEach(pos => {
-    if (!byPos[pos]) return;
-    html += `<div class="pos-group"><h3 class="pos-h">${esc(pos)}</h3><div class="coach-grid">${byPos[pos].map(coachCard).join("")}</div></div>`;
-  });
-  host.innerHTML = html || `<p class="empty">No coaches yet.</p>`;
+  host.innerHTML = COACHES.map(coachTile).join("");
 }
 async function loadCoaches() {
-  const host = document.getElementById("coachesByPos");
+  const host = document.getElementById("coachCollection");
   if (!apiConfigured()) { host.innerHTML = `<p class="empty">Coaches will appear once the backend is connected.</p>`; return; }
   try { COACHES = await apiGet("/coaches"); renderCoaches(); }
   catch (e) { host.innerHTML = `<p class="empty">Couldn't load coaches (${esc(e.message)}).</p>`; }

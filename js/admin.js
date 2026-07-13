@@ -250,7 +250,7 @@ async function saveRoster(id) {
 }
 
 /* ---------- coaching admin (coaches + requests) ---------- */
-let COACHES = [], REQS = [], coachPhoto = "";
+let COACHES = [], REQS = [], coachPhoto = "", coachBanner = "";
 async function loadCoaching() {
   try { COACHES = await apiGet("/coaches"); } catch (e) { COACHES = []; }
   renderCoachAdmin();
@@ -272,14 +272,15 @@ function renderCoachAdmin() {
     </div>`).join("");
 }
 async function pickCoachPhoto(input) { const f = input.files[0]; if (!f) return; coachPhoto = await fileToDataUrl(f, 400); document.getElementById("coMsg").textContent = "📸 Photo ready — click Add coach."; }
+async function pickCoachBanner(input) { const f = input.files[0]; if (!f) return; coachBanner = await fileToDataUrl(f, 1000); document.getElementById("coMsg").textContent = "🖼️ Banner ready — click Add coach."; }
 async function addCoach() {
   const m = document.getElementById("coMsg");
   const name = document.getElementById("coName").value.trim();
   if (!name) { m.textContent = "Enter a coach name."; return; }
   m.textContent = "Adding…";
   try {
-    const r = await apiPost("/admin/coaches/add", { name, pos: document.getElementById("coPos").value, discord: document.getElementById("coDiscord").value.trim(), blurb: document.getElementById("coBlurb").value.trim(), photo: coachPhoto }, true);
-    if (r && r.ok) { m.textContent = "✅ Coach added"; ["coName", "coDiscord", "coBlurb"].forEach(id => document.getElementById(id).value = ""); document.getElementById("coPos").value = ""; coachPhoto = ""; await loadCoaching(); }
+    const r = await apiPost("/admin/coaches/add", { name, pos: document.getElementById("coPos").value, discord: document.getElementById("coDiscord").value.trim(), blurb: document.getElementById("coBlurb").value.trim(), photo: coachPhoto, banner: coachBanner }, true);
+    if (r && r.ok) { m.textContent = "✅ Coach added"; ["coName", "coDiscord", "coBlurb"].forEach(id => document.getElementById(id).value = ""); document.getElementById("coPos").value = ""; coachPhoto = ""; coachBanner = ""; await loadCoaching(); }
     else m.textContent = "⚠️ " + ((r && r.error) || "failed");
   } catch (e) { m.textContent = "⚠️ " + e.message; }
 }
@@ -315,6 +316,7 @@ function init() {
   (typeof PLAYER_ROLES !== "undefined" ? PLAYER_ROLES : []).forEach(r => { const o = document.createElement("option"); o.value = r; o.textContent = r; document.getElementById("coPos").appendChild(o); });
   document.getElementById("coAddBtn").addEventListener("click", addCoach);
   document.getElementById("coPhoto").addEventListener("change", e => pickCoachPhoto(e.target));
+  document.getElementById("coBanner").addEventListener("change", e => pickCoachBanner(e.target));
   document.getElementById("refreshCoachBtn").addEventListener("click", loadCoaching);
   document.getElementById("brandFile").addEventListener("change", e => pickBrand(e.target));
   document.getElementById("brandSave").addEventListener("click", saveBrand);
