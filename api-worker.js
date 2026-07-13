@@ -27,12 +27,17 @@ function isAdmin(req, env) {
   const expected = (env && env.ADMIN_KEY) || DEFAULT_ADMIN_KEY;
   return !!(k && k === expected);
 }
+const ROLES = ["Setter", "Outside Hitter", "Middle Blocker", "Opposite", "Libero", "All Rounder", "Sub"];
 function cleanPlayers(arr) {
   if (!Array.isArray(arr)) return [];
   return arr.map(p => {
-    if (typeof p === "string") return { name: p.trim().slice(0, 40), photo: "" };
+    if (typeof p === "string") return { name: p.trim().slice(0, 40), photo: "", role: "" };
     if (p && typeof p === "object") {
-      return { name: String(p.name == null ? "" : p.name).trim().slice(0, 40), photo: typeof p.photo === "string" ? p.photo : "" };
+      return {
+        name: String(p.name == null ? "" : p.name).trim().slice(0, 40),
+        photo: typeof p.photo === "string" ? p.photo : "",
+        role: ROLES.includes(p.role) ? p.role : "",
+      };
     }
     return null;
   }).filter(p => p && p.name).slice(0, 30);
