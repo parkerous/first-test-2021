@@ -28,6 +28,52 @@ async function apiPost(path, body, admin) {
   return r.json();
 }
 
+/* ---- roster helpers (shared by team page + admin) ---- */
+function escHtml(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+/* normalise players to [{name, photo}] (older data was plain strings) */
+function normPlayers(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.map(p => typeof p === "string" ? { name: p, photo: "" } : { name: (p && p.name) || "", photo: (p && p.photo) || "" }).filter(p => p.name);
+}
+/* read-only roster display: mugshot + name cards */
+function rosterCardsHtml(players) {
+  players = normPlayers(players);
+  if (!players.length) return `<p class="empty" style="padding:14px">No players added yet.</p>`;
+  return `<div class="roster">` + players.map((p, i) => `
+    <div class="pcard">
+      <div class="pshot">${p.photo ? `<img src="${escHtml(p.photo)}" alt="" />` : `<span>${escHtml((p.name[0] || "?").toUpperCase())}</span>`}</div>
+      <div class="pmeta"><span class="rn">#${i + 1}</span><span class="pn">${escHtml(p.name)}</span></div>
+    </div>`).join("") + `</div>`;
+}
+/* editable roster: rows of [mugshot upload][name][remove] + add button.
+   Mount into an element; returns { get } to read the current [{name,photo}]. */
+function makeRosterEditor(mountEl, initial) {
+  let players = normPlayers(initial);
+  function render() {
+    mountEl.innerHTML = players.map((p, i) => `
+      <div class="pedit-row" data-i="${i}">
+        <label class="pedit-photo ${p.photo ? "has" : ""}" title="Upload mugshot">
+          <input type="file" accept="image/*" hidden />
+          ${p.photo ? `<img src="${escHtml(p.photo)}" alt="" />` : `<span>＋</span>`}
+        </label>
+        <input class="pedit-name" type="text" value="${escHtml(p.name)}" placeholder="Player name" />
+        <button type="button" class="pedit-del" title="Remove">✕</button>
+      </div>`).join("") + `<button type="button" class="pedit-add btn ghost">＋ Add player</button>`;
+    mountEl.querySelectorAll(".pedit-row").forEach(row => {
+      const i = +row.dataset.i;
+      row.querySelector(".pedit-name").addEventListener("input", e => { players[i].name = e.target.value; });
+      row.querySelector(".pedit-photo input").addEventListener("change", async e => {
+        const f = e.target.files[0]; if (!f) return;
+        players[i].photo = await fileToDataUrl(f, 300); render();
+      });
+      row.querySelector(".pedit-del").addEventListener("click", () => { players.splice(i, 1); render(); });
+    });
+    mountEl.querySelector(".pedit-add").addEventListener("click", () => { players.push({ name: "", photo: "" }); render(); });
+  }
+  render();
+  return { get: () => players.map(p => ({ name: (p.name || "").trim(), photo: p.photo || "" })).filter(p => p.name) };
+}
+
 /* shrink an uploaded image to a data URL (keeps KV small) */
 function fileToDataUrl(file, max = 420) {
   return new Promise((resolve, reject) => {
