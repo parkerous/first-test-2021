@@ -197,6 +197,19 @@ td select { padding: 4px 6px; font-size: 12px; }
 
 .empty { text-align: center; color: var(--muted); padding: 26px; font-size: 14px; }
 
+/* ---------- Mobile (topbar tool pages: player / voll-e / film) ---------- */
+@media (max-width: 640px) {
+  .topbar { padding: 18px 16px; }
+  .topbar .wrap { gap: 10px; }
+  .topbar h1 { font-size: 22px; }
+  .topbar p { font-size: 12.5px; }
+  .topbar .home-link:first-of-type { margin-left: 0; }
+  .topbar .home-link { font-size: 12.5px; padding: 7px 12px; }
+  .made-by { font-size: 10px; padding: 4px 10px; }
+  .container { margin: 18px auto; gap: 16px; }
+  .card { padding: 16px; }
+}
+
 /* ---------- Footer / credit ---------- */
 .footer-note { text-align: center; color: var(--muted); font-size: 13px; margin: 14px 0 40px; }
 .footer-note a { color: var(--gold); font-weight: 600; }
