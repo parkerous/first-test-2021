@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Binsu League Rankings — Soai</title>
-  <meta name="description" content="Every-position tier list rankings for the league." />
+  <title>Season 2 Schedule — Binsu Star</title>
+  <meta name="description" content="Binsu Star Season 2 schedule & results — coming soon." />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
   <link href="css/voll-e.css" rel="stylesheet" />
   <link href="css/home.css" rel="stylesheet" />
-  <link href="css/rankings.css" rel="stylesheet" />
+  <link href="css/season.css" rel="stylesheet" />
   <script src="js/theme.js"></script>
 </head>
 <body>
@@ -24,9 +24,9 @@
           <summary>League ▾</summary>
           <div class="dd-panel">
             <span class="dd-label">League</span>
-            <a href="rankings.html" class="on">S1 League Rankings</a>
+            <a href="rankings.html">S1 League Rankings</a>
             <a href="rules.html">League Rules</a>
-            <a href="schedule.html">📅 S2 Schedule</a>
+            <a href="schedule.html" class="on">📅 S2 Schedule</a>
             <a href="standings.html">📊 S2 Standings</a>
           </div>
         </details>
@@ -54,23 +54,41 @@
     </div>
   </nav>
 
-  <section class="section" style="max-width:820px">
-    <div class="section-head">
-      <h2><span class="bar"></span>🏆 Binsu League Rankings</h2>
-      <div class="spacer"></div>
-      <label style="color:var(--muted);font-size:13px">Season</label>
-      <select id="seasonSel" style="min-width:120px"></select>
+  <header class="s2-hero s2-fade">
+    <div class="s2-hero-inner">
+      <span class="s2-pill">Binsu Star · Season 2</span>
+      <h1>Schedule &amp; Results</h1>
+      <p>Every Season 2 fixture and result — match days, opponents and scores, all in one place.</p>
     </div>
-    <p class="mini-note" style="color:var(--muted);font-size:13px;margin:-6px 0 16px">
-      Official Binsu Star league rankings — Top 10 per position, with final rating and tier grade (HM = honorable mention).
-    </p>
+  </header>
 
-    <div class="postabs" id="postabs"></div>
-    <div id="board"></div>
+  <section class="section" style="max-width:900px">
+    <div class="coming-wrap s2-fade d2">
+      <!-- ghost preview of the fixtures -->
+      <div class="sched-list ghost" id="ghostSched"></div>
+      <!-- coming soon overlay -->
+      <div class="coming-card">
+        <div class="cs-ball">🏐</div>
+        <span class="cs-badge">Coming Soon</span>
+        <h2>The Season 2 schedule isn't out yet</h2>
+        <p>Fixtures and results drop here when S2 kicks off. Keep an eye on the Discord for the announcement.</p>
+      </div>
+    </div>
   </section>
 
-  <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · official Season 1 league rankings</p>
+  <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · Binsu Star · Season 2</p>
 
-  <script src="js/rankings.js"></script>
+  <script>
+    // build shimmer fixture rows behind the "coming soon" card
+    var s = document.getElementById("ghostSched");
+    for (var i = 0; i < 5; i++) {
+      s.insertAdjacentHTML("beforeend",
+        '<div class="sched-row">' +
+          '<div class="side"><span class="dot"></span><span class="sk team"></span></div>' +
+          '<div class="vs">VS</div>' +
+          '<div class="side right"><span class="sk team"></span><span class="dot"></span></div>' +
+        '</div>');
+    }
+  </script>
 </body>
 </html>

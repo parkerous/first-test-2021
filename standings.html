@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Season 2 Standings — Binsu Star</title>
+  <meta name="description" content="Binsu Star Season 2 league standings — coming soon." />
+  <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
+  <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
+  <link href="css/voll-e.css" rel="stylesheet" />
+  <link href="css/home.css" rel="stylesheet" />
+  <link href="css/season.css" rel="stylesheet" />
+  <script src="js/theme.js"></script>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="wrap">
+      <a class="brand" href="index.html"><img class="brand-logo" src="img/binsu-pfp.jpg" alt="Binsu Star logo" /><span class="word">Binsu Star</span></a>
+      <div class="links menubar">
+        <a href="index.html">Home</a>
+        <a href="guide.html">Guide</a>
+        <details class="menu-dd">
+          <summary>League ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">League</span>
+            <a href="rankings.html">S1 League Rankings</a>
+            <a href="rules.html">League Rules</a>
+            <a href="schedule.html">📅 S2 Schedule</a>
+            <a href="standings.html" class="on">📊 S2 Standings</a>
+          </div>
+        </details>
+        <details class="menu-dd">
+          <summary>Teams ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">Teams</span>
+            <a href="teams.html?cat=Binsu">Teams in Binsu</a>
+            <a href="teams.html?cat=League">Teams in League</a>
+            <a href="teams.html">All teams</a>
+            <a href="players.html">👤 Player Profiles</a>
+          </div>
+        </details>
+        <a href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">Discord</a>
+        <details class="menu-dd">
+          <summary>More ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">Other volleyball tools</span>
+            <a href="player.html">🎥 Analyze a match</a>
+            <a href="voll-e.html">📊 Team Stats</a>
+            <a href="film.html">🎬 Film Room</a>
+          </div>
+        </details>
+      </div>
+    </div>
+  </nav>
+
+  <header class="s2-hero s2-fade">
+    <div class="s2-hero-inner">
+      <span class="s2-pill">Binsu Star · Season 2</span>
+      <h1>League Standings</h1>
+      <p>The Season 2 round-robin table — played, won, lost, points, set &amp; point ratio, updated as matches happen.</p>
+    </div>
+  </header>
+
+  <section class="section" style="max-width:1000px">
+    <div class="coming-wrap s2-fade d2">
+      <!-- ghost preview of the real table -->
+      <div class="table-scroll ghost">
+        <table class="standings">
+          <thead><tr>
+            <th>Rank</th><th>Team</th><th class="num">P</th><th class="num">W</th><th class="num">L</th>
+            <th class="num">Pts</th><th class="num">Set Ratio</th><th class="num">Point Ratio</th>
+          </tr></thead>
+          <tbody id="ghostBody"></tbody>
+        </table>
+      </div>
+      <!-- coming soon overlay -->
+      <div class="coming-card">
+        <div class="cs-ball">🏐</div>
+        <span class="cs-badge">Coming Soon</span>
+        <h2>Season 2 standings aren't live yet</h2>
+        <p>Once S2 begins, the full league table appears right here — ranked by points, with set and point ratios.</p>
+      </div>
+    </div>
+  </section>
+
+  <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · Binsu Star · Season 2</p>
+
+  <script>
+    // build 8 shimmer rows behind the "coming soon" card
+    var b = document.getElementById("ghostBody");
+    for (var i = 1; i <= 8; i++) {
+      b.insertAdjacentHTML("beforeend",
+        '<tr><td class="rk">' + i + '</td>' +
+        '<td><span class="team" style="display:flex;align-items:center;gap:10px"><span class="dot"></span><span class="sk team"></span></span></td>' +
+        '<td class="num"><span class="sk sm"></span></td><td class="num"><span class="sk sm"></span></td>' +
+        '<td class="num"><span class="sk sm"></span></td><td class="num"><span class="sk sm"></span></td>' +
+        '<td class="num"><span class="sk"></span></td><td class="num"><span class="sk"></span></td></tr>');
+    }
+  </script>
+</body>
+</html>
