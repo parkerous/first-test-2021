@@ -69,10 +69,6 @@ document.addEventListener("DOMContentLoaded", function () {
     sf.innerHTML =
       '<div class="sf-inner">' +
         '<a class="sf-discord" href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">💬 Join the Binsu Star Discord</a>' +
-        '<nav class="sf-links">' +
-          '<a href="index.html">Home</a><a href="rankings.html">Rankings</a><a href="rules.html">Rules</a>' +
-          '<a href="teams.html">Teams</a><a href="players.html">Players</a><a href="coaching.html">Coaching</a>' +
-        '</nav>' +
         '<div class="sf-copy">Binsu Star &middot; &copy; 2026</div>' +
       '</div>';
     document.body.appendChild(sf);
