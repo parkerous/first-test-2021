@@ -77,7 +77,8 @@ function showSlide(i) {
 function goTo(i) { showSlide(i); startAuto(); }
 function next() { showSlide(slideIdx + 1); }
 function prev() { showSlide(slideIdx - 1); }
-function startAuto() { stopAuto(); timer = setInterval(next, 5500); }
+/* auto-advance disabled for a calmer page — use the arrows/dots to browse */
+function startAuto() { stopAuto(); }
 function stopAuto() { if (timer) clearInterval(timer); timer = null; }
 
 /* ---------- news grid ---------- */
@@ -181,6 +182,18 @@ function init() {
   }
 
   loadAnnouncements();
+  initReveal();
+}
+
+/* fade sections in as they scroll into view */
+function initReveal() {
+  const els = document.querySelectorAll(".section, .analyze");
+  els.forEach(el => el.classList.add("reveal"));
+  if (!("IntersectionObserver" in window)) { els.forEach(el => el.classList.add("in")); return; }
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+  }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
+  els.forEach(el => io.observe(el));
 }
 
 /* pull admin-posted announcements from the backend and feature them first */
