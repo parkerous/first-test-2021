@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Voll-E — My Player Report</title>
+  <meta name="description" content="Upload your own volleyball clip, tag your serves, receives, sets and hits, and email yourself a performance report." />
+  <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
+  <link href="css/voll-e.css" rel="stylesheet" />
+  <link href="css/player.css" rel="stylesheet" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="wrap">
+      <span class="logo">🏐</span>
+      <div>
+        <h1>My Player Report</h1>
+        <p>Upload your clip · tag your touches · get your stats emailed to you</p>
+      </div>
+      <a class="home-link" href="index.html">← Home</a>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- profile -->
+    <div style="grid-column: 1 / -1">
+      <div class="card">
+        <h2>1️⃣ Who are you?</h2>
+        <div class="row">
+          <input id="pName" type="text" placeholder="Your name" list="names" style="flex:1;min-width:160px" />
+          <input id="pEmail" type="email" placeholder="Your email (so we can send your report)" style="flex:2;min-width:220px" />
+          <datalist id="names"></datalist>
+        </div>
+        <div class="row">
+          <input id="ytUrl" type="text" placeholder="Paste a YouTube link…" style="flex:1;min-width:200px" />
+          <button class="btn" id="loadYt">Load YouTube</button>
+          <label class="btn ghost" style="cursor:pointer">📁 Upload my clip<input id="localFile" type="file" accept="video/*" hidden /></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- video + tag buttons -->
+    <div>
+      <div class="card">
+        <h2>2️⃣ Watch &amp; tap your touches</h2>
+        <div id="stage" class="stage"><div class="stage-empty">Upload your clip or paste a YouTube link above ↑</div></div>
+        <div class="row controls" style="margin-top:10px">
+          <label>Speed
+            <select id="speed">
+              <option value="0.25">0.25×</option><option value="0.5">0.5×</option>
+              <option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option>
+            </select>
+          </label>
+          <span class="mini-note" style="margin:0">Tap a button the moment you make each play.</span>
+        </div>
+        <p class="hint" id="hint">Enter your name &amp; email, upload your clip, then tap a button for each touch.</p>
+
+        <div id="skills" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- stat line + report -->
+    <div>
+      <div class="card">
+        <h2>📊 My stat line</h2>
+        <div class="pts-hero" id="ptsHero"></div>
+        <div class="statline" id="statline"></div>
+      </div>
+
+      <div class="card">
+        <h2>📧 Email my report</h2>
+        <p class="mini-note">We'll build your performance summary and send it to your email. By default it opens your mail app with everything pre-filled — just press Send.</p>
+        <div class="row">
+          <button class="btn" id="emailBtn">📧 Email me my report</button>
+          <button class="btn warn" id="clearBtn">🗑 Clear my touches</button>
+        </div>
+
+        <details class="setup">
+          <summary>⚙️ Optional: auto-send without opening your mail app (EmailJS)</summary>
+          <p class="mini-note">Make a free account at emailjs.com, then paste your IDs here. When all three are filled, reports send automatically.</p>
+          <div class="row"><input id="ejService" type="text" placeholder="Service ID" style="flex:1" /></div>
+          <div class="row"><input id="ejTemplate" type="text" placeholder="Template ID" style="flex:1" /></div>
+          <div class="row"><input id="ejKey" type="text" placeholder="Public key" style="flex:1" /><button class="btn ghost" id="saveEjBtn">Save</button></div>
+        </details>
+      </div>
+
+      <div class="card">
+        <h2>📋 My touches (<span id="logCount">0</span>)</h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Time</th><th>Skill</th><th>Result</th><th></th></tr></thead>
+            <tbody id="logBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="footer-note">Voll-E Player Report · your data stays in your browser · &copy; J.W</p>
+
+  <script src="js/player.js"></script>
+</body>
+</html>
