@@ -72,6 +72,7 @@ body {
 .topbar .wrap { max-width: 1140px; margin: 0 auto; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .logo { font-size: 38px; line-height: 1; filter: drop-shadow(0 2px 6px rgba(255,210,30,.35)); }
 .logo-home { text-decoration: none; display: inline-flex; }
+.topbar-brand { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); box-shadow: 0 0 0 2px rgba(198,151,31,.2), 0 0 18px rgba(255,210,30,.28); }
 .topbar h1 {
   margin: 0; font-size: 27px; font-weight: 800; letter-spacing: .3px;
   background: linear-gradient(92deg, var(--gold-lite), var(--gold) 55%, var(--yellow));
