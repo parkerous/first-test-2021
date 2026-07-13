@@ -51,6 +51,7 @@
         <button class="atab on" data-tab="teams">👥 Teams</button>
         <button class="atab" data-tab="ann">📢 Announcements</button>
         <button class="atab" data-tab="players">👤 Players</button>
+        <button class="atab" data-tab="coaching">🎓 Coaching</button>
       </div>
 
       <div class="tabpane" id="pane-teams">
@@ -83,6 +84,33 @@
           </div>
           <p class="mini-note" style="margin-top:0">Award titles, a verified badge and a tagline — or remove a profile.</p>
           <div id="profileAdmin"></div>
+        </div>
+      </div>
+
+      <div class="tabpane" id="pane-coaching" style="display:none">
+        <div class="card">
+          <h2>🎓 Add a coach</h2>
+          <p class="mini-note" style="margin-top:0">Coaches appear grouped by position on the Coaching page. Add their Discord so players can reach them.</p>
+          <div class="row">
+            <input id="coName" type="text" placeholder="Coach name" style="flex:1;min-width:150px" />
+            <select id="coPos" style="min-width:160px"><option value="">Position…</option></select>
+          </div>
+          <div class="row"><input id="coDiscord" type="text" placeholder="💬 Discord handle or invite link" style="flex:1;min-width:180px" /></div>
+          <div class="row" style="flex-direction:column;align-items:stretch;gap:6px"><textarea id="coBlurb" rows="2" placeholder="Short blurb (what they coach, rank, etc.)"></textarea></div>
+          <div class="row" style="align-items:center">
+            <label class="btn ghost" style="cursor:pointer">📸 Photo<input type="file" accept="image/*" hidden id="coPhoto" /></label>
+            <button class="btn" id="coAddBtn">＋ Add coach</button>
+            <span class="msg" id="coMsg" style="color:var(--muted);font-size:12.5px"></span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0">Coaches</h2><span class="spacer"></span><button class="btn ghost" id="refreshCoachBtn">↻ Refresh</button></div>
+          <div id="coachAdmin"></div>
+        </div>
+        <div class="card">
+          <h2>📨 Coaching requests</h2>
+          <p class="mini-note" style="margin-top:0">Requests players sent from the website.</p>
+          <div id="reqAdmin"></div>
         </div>
       </div>
 

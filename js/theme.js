@@ -62,6 +62,22 @@ document.addEventListener("DOMContentLoaded", function () {
     window.addEventListener("resize", function () { if (window.innerWidth > 820) setOpen(false); });
   }
 
+  /* ---- site footer with Discord (moved down from the top bar) ---- */
+  if (!document.querySelector(".site-footer")) {
+    var sf = document.createElement("footer");
+    sf.className = "site-footer";
+    sf.innerHTML =
+      '<div class="sf-inner">' +
+        '<a class="sf-discord" href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">💬 Join the Binsu Star Discord</a>' +
+        '<nav class="sf-links">' +
+          '<a href="index.html">Home</a><a href="rankings.html">Rankings</a><a href="rules.html">Rules</a>' +
+          '<a href="teams.html">Teams</a><a href="players.html">Players</a><a href="coaching.html">Coaching</a>' +
+        '</nav>' +
+        '<div class="sf-copy">Binsu Star &middot; &copy; 2026</div>' +
+      '</div>';
+    document.body.appendChild(sf);
+  }
+
   /* ---- apply the admin-set site logo (falls back to the placeholder) ---- */
   if (typeof apiConfigured === "function" && apiConfigured() && typeof apiGet === "function") {
     apiGet("/site").then(function (s) {
