@@ -29,7 +29,9 @@ async function loadTeams() {
   try {
     const teams = await apiGet("/teams" + (cat ? "?category=" + encodeURIComponent(cat) : ""));
     if (!teams.length) { grid.innerHTML = `<p class="empty">No teams${cat ? " in " + cat : ""} yet — be the first to register!</p>`; return; }
-    grid.innerHTML = teams.map(t => `
+    grid.innerHTML = teams.map(t => {
+      const n = Array.isArray(t.players) ? t.players.length : 0;
+      return `
       <a class="team-card" href="team.html?id=${encodeURIComponent(t.id)}" style="text-decoration:none;color:inherit;display:block">
         <div class="head">
           <img class="team-logo" src="${esc(t.logo || "img/mikasa.svg")}" alt="" />
@@ -39,8 +41,10 @@ async function loadTeams() {
           <figure><img src="${esc(t.jerseyFront || "img/mikasa.svg")}" alt="jersey front" /><figcaption>Front</figcaption></figure>
           <figure><img src="${esc(t.jerseyBack || "img/mikasa.svg")}" alt="jersey back" /><figcaption>Back</figcaption></figure>
         </div>
+        <div class="roster-mini">${n ? `👥 ${n} player${n === 1 ? "" : "s"}` : "👥 No roster yet"}</div>
         <div class="mini-note" style="margin:8px 0 0;color:var(--gold);font-weight:700">View team page →</div>
-      </a>`).join("");
+      </a>`;
+    }).join("");
   } catch (e) { grid.innerHTML = `<p class="empty">Couldn't load teams (${esc(e.message)}).</p>`; }
 }
 
@@ -49,14 +53,15 @@ async function submitTeam() {
   const name = document.getElementById("tName").value.trim();
   const password = document.getElementById("tPass").value;
   const category = document.getElementById("tCat").value;
+  const players = document.getElementById("tPlayers").value.split("\n").map(s => s.trim()).filter(Boolean);
   if (!name || !password) { msg("Enter a team name and a password."); return; }
   if (!uploads.logo) { msg("Please add a team logo."); return; }
   msg("Submitting…");
   try {
-    const res = await apiPost("/teams/register", { name, password, category, logo: uploads.logo, jerseyFront: uploads.front, jerseyBack: uploads.back });
+    const res = await apiPost("/teams/register", { name, password, category, players, logo: uploads.logo, jerseyFront: uploads.front, jerseyBack: uploads.back });
     if (res.ok) {
       msg("✅ Submitted! Your team is pending admin approval — it'll appear once approved.");
-      document.getElementById("tName").value = ""; document.getElementById("tPass").value = "";
+      document.getElementById("tName").value = ""; document.getElementById("tPass").value = ""; document.getElementById("tPlayers").value = "";
       ["logo", "front", "back"].forEach(k => uploads[k] = "");
       document.querySelectorAll(".uploader").forEach(u => { u.classList.remove("has"); u.querySelector("img").src = ""; });
     } else { msg("⚠️ " + (res.error || "Something went wrong.")); }

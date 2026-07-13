@@ -20,8 +20,44 @@
 .jerseys figcaption { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
 .pending-pill { display:inline-block; font-size: 11px; font-weight: 800; letter-spacing:.5px; text-transform:uppercase; color:#8a6d00; background: color-mix(in srgb, var(--yellow) 35%, transparent); padding: 3px 8px; border-radius: 999px; }
 
+/* roster count on team cards */
+.roster-mini { margin-top: 10px; font-size: 12.5px; font-weight: 700; color: var(--muted); border-top: 1px solid var(--line); padding-top: 8px; }
+
 /* single team page */
-.team-head-lg { display: flex; align-items: center; gap: 18px; }
+.team-head-lg { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
 .jerseys-big img { aspect-ratio: 3/4; max-height: 460px; }
 .jerseys-big figure { max-width: 340px; }
 @media (max-width: 560px) { .jerseys-big { flex-direction: column; } .jerseys-big figure { max-width: none; } }
+
+/* roster list */
+.roster { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; counter-reset: roster; }
+.roster li { counter-increment: roster; display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.roster li .rn::before { content: counter(roster); display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 12px; font-weight: 800; color: #0d0d10; background: linear-gradient(92deg, var(--gold-lite), var(--gold)); }
+.roster li .pn { font-weight: 700; font-size: 14.5px; }
+
+/* manage-roster + admin roster editors */
+.manage-card summary, .roster-edit summary { cursor: pointer; font-weight: 800; color: var(--gold); list-style: none; }
+.manage-card summary::-webkit-details-marker, .roster-edit summary::-webkit-details-marker { display: none; }
+.manage-card summary::before, .roster-edit summary::before { content: "▸ "; }
+.manage-card[open] summary::before, .roster-edit[open] summary::before { content: "▾ "; }
+.roster-edit { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
+.roster-edit summary { font-size: 13.5px; }
+
+/* ---------- admin dashboard ---------- */
+.admin-login { max-width: 460px; margin: 0 auto; text-align: center; }
+.admin-login .login-emoji { font-size: 40px; }
+.admin-login .row { justify-content: center; }
+.admin-login details { text-align: left; }
+
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.stat { background: linear-gradient(160deg, color-mix(in srgb, var(--gold) 9%, var(--panel)), var(--bg)); border: 1px solid var(--line); border-radius: 14px; padding: 14px; text-align: center; }
+.stat .num { font-size: 26px; font-weight: 900; line-height: 1; color: var(--gold); }
+.stat .num.good { color: var(--good); } .stat .num.bad { color: var(--bad); }
+.stat .lbl { font-size: 11.5px; color: var(--muted); margin-top: 5px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
+
+.admin-tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.atab { border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-weight: 800; font-size: 14px; padding: 9px 16px; border-radius: 999px; cursor: pointer; transition: background .12s, color .12s; }
+.atab.on { background: linear-gradient(92deg, var(--gold), var(--gold-lite)); color: #0d0d10; border-color: transparent; }
+
+.admin-team .head { margin-bottom: 10px; }
+h3.grp { color: var(--gold); font-size: 15px; margin: 0 0 10px; }

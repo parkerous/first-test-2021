@@ -137,7 +137,26 @@
 .section-head h2 .bar { display: inline-block; width: 6px; height: 22px; background: linear-gradient(180deg, var(--yellow), var(--gold)); border-radius: 3px; margin-right: 10px; vertical-align: -3px; box-shadow: 0 0 10px rgba(198,151,31,.5); }
 .section-head .spacer { margin-left: auto; }
 
-.news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+/* Volleyball-World-style horizontal card rail (scroll sideways) */
+.news-rail-wrap { position: relative; }
+.news-grid {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 300px;
+  grid-template-columns: none; gap: 16px;
+  overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth;
+  padding-bottom: 6px; scrollbar-width: none;
+}
+.news-grid::-webkit-scrollbar { display: none; }
+.news-grid .ncard { scroll-snap-align: start; }
+.rail-arrow {
+  position: absolute; top: 42%; transform: translateY(-50%); z-index: 5;
+  width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--line);
+  background: var(--panel); color: var(--ink); font-size: 24px; line-height: 1;
+  cursor: pointer; box-shadow: var(--shadow); display: grid; place-items: center;
+  transition: background .12s ease, color .12s ease, transform .12s ease;
+}
+.rail-arrow.left { left: -10px; } .rail-arrow.right { right: -10px; }
+.rail-arrow:hover { background: var(--gold); color: #0d0d10; transform: translateY(-50%) scale(1.06); }
+@media (max-width: 640px) { .rail-arrow { display: none; } }
 .ncard { display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-sm); transition: transform .15s, box-shadow .15s; }
 .ncard:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
 .ncard .top { height: 96px; position: relative; background: linear-gradient(120deg, #14140f, #201a08); display: grid; place-items: center; }

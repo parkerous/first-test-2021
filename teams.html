@@ -55,6 +55,10 @@
         <select id="tCat" style="min-width:130px"><option value="Binsu">Binsu</option><option value="League">League</option></select>
       </div>
       <div class="row"><input id="tPass" type="password" placeholder="Team password (to manage your team later)" style="flex:1;min-width:200px" /></div>
+      <div class="row" style="flex-direction:column;align-items:stretch;gap:6px">
+        <label class="field-label" style="font-size:13px;color:var(--muted);font-weight:700">🏐 Players — one name per line (optional; you can add or edit these later on your team page)</label>
+        <textarea id="tPlayers" rows="5" placeholder="e.g.&#10;Coas&#10;Qarz&#10;Veldora" style="width:100%"></textarea>
+      </div>
       <div class="upload" style="margin:6px 0 12px">
         <label class="uploader" id="upLogo"><div class="lbl">🏷️ Team logo</div><input type="file" accept="image/*" hidden /><img /></label>
         <label class="uploader" id="upFront"><div class="lbl">👕 Jersey — front</div><input type="file" accept="image/*" hidden /><img /></label>

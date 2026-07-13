@@ -27,8 +27,12 @@ function isAdmin(req, env) {
   const expected = (env && env.ADMIN_KEY) || DEFAULT_ADMIN_KEY;
   return !!(k && k === expected);
 }
+function cleanPlayers(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.map(p => String(p == null ? "" : p).trim().slice(0, 40)).filter(Boolean).slice(0, 30);
+}
 function publicTeam(t) {
-  return { id: t.id, name: t.name, status: t.status, category: t.category || "League", logo: t.logo, jerseyFront: t.jerseyFront, jerseyBack: t.jerseyBack, createdAt: t.createdAt };
+  return { id: t.id, name: t.name, status: t.status, category: t.category || "League", logo: t.logo, jerseyFront: t.jerseyFront, jerseyBack: t.jerseyBack, players: Array.isArray(t.players) ? t.players : [], createdAt: t.createdAt };
 }
 
 /* API routes — return a Response, or null to let a static asset serve it */
@@ -54,6 +58,7 @@ async function handleApi(req, env, url) {
       id, name: String(b.name).slice(0, 60), status: "pending",
       category: b.category === "Binsu" ? "Binsu" : "League",
       logo: b.logo || "", jerseyFront: b.jerseyFront || "", jerseyBack: b.jerseyBack || "",
+      players: cleanPlayers(b.players),
       passHash: await sha256(b.password), createdAt: Date.now(),
     };
     await KV.put("team:" + id, JSON.stringify(team));
@@ -107,6 +112,27 @@ async function handleApi(req, env, url) {
     const raw = await KV.get("team:" + id);
     if (!raw) return json({ error: "not found" }, 404);
     const t = JSON.parse(raw); t.category = category === "Binsu" ? "Binsu" : "League";
+    await KV.put("team:" + id, JSON.stringify(t));
+    return json({ ok: true });
+  }
+  /* a team edits its own roster using its team password */
+  if (p === "/team/roster" && req.method === "POST") {
+    const { id, password, players } = await req.json();
+    const raw = await KV.get("team:" + id);
+    if (!raw) return json({ error: "not found" }, 404);
+    const t = JSON.parse(raw);
+    if (t.passHash !== await sha256(password || "")) return json({ error: "wrong team password" }, 403);
+    t.players = cleanPlayers(players);
+    await KV.put("team:" + id, JSON.stringify(t));
+    return json({ ok: true, players: t.players });
+  }
+  /* the admin can edit any team's roster */
+  if (p === "/admin/teams/roster" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const { id, players } = await req.json();
+    const raw = await KV.get("team:" + id);
+    if (!raw) return json({ error: "not found" }, 404);
+    const t = JSON.parse(raw); t.players = cleanPlayers(players);
     await KV.put("team:" + id, JSON.stringify(t));
     return json({ ok: true });
   }
