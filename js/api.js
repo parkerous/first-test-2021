@@ -3,9 +3,11 @@
    AFTER deploying the worker (see api/SETUP.md), paste its URL below.
    ============================================================ */
 
-const SOAI_API = "";  // backend now runs on the SAME site (same Worker) — no URL needed
+// Backend lives on the Cloudflare Worker (serves the API for every site,
+// including the Netlify copy). A localStorage override still wins for testing.
+const SOAI_API = "https://first-test-2021.binsustar.workers.dev";
 
-/* Same-origin by default; a localStorage override is allowed for testing. */
+/* Points at the Worker backend by default; localStorage override wins. */
 function apiBase() {
   const o = (localStorage.getItem("soai_api_override") || SOAI_API || "").replace(/\/+$/, "");
   if (o) return o;
