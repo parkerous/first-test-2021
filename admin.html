@@ -24,33 +24,53 @@
     </div>
   </nav>
 
-  <section class="section" style="max-width:840px">
-    <div class="section-head"><h2><span class="bar"></span>🔒 Admin</h2></div>
+  <section class="section" style="max-width:920px">
+    <div class="section-head"><h2><span class="bar"></span>🔒 Admin Dashboard</h2><span class="spacer"></span><span id="whoami" class="pending-pill" style="display:none">✅ Signed in</span></div>
 
     <!-- login -->
-    <div class="card" id="loginCard">
-      <p class="mini-note" style="margin-top:0">Only the admin can change the slideshow and approve teams. Enter the admin password you set during setup (your private Cloudflare secret — see <code>api/SETUP.md</code>).</p>
-      <div class="row"><input id="apiUrl" type="text" placeholder="Backend URL (skip if already set in js/api.js)" style="flex:1" /></div>
-      <div class="row"><input id="adminKeyIn" type="password" placeholder="Admin password" style="flex:1" /><button class="btn" id="loginBtn">Log in</button></div>
+    <div class="card admin-login" id="loginCard">
+      <div class="login-emoji">🔒</div>
+      <h2 style="margin:0 0 4px">Admin sign in</h2>
+      <p class="mini-note" style="margin-top:0">Only the admin can post announcements, approve teams, and edit rosters.</p>
+      <div class="row"><input id="adminKeyIn" type="password" placeholder="Admin password" style="flex:1;min-width:200px" /><button class="btn" id="loginBtn">Log in →</button></div>
+      <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--muted);font-size:12.5px">Backend not connected? Set it manually</summary>
+        <div class="row" style="margin-top:8px"><input id="apiUrl" type="text" placeholder="Backend URL (e.g. https://first-test-2021.binsustar.workers.dev)" style="flex:1" /></div>
+      </details>
       <p class="msg" id="loginMsg" style="color:var(--muted);font-size:13.5px;margin:6px 0 0"></p>
     </div>
 
     <!-- panels -->
     <div id="panels" style="display:none">
-      <div class="card">
-        <h2>📢 Slideshow announcements</h2>
-        <p class="mini-note" style="margin-top:0">These appear first on the homepage slideshow — great for league announcements.</p>
-        <div id="annList"></div>
-        <div class="row" style="margin-top:10px">
-          <button class="btn ghost" id="addAnnBtn">＋ Add announcement</button>
-          <button class="btn" id="saveAnnBtn">💾 Save to slideshow</button>
-        </div>
-        <p class="msg" id="annMsg" style="color:var(--muted);font-size:13.5px;margin:6px 0 0"></p>
+      <!-- at-a-glance stats -->
+      <div class="stat-row" id="statRow"></div>
+
+      <div class="admin-tabs">
+        <button class="atab on" data-tab="teams">👥 Teams</button>
+        <button class="atab" data-tab="ann">📢 Announcements</button>
       </div>
 
-      <div class="card">
-        <h2>👥 Team approvals</h2>
-        <div id="teamAdmin"></div>
+      <div class="tabpane" id="pane-teams">
+        <div class="card">
+          <div class="row" style="align-items:center;margin-bottom:4px">
+            <h2 style="margin:0">Team management</h2>
+            <span class="spacer"></span>
+            <button class="btn ghost" id="refreshBtn">↻ Refresh</button>
+          </div>
+          <div id="teamAdmin"></div>
+        </div>
+      </div>
+
+      <div class="tabpane" id="pane-ann" style="display:none">
+        <div class="card">
+          <h2>📢 Slideshow announcements</h2>
+          <p class="mini-note" style="margin-top:0">These appear first on the homepage slideshow — great for league announcements.</p>
+          <div id="annList"></div>
+          <div class="row" style="margin-top:10px">
+            <button class="btn ghost" id="addAnnBtn">＋ Add announcement</button>
+            <button class="btn" id="saveAnnBtn">💾 Save to slideshow</button>
+          </div>
+          <p class="msg" id="annMsg" style="color:var(--muted);font-size:13.5px;margin:6px 0 0"></p>
+        </div>
       </div>
     </div>
   </section>

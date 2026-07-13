@@ -132,11 +132,12 @@ body {
 /* ---------- Controls ---------- */
 .row { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; margin-bottom: 11px; }
 .row label { font-size: 13px; color: var(--muted); }
-select, input[type="text"], input[type="email"], input[type="number"] {
+select, textarea, input[type="text"], input[type="email"], input[type="number"], input[type="password"] {
   font: inherit; padding: 9px 12px; border-radius: 11px; border: 1px solid var(--line);
   background: var(--bg); color: var(--ink); min-width: 0; transition: border-color .12s ease, box-shadow .12s ease;
 }
-select:focus, input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(198,151,31,.18); }
+textarea { resize: vertical; line-height: 1.5; }
+select:focus, input:focus, textarea:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(198,151,31,.18); }
 
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
 .seg button { border: none; background: var(--panel); color: var(--ink); padding: 8px 13px; cursor: pointer; font: inherit; font-size: 13px; transition: background .12s ease; }

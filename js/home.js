@@ -157,6 +157,14 @@ function init() {
   document.getElementById("resetNews").addEventListener("click", resetNews);
   document.getElementById("liveBtn").addEventListener("click", fetchLive);
 
+  /* horizontal news rail arrows */
+  const rail = document.getElementById("newsGrid");
+  const rp = document.getElementById("newsPrev"), rn = document.getElementById("newsNext");
+  if (rail && rp && rn) {
+    rp.addEventListener("click", () => rail.scrollBy({ left: -332, behavior: "smooth" }));
+    rn.addEventListener("click", () => rail.scrollBy({ left: 332, behavior: "smooth" }));
+  }
+
   loadAnnouncements();
 }
 
