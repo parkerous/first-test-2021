@@ -22,7 +22,17 @@
 .nav .links a:hover, .nav .links a.on { color: #0d0d10; background: linear-gradient(92deg, var(--gold-lite), var(--gold)); }
 
 /* separate menu bar (far right) */
-.nav .links.menubar { gap: 3px; padding: 5px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); border-radius: 999px; }
+.nav .links.menubar { gap: 3px; padding: 5px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); border-radius: 999px; align-items: center; }
+
+/* "More" dropdown for non-Binsu volleyball tools */
+.menu-dd { position: relative; }
+.menu-dd summary { list-style: none; cursor: pointer; color: #e9e9ee; font-weight: 700; font-size: 13.5px; padding: 8px 12px; border-radius: 999px; white-space: nowrap; }
+.menu-dd summary::-webkit-details-marker { display: none; }
+.menu-dd summary:hover, .menu-dd[open] summary { color: #0d0d10; background: linear-gradient(92deg, var(--gold-lite), var(--gold)); }
+.dd-panel { position: absolute; right: 0; top: calc(100% + 10px); min-width: 210px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 6px; box-shadow: var(--shadow); z-index: 60; display: flex; flex-direction: column; gap: 2px; }
+.dd-panel a { color: var(--ink) !important; text-decoration: none; padding: 10px 12px; border-radius: 8px; font-weight: 700; font-size: 13.5px; background: transparent !important; }
+.dd-panel a:hover { background: var(--bg) !important; color: var(--gold) !important; }
+.dd-panel .dd-label { font-size: 10.5px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); padding: 6px 12px 2px; }
 
 /* ---------- Binsu intro hero ---------- */
 .intro-hero { background: radial-gradient(1000px 320px at 18% -40%, rgba(255,210,30,0.14), transparent 60%), linear-gradient(120deg, #0d0d10, #1c1c22); border-bottom: 2px solid var(--gold); color: #fff; }
