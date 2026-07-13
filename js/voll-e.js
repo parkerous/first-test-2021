@@ -311,11 +311,11 @@ function setHint(t) { document.getElementById("hint").textContent = t; }
    Demo data — realistic simulated spikes so it works today
    ============================================================ */
 function generateDemo() {
-  const players = ["Me", "Jeongwook", "Rival"];
+  const players = ["Me", "Teammate", "Rival"];
   const profiles = {
     // each player has favorite origin zones + tendencies
     "Me":        { originX: 60,  spread: 40, cross: 0.6, tipRate: 0.1, kill: 0.55 },
-    "Jeongwook": { originX: 150, spread: 50, cross: 0.4, tipRate: 0.2, kill: 0.6 },
+    "Teammate":  { originX: 150, spread: 50, cross: 0.4, tipRate: 0.2, kill: 0.6 },
     "Rival":     { originX: 240, spread: 45, cross: 0.7, tipRate: 0.05, kill: 0.45 },
   };
   for (const name of players) {
