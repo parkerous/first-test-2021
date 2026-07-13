@@ -377,5 +377,9 @@ function init() {
 
   render();
   setHint("Enter your name, email & role, upload your clip, then tap a button for each touch.");
+
+  // auto-load a YouTube link handed over from the front-page search (?yt=...)
+  const yt = new URLSearchParams(location.search).get("yt");
+  if (yt) { document.getElementById("ytUrl").value = yt; loadYouTube(yt); }
 }
 document.addEventListener("DOMContentLoaded", init);

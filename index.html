@@ -3,43 +3,89 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Soai</title>
+  <title>Soai — Volleyball News & AI</title>
+  <meta name="description" content="Soai: volleyball news from the world's top leagues, plus AI tools to learn from your own match footage." />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
   <link href="css/voll-e.css" rel="stylesheet" />
+  <link href="css/home.css" rel="stylesheet" />
 </head>
 <body>
-  <header class="topbar">
+
+  <!-- top nav -->
+  <nav class="nav">
     <div class="wrap">
-      <span class="logo">🏐</span>
-      <div>
-        <h1>Soai</h1>
-        <p>Player reports · stats · film analysis</p>
+      <a class="brand" href="index.html"><span class="logo">🏐</span><span class="word">Soai</span></a>
+      <div class="links">
+        <a href="index.html" class="on">Home</a>
+        <a href="player.html">Player Report</a>
+        <a href="voll-e.html">Team Stats</a>
+        <a href="film.html">Film Room</a>
+        <a href="#news">News</a>
       </div>
-      <span class="made-by">Made by ight</span>
     </div>
-  </header>
+  </nav>
 
-  <div class="container" style="grid-template-columns:1fr;max-width:720px">
-    <div class="card">
-      <h2>🏐 My Player Report <span class="tag">start here</span></h2>
-      <p style="color:var(--muted)">Upload your own volleyball clip, tap your serves, receives, sets and hits, and get a personal performance report (hit rate, aces, passing, points) emailed straight to you.</p>
-      <a class="btn" href="player.html" style="display:inline-block;text-decoration:none;margin-top:6px">Make my report →</a>
+  <!-- hero slideshow -->
+  <section class="hero">
+    <div class="slides" id="slides"></div>
+    <button class="arrow left" aria-label="Previous">‹</button>
+    <button class="arrow right" aria-label="Next">›</button>
+    <div class="dots" id="dots"></div>
+  </section>
+
+  <!-- analyze / learn search -->
+  <section class="analyze">
+    <div class="box">
+      <h2>🎥 Analyze a match — paste a YouTube link</h2>
+      <p class="sub">Drop a game link and Soai opens the analyzer, where it learns from the footage (tag touches, stats, spike habits).</p>
+      <div class="field">
+        <input id="ytUrl" type="text" placeholder="https://youtube.com/watch?v=..." />
+        <button class="btn" id="goBtn">Learn from this →</button>
+      </div>
+      <p class="msg" id="analyzeMsg"></p>
+    </div>
+  </section>
+
+  <!-- news -->
+  <section class="section" id="news">
+    <div class="section-head">
+      <h2><span class="bar"></span>Volleyball News</h2>
+      <div class="spacer"></div>
+      <button class="btn ghost" id="addBtn">＋ Add news</button>
+      <button class="btn ghost" id="resetNews">↺ Reset</button>
+    </div>
+    <p class="mini-note" style="color:var(--muted);font-size:13px;margin:-6px 0 14px">
+      Curated launchers to real, credited outlets — tap any card to read the latest. Add your own headlines, or try live RSS below.
+    </p>
+
+    <div class="addform" id="addform" style="display:none">
+      <div class="row"><input id="nLg" type="text" placeholder="League/tag (e.g. SuperLega)" /><input id="nTitle" type="text" placeholder="Headline" /></div>
+      <div class="row"><input id="nUrl" type="text" placeholder="Link (https://...)" /><input id="nDesc" type="text" placeholder="Short description (optional)" /></div>
+      <div class="row" style="align-items:center">
+        <button class="btn" id="saveNews">Save headline</button>
+        <span style="color:var(--muted);font-size:12.5px">— or fetch live:</span>
+        <input id="feedUrl" type="text" placeholder="RSS feed URL (experimental)" style="flex:1;min-width:180px" />
+        <button class="btn ghost" id="liveBtn">🔴 Try live</button>
+      </div>
+      <p class="msg" id="newsMsg" style="color:var(--muted);font-size:13px;margin:6px 0 0"></p>
     </div>
 
-    <div class="card">
-      <h2>🎥 Team tools <span class="tag">advanced</span></h2>
-      <p style="color:var(--muted)">Track a whole squad: log spikes on a court, learn habits and success rates, draw heat maps, and tag spikes from film with camera-angle calibration.</p>
-      <a class="btn ghost" href="voll-e.html" style="display:inline-block;text-decoration:none;margin-top:6px">Team stats →</a>
-      <a class="btn ghost" href="film.html" style="display:inline-block;text-decoration:none;margin-top:6px">Film Room →</a>
-    </div>
+    <div class="news-grid" id="newsGrid"></div>
+  </section>
 
-    <div class="card">
-      <h2>📄 My first website (2021)</h2>
-      <p style="color:var(--muted)">The very first page I ever made while learning HTML &amp; CSS.</p>
-      <a class="btn ghost" href="html-only.html" style="display:inline-block;text-decoration:none;margin-top:6px">View it →</a>
+  <!-- tools -->
+  <section class="section">
+    <div class="section-head"><h2><span class="bar"></span>Soai Tools</h2></div>
+    <div class="tools">
+      <a class="tool" href="player.html"><div class="t">🏐 My Player Report</div><div class="d">Upload your clip, tag your touches, get your stats emailed to you.</div></a>
+      <a class="tool" href="voll-e.html"><div class="t">📊 Team Stats</div><div class="d">Log spikes on a court, learn habits, draw heat maps.</div></a>
+      <a class="tool" href="film.html"><div class="t">🎥 Film Room</div><div class="d">Tag spikes from video with camera-angle calibration.</div></a>
+      <a class="tool" href="html-only.html"><div class="t">📄 My first website (2021)</div><div class="d">The very first page I made learning HTML &amp; CSS.</div></a>
     </div>
-  </div>
+  </section>
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>ight</b></span> · &copy; 2026</p>
+
+  <script src="js/home.js"></script>
 </body>
 </html>
