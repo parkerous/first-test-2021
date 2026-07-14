@@ -329,6 +329,42 @@ async function handleApi(req, env, url) {
     await KV.put("coachreqs", JSON.stringify(list));
     return json({ ok: true });
   }
+  /* ---- League rules: official text (admin) + community suggestions ---- */
+  if (p === "/rules" && req.method === "GET") {
+    const t = await KV.get("rules");
+    return json({ text: t || "" });
+  }
+  if (p === "/admin/rules" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const b = await req.json();
+    await KV.put("rules", String(b.text == null ? "" : b.text).slice(0, 20000));
+    return json({ ok: true });
+  }
+  if (p === "/rules/suggest" && req.method === "POST") {
+    const b = await req.json();
+    const text = cleanStr(b.text, 500);
+    if (!text) return json({ error: "a rule suggestion is required" }, 400);
+    const raw = await KV.get("rulesuggest");
+    const list = raw ? JSON.parse(raw) : [];
+    list.unshift({ id: "rs_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: cleanStr(b.name, 40), text, createdAt: Date.now() });
+    if (list.length > 200) list.length = 200;
+    await KV.put("rulesuggest", JSON.stringify(list));
+    return json({ ok: true });
+  }
+  if (p === "/admin/rules/suggestions" && req.method === "GET") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const raw = await KV.get("rulesuggest");
+    return json(raw ? JSON.parse(raw) : []);
+  }
+  if (p === "/admin/rules/suggestions/delete" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const { id } = await req.json();
+    const raw = await KV.get("rulesuggest");
+    const list = (raw ? JSON.parse(raw) : []).filter(x => x.id !== id);
+    await KV.put("rulesuggest", JSON.stringify(list));
+    return json({ ok: true });
+  }
+
   /* ---- Match analysis ingest (from the Colab notebook) + read ---- */
   if (p === "/analyses" && req.method === "GET") {
     const list = await KV.list({ prefix: "analysis:" });

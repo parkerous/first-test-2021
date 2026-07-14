@@ -55,19 +55,29 @@
   <section class="section" style="max-width:840px">
     <div class="section-head">
       <h2><span class="bar"></span>League Rules</h2>
-      <div class="spacer"></div>
-      <button class="btn" id="editBtn">✏️ Edit</button>
-      <button class="btn ghost" id="resetBtn">↺ Reset</button>
     </div>
 
-    <p class="note-template">✍️ These are a placeholder template. Paste your league's real rules (or share the doc so it can be filled in). Use <b># Heading</b>, <b>## Subheading</b>, and <b>- bullet</b> for formatting.</p>
+    <p class="note-template">📖 The official Binsu Volleyball League rule book. All players must follow these rules during matches.</p>
 
     <div class="rules-doc" id="view"></div>
-    <textarea class="rules-edit" id="edit" style="display:none"></textarea>
   </section>
 
-  <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · rules saved in your browser</p>
+  <!-- suggest a rule -->
+  <section class="section" style="max-width:720px">
+    <div class="section-head"><h2><span class="bar"></span>Suggest a rule</h2></div>
+    <p class="mini-note" style="margin-top:-6px">Got a rule idea or a fix? Send it in — the admins review every suggestion and add the good ones to the official book.</p>
+    <div class="card" id="suggestCard">
+      <div class="row"><input id="sgName" type="text" placeholder="Your name (optional)" style="flex:1;min-width:160px" /></div>
+      <div class="row" style="flex-direction:column;align-items:stretch;gap:6px">
+        <textarea id="sgText" rows="3" placeholder="Your suggested rule…" style="width:100%"></textarea>
+      </div>
+      <div class="row"><button class="btn" id="sgBtn">Send suggestion →</button><span class="msg" id="sgMsg" style="color:var(--muted);font-size:13px"></span></div>
+    </div>
+  </section>
 
+  <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star</p>
+
+  <script src="js/api.js"></script>
   <script src="js/rules.js"></script>
 </body>
 </html>

@@ -98,13 +98,10 @@
   <!-- Volleyball News -->
   <section class="section" id="news">
     <div class="section-head">
-      <h2><span class="bar"></span>Volleyball News</h2>
-      <div class="spacer"></div>
-      <button class="btn ghost" id="addBtn">＋ Add news</button>
-      <button class="btn ghost" id="resetNews">↺ Reset</button>
+      <h2><span class="bar"></span>Volleyball News &amp; Announcements</h2>
     </div>
     <p class="mini-note" style="color:var(--muted);font-size:13px;margin:-6px 0 14px">
-      Volleyball news — curated launchers to real, credited outlets. Tap any card to read the latest, or add your own headlines.
+      League announcements plus curated launchers to real, credited volleyball outlets. Only admins can post or change announcements (in the admin panel).
     </p>
 
     <!-- hero news carousel -->
@@ -123,19 +120,6 @@
         <span>See a league-related announcement? Join, then hit “＋ Add news” here to post it to Soai.</span>
       </div>
       <a class="btn" href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">Join the Discord →</a>
-    </div>
-
-    <div class="addform" id="addform" style="display:none">
-      <div class="row"><input id="nLg" type="text" placeholder="League/tag (e.g. SuperLega)" /><input id="nTitle" type="text" placeholder="Headline" /></div>
-      <div class="row"><input id="nUrl" type="text" placeholder="Link (https://...)" /><input id="nDesc" type="text" placeholder="Short description (optional)" /></div>
-      <div class="row"><input id="nImg" type="text" placeholder="Preview image URL (optional — draws more attention)" style="flex:1" /></div>
-      <div class="row" style="align-items:center">
-        <button class="btn" id="saveNews">Save headline</button>
-        <span style="color:var(--muted);font-size:12.5px">— or fetch live:</span>
-        <input id="feedUrl" type="text" placeholder="RSS feed URL (experimental)" style="flex:1;min-width:180px" />
-        <button class="btn ghost" id="liveBtn">🔴 Try live</button>
-      </div>
-      <p class="msg" id="newsMsg" style="color:var(--muted);font-size:13px;margin:6px 0 0"></p>
     </div>
 
     <div class="news-rail-wrap">

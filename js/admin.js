@@ -42,7 +42,38 @@ async function loadAll() {
   loadSite();
   loadProfiles();
   loadCoaching();
+  loadRules();
 }
+
+/* ---------- rules admin (official book + suggestions) ---------- */
+let SUGGESTS = [];
+async function loadRules() {
+  try { const r = await apiGet("/rules"); document.getElementById("rulesText").value = (r && r.text) || ""; } catch (e) {}
+  try { SUGGESTS = await adminGet("/admin/rules/suggestions"); } catch (e) { SUGGESTS = []; }
+  renderSuggests();
+}
+async function saveRules() {
+  const m = document.getElementById("rulesMsg");
+  m.textContent = "Saving…";
+  try {
+    const r = await apiPost("/admin/rules", { text: document.getElementById("rulesText").value }, true);
+    m.textContent = r && r.ok ? "✅ Saved — it's live on the Rules page." : "⚠️ " + ((r && r.error) || "failed");
+  } catch (e) { m.textContent = "⚠️ " + e.message; }
+}
+function loadDefaultRules() {
+  document.getElementById("rulesText").value = "";
+  document.getElementById("rulesMsg").textContent = "Cleared — save to fall back to the built-in default book on the Rules page.";
+}
+function renderSuggests() {
+  const el = document.getElementById("suggestAdmin");
+  if (!SUGGESTS.length) { el.innerHTML = `<p class="empty">No rule suggestions yet.</p>`; return; }
+  el.innerHTML = SUGGESTS.map(s => `
+    <div class="card" style="background:var(--bg);margin-bottom:8px">
+      <div class="row" style="align-items:center"><b>${esc(s.name || "Anonymous")}</b><span class="spacer"></span><button class="btn warn" onclick="deleteSuggest('${s.id}')">🗑</button></div>
+      <p style="margin:8px 0 0;font-size:13.5px;white-space:pre-wrap">${esc(s.text)}</p>
+    </div>`).join("");
+}
+async function deleteSuggest(id) { await apiPost("/admin/rules/suggestions/delete", { id }, true); SUGGESTS = SUGGESTS.filter(x => x.id !== id); renderSuggests(); }
 
 /* ---------- player profile moderation (titles / verified / tagline) ---------- */
 let PROFILES = [];
@@ -304,6 +335,7 @@ function switchTab(name) {
   document.getElementById("pane-ann").style.display = name === "ann" ? "block" : "none";
   document.getElementById("pane-players").style.display = name === "players" ? "block" : "none";
   document.getElementById("pane-coaching").style.display = name === "coaching" ? "block" : "none";
+  document.getElementById("pane-rules").style.display = name === "rules" ? "block" : "none";
 }
 
 function init() {
@@ -318,6 +350,9 @@ function init() {
   document.getElementById("coPhoto").addEventListener("change", e => pickCoachPhoto(e.target));
   document.getElementById("coBanner").addEventListener("change", e => pickCoachBanner(e.target));
   document.getElementById("refreshCoachBtn").addEventListener("click", loadCoaching);
+  document.getElementById("rulesSave").addEventListener("click", saveRules);
+  document.getElementById("rulesReset").addEventListener("click", loadDefaultRules);
+  document.getElementById("refreshSuggestBtn").addEventListener("click", loadRules);
   document.getElementById("brandFile").addEventListener("change", e => pickBrand(e.target));
   document.getElementById("brandSave").addEventListener("click", saveBrand);
   document.querySelectorAll(".atab").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
