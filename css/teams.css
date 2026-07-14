@@ -53,6 +53,12 @@
 .jerseys-big figure { max-width: 340px; }
 @media (max-width: 560px) { .jerseys-big { flex-direction: column; } .jerseys-big figure { max-width: none; } }
 
+/* coaching — intro lead */
+.coach-intro { margin-bottom: 20px; }
+.ci-eyebrow { display: inline-block; font-size: 11.5px; font-weight: 900; letter-spacing: 1.4px; text-transform: uppercase; color: #0d0d10; background: linear-gradient(92deg, var(--gold-lite), var(--yellow)); padding: 5px 13px; border-radius: 999px; }
+.ci-title { margin: 12px 0 8px; font-size: clamp(28px, 4.4vw, 42px); font-weight: 900; letter-spacing: .2px; text-wrap: balance; background: linear-gradient(92deg, var(--gold-lite), var(--gold) 55%, var(--yellow)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ci-lead { margin: 0; font-size: 16px; line-height: 1.6; color: var(--muted); max-width: 66ch; }
+
 /* coaching — featured video (VNL-style) */
 .feature-video { margin: 0; }
 .fv-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); background: #000; }

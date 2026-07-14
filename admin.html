@@ -52,6 +52,7 @@
         <button class="atab" data-tab="ann">📢 Announcements</button>
         <button class="atab" data-tab="players">👤 Players</button>
         <button class="atab" data-tab="coaching">🎓 Coaching</button>
+        <button class="atab" data-tab="rules">📖 Rules</button>
       </div>
 
       <div class="tabpane" id="pane-teams">
@@ -112,6 +113,20 @@
           <h2>📨 Coaching requests</h2>
           <p class="mini-note" style="margin-top:0">Requests players sent from the website.</p>
           <div id="reqAdmin"></div>
+        </div>
+      </div>
+
+      <div class="tabpane" id="pane-rules" style="display:none">
+        <div class="card">
+          <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0">📖 Official rule book</h2><span class="spacer"></span><button class="btn ghost" id="rulesReset">↺ Clear (use default)</button></div>
+          <p class="mini-note" style="margin-top:0">Edit the official league rule book shown on the Rules page. Simple formatting: <b># Heading</b>, <b>## Subheading</b>, <b>- bullet</b>. Leave blank to show the built-in default.</p>
+          <textarea id="rulesText" rows="18" placeholder="# Article I — General Rules…" style="width:100%;font-family:ui-monospace,monospace;font-size:13px"></textarea>
+          <div class="row" style="margin-top:8px"><button class="btn" id="rulesSave">💾 Save rule book</button><span class="msg" id="rulesMsg" style="color:var(--muted);font-size:13px"></span></div>
+        </div>
+        <div class="card">
+          <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0">💡 Rule suggestions</h2><span class="spacer"></span><button class="btn ghost" id="refreshSuggestBtn">↻ Refresh</button></div>
+          <p class="mini-note" style="margin-top:0">Rule ideas players sent from the Rules page.</p>
+          <div id="suggestAdmin"></div>
         </div>
       </div>
 

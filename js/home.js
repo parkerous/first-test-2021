@@ -90,8 +90,6 @@ function renderNews() {
         <span class="lg">${esc(n.lg)}</span>
         ${i === 0 ? `<span class="feat-badge">⭐ Featured</span>` : ""}
         ${n.img ? "" : `<span class="emoji">🏐</span>`}
-        <button class="feat" title="Feature this (put it first in the slideshow)" onclick="featureNews(${i})">⭐</button>
-        <button class="del" title="Remove" onclick="delNews(${i})">×</button>
       </div>
       <div class="body">
         <h3>${esc(n.title)}</h3>
@@ -103,40 +101,8 @@ function renderNews() {
       </div>
     </div>`).join("");
 }
-function delNews(i) { news.splice(i, 1); save(); renderNews(); renderSlides(); }
-function featureNews(i) {
-  const item = news.splice(i, 1)[0];
-  if (item) { news.unshift(item); save(); renderNews(); renderSlides(); msg(`⭐ Featured “${item.title.slice(0, 40)}” — now leading the slideshow.`); }
-}
-function addNews() {
-  const lg = val("nLg") || "News", title = val("nTitle"), url = val("nUrl"), desc = val("nDesc"), img = val("nImg");
-  if (!title || !url) { msg("Add at least a headline and a link."); return; }
-  news.unshift({ lg, emoji: "📰", title, desc, img, src: safeUrl(url).replace(/^https?:\/\//, "").split("/")[0], url });
-  save(); renderNews(); renderSlides();
-  ["nLg", "nTitle", "nUrl", "nDesc", "nImg"].forEach(id => document.getElementById(id).value = "");
-  document.getElementById("addform").style.display = "none";
-  msg("Added — it's now the featured story at the top.");
-}
-function resetNews() { news = DEFAULT_NEWS.slice(); save(); renderNews(); renderSlides(); msg("Reset to the default sources."); }
-
-/* ---------- optional experimental live RSS ---------- */
-async function fetchLive() {
-  const feed = val("feedUrl");
-  if (!feed) { msg("Paste a volleyball site's RSS feed URL first (often the site + /feed/)."); return; }
-  msg("Fetching live headlines…");
-  try {
-    const res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(safeUrl(feed)));
-    const xml = new DOMParser().parseFromString(await res.text(), "text/xml");
-    const items = [...xml.querySelectorAll("item")].slice(0, 6).map(it => ({
-      lg: "Live", emoji: "🔴", title: (it.querySelector("title")?.textContent || "").trim(),
-      desc: (it.querySelector("description")?.textContent || "").replace(/<[^>]+>/g, "").trim().slice(0, 140),
-      src: safeUrl(feed).replace(/^https?:\/\//, "").split("/")[0], url: (it.querySelector("link")?.textContent || "#").trim(),
-    })).filter(x => x.title);
-    if (!items.length) throw new Error("no items");
-    news = items.concat(news); save(); renderNews(); renderSlides();
-    msg(`Loaded ${items.length} live headlines.`);
-  } catch (e) { msg("⚠️ Live fetch failed (needs internet, and the feed/proxy must allow it). Curated sources are still shown."); }
-}
+/* Announcements are admin-managed (see the admin panel) — the homepage is
+   read-only, so there are no public add / edit / feature / delete helpers here. */
 
 /* ---------- YouTube "learn" search ---------- */
 function goLearn() {
@@ -165,13 +131,7 @@ function init() {
   document.getElementById("goBtn").addEventListener("click", goLearn);
   document.getElementById("ytUrl").addEventListener("keydown", e => { if (e.key === "Enter") goLearn(); });
 
-  document.getElementById("addBtn").addEventListener("click", () => {
-    const f = document.getElementById("addform");
-    f.style.display = f.style.display === "block" ? "none" : "block";
-  });
-  document.getElementById("saveNews").addEventListener("click", addNews);
-  document.getElementById("resetNews").addEventListener("click", resetNews);
-  document.getElementById("liveBtn").addEventListener("click", fetchLive);
+  /* announcements are admin-managed (admin panel → Announcements); no public editing here */
 
   /* horizontal news rail arrows */
   const rail = document.getElementById("newsGrid");
