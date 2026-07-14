@@ -7,11 +7,9 @@ let anns = [];
 let TEAMS = [];
 
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
-async function adminGet(path) {
-  const r = await fetch(apiBase() + path, { headers: { "X-Admin-Key": adminKey() } });
-  if (!r.ok) throw new Error("HTTP " + r.status);
-  return r.json();
-}
+/* GET with the admin key — works against the remote backend or the
+   in-browser one (rawGet in api.js handles both). */
+async function adminGet(path) { return rawGet(path, adminKey()); }
 
 /* ---------- login ---------- */
 async function login() {
