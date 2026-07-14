@@ -14,6 +14,18 @@
 // No hard-coded remote backend: empty means "use the in-browser backend".
 const SOAI_API = "";
 
+/* Old builds hard-coded a Cloudflare Worker URL and saved it as an override.
+   That Worker is gone, so a leftover copy in a visitor's browser would keep
+   the site pointed at a dead host. Drop those known-dead values on load so
+   the site heals itself back to the in-browser backend. */
+(function clearDeadOverride() {
+  try {
+    const dead = ["first-test-2021.binsustar.workers.dev", "first-test-2021.workers.dev"];
+    const cur = localStorage.getItem("soai_api_override") || "";
+    if (dead.some(d => cur.indexOf(d) !== -1)) localStorage.removeItem("soai_api_override");
+  } catch (e) { /* ignore */ }
+})();
+
 /* The remote backend URL, if one has been set. Empty => use local backend. */
 function remoteBase() {
   return (localStorage.getItem("soai_api_override") || SOAI_API || "").replace(/\/+$/, "");
@@ -24,15 +36,18 @@ function apiBase() { return remoteBase(); }
 function apiConfigured() { return true; }
 function adminKey() { return sessionStorage.getItem("soai_admin_key") || ""; }
 
-/* GET a route. `adminHdr` (optional) is sent as the admin key. */
+/* GET a route. `adminHdr` (optional) is sent as the admin key.
+   If a remote backend is configured but unreachable / errors, fall back to
+   the in-browser backend so the site never shows "Load failed". */
 async function rawGet(path, adminHdr) {
   const base = remoteBase();
   if (base) {
-    const headers = {};
-    if (adminHdr) headers["X-Admin-Key"] = adminHdr;
-    const r = await fetch(base + path, { headers });
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    return r.json();
+    try {
+      const headers = {};
+      if (adminHdr) headers["X-Admin-Key"] = adminHdr;
+      const r = await fetch(base + path, { headers });
+      if (r.ok) return await r.json();
+    } catch (e) { /* remote down — fall through to the local backend */ }
   }
   const res = await window.localBackend.route(path, "GET", null, adminHdr || "");
   if (res.status >= 400) throw new Error("HTTP " + res.status);
@@ -43,10 +58,12 @@ async function apiGet(path) { return rawGet(path, ""); }
 async function apiPost(path, body, admin) {
   const base = remoteBase();
   if (base) {
-    const headers = { "Content-Type": "application/json" };
-    if (admin) headers["X-Admin-Key"] = adminKey();
-    const r = await fetch(base + path, { method: "POST", headers, body: JSON.stringify(body || {}) });
-    return r.json();
+    try {
+      const headers = { "Content-Type": "application/json" };
+      if (admin) headers["X-Admin-Key"] = adminKey();
+      const r = await fetch(base + path, { method: "POST", headers, body: JSON.stringify(body || {}) });
+      if (r.ok) return await r.json();
+    } catch (e) { /* remote down — fall through to the local backend */ }
   }
   const res = await window.localBackend.route(path, "POST", body || {}, admin ? adminKey() : "");
   return res.data;
