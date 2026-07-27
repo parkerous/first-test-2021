@@ -1,23 +1,26 @@
 /* ============================================================
    Soai API client.
 
-   By default the site runs on a built-in backend that lives right in
-   your browser (see local-backend at the bottom of this file), so the
-   whole site works with NO server to deploy or maintain.
+   The site talks to a backend in this priority order:
+     1. an explicit URL saved as `soai_api_override` (admin → "connect a
+        shared backend"), else
+     2. the SAME ORIGIN — when the site is served by the combined Cloudflare
+        Worker (api-worker.js), the API lives at the same origin and every
+        visitor shares one KV store, else
+     3. a built-in backend that runs right in the browser (bottom of this
+        file), so the site still works with NO server (e.g. on Netlify or
+        opened as a local file).
 
-   If you ever deploy the Cloudflare Worker (api-worker.js) and want all
-   visitors to share the same data, open the admin page → "Backend not
-   connected? Set it manually" and paste the Worker URL once. That URL is
-   saved as `soai_api_override` and every page will use it from then on.
+   Whenever a remote attempt fails (static host with no API, Worker down),
+   we fall back to the in-browser backend so the site never shows
+   "Load failed".
    ============================================================ */
 
-// No hard-coded remote backend: empty means "use the in-browser backend".
-const SOAI_API = "";
+const SOAI_API = "";   // no hard-coded remote; discovered at runtime (see above)
 
 /* Old builds hard-coded a Cloudflare Worker URL and saved it as an override.
    That Worker is gone, so a leftover copy in a visitor's browser would keep
-   the site pointed at a dead host. Drop those known-dead values on load so
-   the site heals itself back to the in-browser backend. */
+   the site pointed at a dead host. Drop those known-dead values on load. */
 (function clearDeadOverride() {
   try {
     const dead = ["first-test-2021.binsustar.workers.dev", "first-test-2021.workers.dev"];
@@ -26,48 +29,63 @@ const SOAI_API = "";
   } catch (e) { /* ignore */ }
 })();
 
-/* The remote backend URL, if one has been set. Empty => use local backend. */
-function remoteBase() {
-  return (localStorage.getItem("soai_api_override") || SOAI_API || "").replace(/\/+$/, "");
-}
-/* Kept for callers that build URLs directly. */
-function apiBase() { return remoteBase(); }
-/* The site always has a working backend (remote if set, else in-browser). */
+function overrideBase() { return (localStorage.getItem("soai_api_override") || SOAI_API || "").replace(/\/+$/, ""); }
+function sameOriginBase() { return (location.protocol === "http:" || location.protocol === "https:") ? location.origin.replace(/\/+$/, "") : ""; }
+/* Best-guess base for callers that build URLs directly. */
+function apiBase() { return overrideBase() || sameOriginBase(); }
+/* The site always has a working backend (remote if reachable, else in-browser). */
 function apiConfigured() { return true; }
 function adminKey() { return sessionStorage.getItem("soai_admin_key") || ""; }
 
-/* GET a route. `adminHdr` (optional) is sent as the admin key.
-   If a remote backend is configured but unreachable / errors, fall back to
-   the in-browser backend so the site never shows "Load failed". */
-async function rawGet(path, adminHdr) {
-  const base = remoteBase();
-  if (base) {
-    try {
-      const headers = {};
-      if (adminHdr) headers["X-Admin-Key"] = adminHdr;
-      const r = await fetch(base + path, { headers });
-      if (r.ok) return await r.json();
-    } catch (e) { /* remote down — fall through to the local backend */ }
-  }
-  const res = await window.localBackend.route(path, "GET", null, adminHdr || "");
-  if (res.status >= 400) throw new Error("HTTP " + res.status);
-  return res.data;
+async function fetchJson(base, path, method, body, adminHdr) {
+  const headers = {};
+  if (method === "POST") headers["Content-Type"] = "application/json";
+  if (adminHdr) headers["X-Admin-Key"] = adminHdr;
+  const opts = { method, headers };
+  if (method === "POST") opts.body = JSON.stringify(body || {});
+  const r = await fetch(base + path, opts);
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();   // throws if the response isn't JSON (e.g. a static host's HTML)
 }
-async function apiGet(path) { return rawGet(path, ""); }
 
-async function apiPost(path, body, admin) {
-  const base = remoteBase();
-  if (base) {
-    try {
-      const headers = { "Content-Type": "application/json" };
-      if (admin) headers["X-Admin-Key"] = adminKey();
-      const r = await fetch(base + path, { method: "POST", headers, body: JSON.stringify(body || {}) });
-      if (r.ok) return await r.json();
-    } catch (e) { /* remote down — fall through to the local backend */ }
-  }
-  const res = await window.localBackend.route(path, "POST", body || {}, admin ? adminKey() : "");
+async function localCall(path, method, body, adminHdr) {
+  const res = await window.localBackend.route(path, method, method === "POST" ? (body || {}) : null, adminHdr || "");
+  if (res.status >= 400 && method === "GET") throw new Error("HTTP " + res.status);
   return res.data;
 }
+
+/* One shared probe (memoized) decides whether the same origin hosts the API,
+   so a static host logs at most a single failed request instead of one per call. */
+let _originProbe = null;
+function originHasApi() {
+  if (_originProbe) return _originProbe;
+  const origin = sameOriginBase();
+  _originProbe = (async () => {
+    if (!origin) return false;
+    try { await fetchJson(origin, "/site", "GET", null, ""); return true; }
+    catch (e) { return false; }
+  })();
+  return _originProbe;
+}
+
+/* Route one request through override → same-origin Worker → in-browser. */
+async function request(path, method, body, adminHdr) {
+  const override = overrideBase();
+  if (override) {
+    try { return await fetchJson(override, path, method, body, adminHdr); }
+    catch (e) { return localCall(path, method, body, adminHdr); }
+  }
+  const origin = sameOriginBase();
+  if (origin && await originHasApi()) {
+    try { return await fetchJson(origin, path, method, body, adminHdr); }
+    catch (e) { return localCall(path, method, body, adminHdr); }
+  }
+  return localCall(path, method, body, adminHdr);
+}
+
+async function rawGet(path, adminHdr) { return request(path, "GET", null, adminHdr || ""); }
+async function apiGet(path) { return request(path, "GET", null, ""); }
+async function apiPost(path, body, admin) { return request(path, "POST", body || {}, admin ? adminKey() : ""); }
 
 /* ---- roster helpers (shared by team page + admin) ---- */
 const PLAYER_ROLES = ["Setter", "Outside Hitter", "Middle Blocker", "Opposite", "Libero", "All Rounder", "Sub"];
