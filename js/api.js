@@ -165,6 +165,24 @@ function fileToDataUrl(file, max = 420) {
   const ADMIN_DEFAULT = "64928";         // same default as the Worker
   const ROLES = ["Setter", "Outside Hitter", "Middle Blocker", "Opposite", "Libero", "All Rounder", "Sub"];
 
+  // Preseason scrims — seeded on first access (17 teams + posted results).
+  const DEFAULT_SCRIM_TEAMS = ["Green Giants", "Equinox", "Senzai", "Seishin Skyblade", "The Order", "Canopus", "Miku", "Vanguard", "Volare", "Teiko", "Zenith", "Nekopara", "Ground Zero", "Invictus", "Stinger", "Ho-Kago Kawaii Larps", "Yakamoz"];
+  const DEFAULT_SCRIMS = [
+    { id: "seed_gg_neko", teamA: "Green Giants", teamB: "Nekopara", sets: [{ a: 25, b: 23 }, { a: 25, b: 15 }], createdAt: 1 },
+    { id: "seed_van_gg", teamA: "Vanguard", teamB: "Green Giants", sets: [{ a: 25, b: 21 }, { a: 25, b: 15 }], createdAt: 2 },
+    { id: "seed_sen_gz", teamA: "Senzai", teamB: "Ground Zero", sets: [{ w: "A" }, { w: "A" }], createdAt: 3 },
+    { id: "seed_van_hkk", teamA: "Vanguard", teamB: "Ho-Kago Kawaii Larps", sets: [{ a: 25, b: 19 }, { a: 25, b: 18 }], createdAt: 4 },
+  ];
+  function cleanSets(arr) {
+    if (!Array.isArray(arr)) return [];
+    return arr.map(s => {
+      if (s && typeof s.a === "number" && typeof s.b === "number" && isFinite(s.a) && isFinite(s.b))
+        return { a: Math.max(0, Math.round(s.a)), b: Math.max(0, Math.round(s.b)) };
+      if (s && (s.w === "A" || s.w === "B")) return { w: s.w };
+      return null;
+    }).filter(Boolean).slice(0, 5);
+  }
+
   const kvGet = k => localStorage.getItem(NS + k);
   const kvPut = (k, v) => localStorage.setItem(NS + k, v);
   const kvDelete = k => localStorage.removeItem(NS + k);
@@ -443,6 +461,36 @@ function fileToDataUrl(file, max = 420) {
       const id = uid("a_");
       kvPut("analysis:" + id, JSON.stringify({ id, label: cleanStr(body.label, 80) || "Match analysis", report: body.report || {}, createdAt: Date.now() }));
       return ok({ ok: true, id });
+    }
+
+    /* ---- preseason scrims (standings source) ---- */
+    if (p === "/scrims" && method === "GET") {
+      let tRaw = kvGet("scrimteams");
+      if (tRaw == null) { tRaw = JSON.stringify(DEFAULT_SCRIM_TEAMS); kvPut("scrimteams", tRaw); }
+      let mRaw = kvGet("scrims");
+      if (mRaw == null) { mRaw = JSON.stringify(DEFAULT_SCRIMS); kvPut("scrims", mRaw); }
+      return ok({ teams: JSON.parse(tRaw), matches: JSON.parse(mRaw) });
+    }
+    if (p === "/admin/scrims/teams" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      const teams = (Array.isArray(body.teams) ? body.teams : []).map(s => cleanStr(s, 40)).filter(Boolean).slice(0, 100);
+      kvPut("scrimteams", JSON.stringify(teams)); return ok({ ok: true });
+    }
+    if (p === "/admin/scrims/add" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      const teamA = cleanStr(body.teamA, 40), teamB = cleanStr(body.teamB, 40);
+      const sets = cleanSets(body.sets);
+      if (!teamA || !teamB) return err("both teams are required", 400);
+      if (teamA === teamB) return err("a team can't scrim itself", 400);
+      if (!sets.length) return err("at least one set score is required", 400);
+      const raw = kvGet("scrims"); const list = raw ? JSON.parse(raw) : DEFAULT_SCRIMS.slice();
+      list.push({ id: uid("s_"), teamA, teamB, sets, createdAt: Date.now() });
+      kvPut("scrims", JSON.stringify(list)); return ok({ ok: true });
+    }
+    if (p === "/admin/scrims/delete" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      const raw = kvGet("scrims"); const list = (raw ? JSON.parse(raw) : DEFAULT_SCRIMS.slice()).filter(x => x.id !== body.id);
+      kvPut("scrims", JSON.stringify(list)); return ok({ ok: true });
     }
 
     /* ---- site logo + admin login ---- */

@@ -41,6 +41,85 @@ async function loadAll() {
   loadProfiles();
   loadCoaching();
   loadRules();
+  loadScrims();
+}
+
+/* ---------- preseason scrims admin ---------- */
+let SCRIMS = { teams: [], matches: [] };
+let scrimSetCount = 2;
+async function loadScrims() {
+  try { SCRIMS = await apiGet("/scrims"); } catch (e) { SCRIMS = { teams: [], matches: [] }; }
+  // team dropdowns
+  const opts = `<option value="">Team…</option>` + (SCRIMS.teams || []).map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("");
+  const a = document.getElementById("scA"), b = document.getElementById("scB");
+  const av = a.value, bv = b.value;
+  a.innerHTML = opts; b.innerHTML = opts; a.value = av; b.value = bv;
+  // team list textarea
+  document.getElementById("scTeams").value = (SCRIMS.teams || []).join("\n");
+  renderScrimSets();
+  renderScrimAdmin();
+}
+function renderScrimSets() {
+  const el = document.getElementById("scSets");
+  let html = "";
+  for (let i = 0; i < scrimSetCount; i++) {
+    html += `<div class="row" style="align-items:center;gap:8px">
+      <span style="color:var(--muted);font-size:13px;width:52px">Set ${i + 1}</span>
+      <input type="number" min="0" id="scS${i}a" placeholder="A" style="width:80px" />
+      <span style="color:var(--muted)">–</span>
+      <input type="number" min="0" id="scS${i}b" placeholder="B" style="width:80px" />
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+function renderScrimAdmin() {
+  const el = document.getElementById("scrimAdmin");
+  const ms = (SCRIMS.matches || []).slice().sort((x, y) => (y.createdAt || 0) - (x.createdAt || 0));
+  if (!ms.length) { el.innerHTML = `<p class="empty">No scrims posted yet.</p>`; return; }
+  el.innerHTML = ms.map(m => {
+    const line = (typeof scrimMatchLine === "function") ? scrimMatchLine(m).text : `${esc(m.teamA)} vs ${esc(m.teamB)}`;
+    return `<div class="card" style="background:var(--bg);margin-bottom:8px"><div class="row" style="align-items:center">
+      <span style="font-size:14px">🏐 ${line}</span><span class="spacer"></span>
+      <button class="btn warn" onclick="deleteScrim('${m.id}')">🗑</button></div></div>`;
+  }).join("");
+}
+async function addScrim() {
+  const m = document.getElementById("scMsg");
+  const teamA = document.getElementById("scA").value, teamB = document.getElementById("scB").value;
+  if (!teamA || !teamB) { m.textContent = "Pick both teams."; return; }
+  if (teamA === teamB) { m.textContent = "A team can't scrim itself."; return; }
+  const sets = [];
+  for (let i = 0; i < scrimSetCount; i++) {
+    const av = document.getElementById("scS" + i + "a").value, bv = document.getElementById("scS" + i + "b").value;
+    if (av === "" && bv === "") continue;
+    if (av === "" || bv === "") { m.textContent = `Set ${i + 1} needs both scores.`; return; }
+    sets.push({ a: +av, b: +bv });
+  }
+  if (!sets.length) { m.textContent = "Enter at least one set score."; return; }
+  m.textContent = "Posting…";
+  try {
+    const r = await apiPost("/admin/scrims/add", { teamA, teamB, sets }, true);
+    if (r && r.ok) {
+      m.textContent = "✅ Result posted";
+      document.getElementById("scA").value = ""; document.getElementById("scB").value = "";
+      scrimSetCount = 2; await loadScrims();
+    } else m.textContent = "⚠️ " + ((r && r.error) || "failed");
+  } catch (e) { m.textContent = "⚠️ " + e.message; }
+}
+async function deleteScrim(id) {
+  if (!confirm("Delete this scrim result?")) return;
+  try { await apiPost("/admin/scrims/delete", { id }, true); SCRIMS.matches = (SCRIMS.matches || []).filter(x => x.id !== id); renderScrimAdmin(); }
+  catch (e) { /* ignore */ }
+}
+async function saveScrimTeams() {
+  const m = document.getElementById("scTeamsMsg");
+  const teams = document.getElementById("scTeams").value.split("\n").map(s => s.trim()).filter(Boolean);
+  m.textContent = "Saving…";
+  try {
+    const r = await apiPost("/admin/scrims/teams", { teams }, true);
+    if (r && r.ok) { m.textContent = "✅ Saved"; await loadScrims(); }
+    else m.textContent = "⚠️ " + ((r && r.error) || "failed");
+  } catch (e) { m.textContent = "⚠️ " + e.message; }
 }
 
 /* ---------- rules admin (official book + suggestions) ---------- */
@@ -333,6 +412,7 @@ function switchTab(name) {
   document.getElementById("pane-ann").style.display = name === "ann" ? "block" : "none";
   document.getElementById("pane-players").style.display = name === "players" ? "block" : "none";
   document.getElementById("pane-coaching").style.display = name === "coaching" ? "block" : "none";
+  document.getElementById("pane-scrims").style.display = name === "scrims" ? "block" : "none";
   document.getElementById("pane-rules").style.display = name === "rules" ? "block" : "none";
 }
 
@@ -351,6 +431,10 @@ function init() {
   document.getElementById("rulesSave").addEventListener("click", saveRules);
   document.getElementById("rulesReset").addEventListener("click", loadDefaultRules);
   document.getElementById("refreshSuggestBtn").addEventListener("click", loadRules);
+  document.getElementById("scAdd").addEventListener("click", addScrim);
+  document.getElementById("scAddSet").addEventListener("click", () => { if (scrimSetCount < 5) { scrimSetCount++; renderScrimSets(); } });
+  document.getElementById("scTeamsSave").addEventListener("click", saveScrimTeams);
+  document.getElementById("refreshScrimBtn").addEventListener("click", loadScrims);
   document.getElementById("brandFile").addEventListener("change", e => pickBrand(e.target));
   document.getElementById("brandSave").addEventListener("click", saveBrand);
   document.querySelectorAll(".atab").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));

@@ -52,6 +52,7 @@
         <button class="atab" data-tab="ann">📢 Announcements</button>
         <button class="atab" data-tab="players">👤 Players</button>
         <button class="atab" data-tab="coaching">🎓 Coaching</button>
+        <button class="atab" data-tab="scrims">🏐 Preseason</button>
         <button class="atab" data-tab="rules">📖 Rules</button>
       </div>
 
@@ -116,6 +117,31 @@
         </div>
       </div>
 
+      <div class="tabpane" id="pane-scrims" style="display:none">
+        <div class="card">
+          <h2>🏐 Post a scrim result</h2>
+          <p class="mini-note" style="margin-top:0">Pick both teams and enter the set scores. The winner and all standings (record, set win-rate, point differential) are calculated automatically.</p>
+          <div class="row">
+            <select id="scA" style="flex:1;min-width:160px"><option value="">Team A…</option></select>
+            <span style="align-self:center;color:var(--muted);font-weight:900">vs</span>
+            <select id="scB" style="flex:1;min-width:160px"><option value="">Team B…</option></select>
+          </div>
+          <div id="scSets" style="margin-top:6px"></div>
+          <div class="row" style="margin-top:4px"><button class="btn ghost" id="scAddSet">＋ Add a set</button></div>
+          <div class="row"><button class="btn" id="scAdd">＋ Post result</button><span class="msg" id="scMsg" style="color:var(--muted);font-size:12.5px"></span></div>
+        </div>
+        <div class="card">
+          <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0">Posted scrims</h2><span class="spacer"></span><button class="btn ghost" id="refreshScrimBtn">↻ Refresh</button></div>
+          <div id="scrimAdmin"></div>
+        </div>
+        <div class="card">
+          <h2>Teams in the preseason pool</h2>
+          <p class="mini-note" style="margin-top:0">One team per line. These fill the dropdowns above and appear in the standings even with no games played yet.</p>
+          <textarea id="scTeams" rows="9" placeholder="Green Giants&#10;Senzai&#10;Vanguard…" style="width:100%"></textarea>
+          <div class="row" style="margin-top:8px"><button class="btn" id="scTeamsSave">💾 Save teams</button><span class="msg" id="scTeamsMsg" style="color:var(--muted);font-size:12.5px"></span></div>
+        </div>
+      </div>
+
       <div class="tabpane" id="pane-rules" style="display:none">
         <div class="card">
           <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0">📖 Official rule book</h2><span class="spacer"></span><button class="btn ghost" id="rulesReset">↺ Clear (use default)</button></div>
@@ -148,6 +174,7 @@
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · admin</p>
 
   <script src="js/api.js"></script>
+  <script src="js/scrims.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>
