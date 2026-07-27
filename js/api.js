@@ -200,6 +200,13 @@ function fileToDataUrl(file, max = 420) {
       return null;
     }).filter(Boolean).slice(0, 5);
   }
+  /* team pool: accept plain names (legacy) or {name, logo} → [{name, logo}] */
+  function normScrimTeams(arr) {
+    return (Array.isArray(arr) ? arr : []).map(t => typeof t === "string"
+      ? { name: cleanStr(t, 40), logo: "" }
+      : { name: cleanStr(t && t.name, 40), logo: (t && typeof t.logo === "string") ? t.logo : "" }
+    ).filter(t => t.name).slice(0, 100);
+  }
 
   const kvGet = k => localStorage.getItem(NS + k);
   const kvPut = (k, v) => localStorage.setItem(NS + k, v);
@@ -483,16 +490,17 @@ function fileToDataUrl(file, max = 420) {
 
     /* ---- preseason scrims (standings source) ---- */
     if (p === "/scrims" && method === "GET") {
-      let tRaw = kvGet("scrimteams");
-      if (tRaw == null) { tRaw = JSON.stringify(DEFAULT_SCRIM_TEAMS); kvPut("scrimteams", tRaw); }
+      let teams;
+      const tRaw = kvGet("scrimteams");
+      if (tRaw == null) { teams = DEFAULT_SCRIM_TEAMS.map(n => ({ name: n, logo: "" })); kvPut("scrimteams", JSON.stringify(teams)); }
+      else teams = normScrimTeams(JSON.parse(tRaw));
       let mRaw = kvGet("scrims");
       if (mRaw == null) { mRaw = JSON.stringify(DEFAULT_SCRIMS); kvPut("scrims", mRaw); }
-      return ok({ teams: JSON.parse(tRaw), matches: JSON.parse(mRaw) });
+      return ok({ teams, matches: JSON.parse(mRaw) });
     }
     if (p === "/admin/scrims/teams" && method === "POST") {
       if (!isAdmin(adminHdr)) return err("unauthorized", 401);
-      const teams = (Array.isArray(body.teams) ? body.teams : []).map(s => cleanStr(s, 40)).filter(Boolean).slice(0, 100);
-      kvPut("scrimteams", JSON.stringify(teams)); return ok({ ok: true });
+      kvPut("scrimteams", JSON.stringify(normScrimTeams(body.teams))); return ok({ ok: true });
     }
     if (p === "/admin/scrims/add" && method === "POST") {
       if (!isAdmin(adminHdr)) return err("unauthorized", 401);

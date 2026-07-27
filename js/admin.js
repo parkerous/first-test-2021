@@ -47,17 +47,47 @@ async function loadAll() {
 /* ---------- preseason scrims admin ---------- */
 let SCRIMS = { teams: [], matches: [] };
 let scrimSetCount = 2;
+let scrimTeamCtl = null;
 async function loadScrims() {
   try { SCRIMS = await apiGet("/scrims"); } catch (e) { SCRIMS = { teams: [], matches: [] }; }
-  // team dropdowns
-  const opts = `<option value="">Team…</option>` + (SCRIMS.teams || []).map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("");
+  // team dropdowns (team pool entries are {name, logo})
+  const names = (SCRIMS.teams || []).map(t => (t && t.name) || "").filter(Boolean);
+  const opts = `<option value="">Team…</option>` + names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
   const a = document.getElementById("scA"), b = document.getElementById("scB");
   const av = a.value, bv = b.value;
   a.innerHTML = opts; b.innerHTML = opts; a.value = av; b.value = bv;
-  // team list textarea
-  document.getElementById("scTeams").value = (SCRIMS.teams || []).join("\n");
+  // team editor (logo + name)
+  scrimTeamCtl = makeScrimTeamEditor(document.getElementById("scTeamsEditor"), SCRIMS.teams || []);
   renderScrimSets();
   renderScrimAdmin();
+}
+
+/* rows of [logo upload][name][remove] + add button; returns { get } -> [{name,logo}] */
+function makeScrimTeamEditor(mountEl, initial) {
+  let teams = (initial || []).map(t => ({ name: (t && t.name) || "", logo: (t && t.logo) || "" }));
+  function render() {
+    mountEl.innerHTML = teams.map((t, i) => `
+      <div class="pedit-row" data-i="${i}">
+        <label class="pedit-photo ${t.logo ? "has" : ""}" title="Upload team logo">
+          <input type="file" accept="image/*" hidden />
+          ${t.logo ? `<img src="${esc(t.logo)}" alt="" />` : `<span>＋</span>`}
+        </label>
+        <input class="pedit-name" type="text" value="${esc(t.name)}" placeholder="Team name" />
+        <button type="button" class="pedit-del" title="Remove">✕</button>
+      </div>`).join("") + `<button type="button" class="pedit-add btn ghost">＋ Add team</button>`;
+    mountEl.querySelectorAll(".pedit-row").forEach(row => {
+      const i = +row.dataset.i;
+      row.querySelector(".pedit-name").addEventListener("input", e => { teams[i].name = e.target.value; });
+      row.querySelector(".pedit-photo input").addEventListener("change", async e => {
+        const f = e.target.files[0]; if (!f) return;
+        teams[i].logo = await fileToDataUrl(f, 300); render();
+      });
+      row.querySelector(".pedit-del").addEventListener("click", () => { teams.splice(i, 1); render(); });
+    });
+    mountEl.querySelector(".pedit-add").addEventListener("click", () => { teams.push({ name: "", logo: "" }); render(); });
+  }
+  render();
+  return { get: () => teams.map(t => ({ name: (t.name || "").trim(), logo: t.logo || "" })).filter(t => t.name) };
 }
 function renderScrimSets() {
   const el = document.getElementById("scSets");
@@ -113,7 +143,7 @@ async function deleteScrim(id) {
 }
 async function saveScrimTeams() {
   const m = document.getElementById("scTeamsMsg");
-  const teams = document.getElementById("scTeams").value.split("\n").map(s => s.trim()).filter(Boolean);
+  const teams = scrimTeamCtl ? scrimTeamCtl.get() : [];
   m.textContent = "Saving…";
   try {
     const r = await apiPost("/admin/scrims/teams", { teams }, true);

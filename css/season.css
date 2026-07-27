@@ -62,6 +62,7 @@ table.standings .team .dot { width: 26px; height: 26px; border-radius: 50%; back
 .sched-row .vs { font-weight: 900; color: var(--muted); font-size: 13px; letter-spacing: 1px; }
 
 /* preseason scrim standings */
+.ps-logo { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex: none; background: var(--panel); border: 1px solid var(--line); }
 .ps-rec { font-weight: 900; font-variant-numeric: tabular-nums; padding: 2px 9px; border-radius: 999px; font-size: 13px; }
 .ps-rec.ps-pos { color: #0d0d10; background: linear-gradient(92deg, var(--gold-lite), var(--yellow)); }
 .ps-rec.ps-neg { color: var(--bad); background: color-mix(in srgb, var(--bad) 16%, transparent); }
