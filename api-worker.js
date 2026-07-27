@@ -60,6 +60,13 @@ function cleanSets(arr) {
     return null;
   }).filter(Boolean).slice(0, 5);
 }
+/* team pool: accept plain names (legacy) or {name, logo} → [{name, logo}] */
+function normScrimTeams(arr) {
+  return (Array.isArray(arr) ? arr : []).map(t => typeof t === "string"
+    ? { name: cleanStr(t, 40), logo: "" }
+    : { name: cleanStr(t && t.name, 40), logo: (t && typeof t.logo === "string") ? t.logo : "" }
+  ).filter(t => t.name).slice(0, 100);
+}
 /* build a roster-change log from the old vs new player lists */
 function diffPlayers(oldArr, newArr) {
   const norm = a => (Array.isArray(a) ? a : []).map(p => typeof p === "string" ? { name: p, role: "" } : { name: (p && p.name) || "", role: (p && p.role) || "" }).filter(p => p.name);
@@ -423,17 +430,18 @@ async function handleApi(req, env, url) {
   }
   /* ---- Preseason scrims: standings source (public read, admin write) ---- */
   if (p === "/scrims" && req.method === "GET") {
-    let tRaw = await KV.get("scrimteams");
-    if (tRaw == null) { tRaw = JSON.stringify(DEFAULT_SCRIM_TEAMS); await KV.put("scrimteams", tRaw); }
+    let teams;
+    const tRaw = await KV.get("scrimteams");
+    if (tRaw == null) { teams = DEFAULT_SCRIM_TEAMS.map(n => ({ name: n, logo: "" })); await KV.put("scrimteams", JSON.stringify(teams)); }
+    else teams = normScrimTeams(JSON.parse(tRaw));
     let mRaw = await KV.get("scrims");
     if (mRaw == null) { mRaw = JSON.stringify(DEFAULT_SCRIMS); await KV.put("scrims", mRaw); }
-    return json({ teams: JSON.parse(tRaw), matches: JSON.parse(mRaw) });
+    return json({ teams, matches: JSON.parse(mRaw) });
   }
   if (p === "/admin/scrims/teams" && req.method === "POST") {
     if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
     const b = await req.json();
-    const teams = (Array.isArray(b.teams) ? b.teams : []).map(s => cleanStr(s, 40)).filter(Boolean).slice(0, 100);
-    await KV.put("scrimteams", JSON.stringify(teams));
+    await KV.put("scrimteams", JSON.stringify(normScrimTeams(b.teams)));
     return json({ ok: true });
   }
   if (p === "/admin/scrims/add" && req.method === "POST") {

@@ -10,12 +10,14 @@
    ============================================================ */
 
 function scrimEsc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+/* team pool entries may be plain names (legacy) or {name, logo}. */
+function scrimTeamName(t) { return typeof t === "string" ? t : ((t && t.name) || ""); }
 
 /* Build the standings table from the team list + match list. */
 function computeScrimStandings(teams, matches) {
   const table = {};
   const base = name => ({ name, mw: 0, ml: 0, sw: 0, sl: 0, pf: 0, pa: 0, pointed: false });
-  (teams || []).forEach(n => { if (n) table[n] = base(n); });
+  (teams || []).forEach(t => { const n = scrimTeamName(t); if (n) table[n] = base(n); });
   const ensure = n => (table[n] || (table[n] = base(n)));
 
   (matches || []).forEach(m => {
@@ -80,15 +82,20 @@ async function renderScrimStandings() {
   let data = { teams: [], matches: [] };
   try { data = await apiGet("/scrims"); } catch (e) { /* leave empty */ }
   const rows = computeScrimStandings(data.teams, data.matches);
+  const logoBy = {};
+  (data.teams || []).forEach(t => { if (t && t.name) logoBy[t.name] = t.logo || ""; });
   const pct = v => v == null ? "—" : Math.round(v * 100) + "%";
   const diff = v => v == null ? "—" : (v > 0 ? "+" + v : "" + v);
   const rec = v => (v > 0 ? "+" + v : "" + v);
   const recCls = v => v > 0 ? "ps-pos" : v < 0 ? "ps-neg" : "ps-zero";
+  const crest = name => logoBy[name]
+    ? `<img class="ps-logo" src="${scrimEsc(logoBy[name])}" alt="" />`
+    : `<span class="dot"></span>`;
 
   body.innerHTML = rows.map((t, i) => `
     <tr>
       <td class="rk">${i + 1}</td>
-      <td><span class="team"><span class="dot"></span>${scrimEsc(t.name)}</span></td>
+      <td><span class="team">${crest(t.name)}${scrimEsc(t.name)}</span></td>
       <td class="num">${t.played}</td>
       <td class="num">${t.mw}</td>
       <td class="num">${t.ml}</td>
