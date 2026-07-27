@@ -61,6 +61,16 @@ table.standings .team .dot { width: 26px; height: 26px; border-radius: 50%; back
 .sched-row .side .dot { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(160deg, var(--gold-lite), var(--gold)); flex: none; }
 .sched-row .vs { font-weight: 900; color: var(--muted); font-size: 13px; letter-spacing: 1px; }
 
+/* preseason scrim standings */
+.ps-rec { font-weight: 900; font-variant-numeric: tabular-nums; padding: 2px 9px; border-radius: 999px; font-size: 13px; }
+.ps-rec.ps-pos { color: #0d0d10; background: linear-gradient(92deg, var(--gold-lite), var(--yellow)); }
+.ps-rec.ps-neg { color: var(--bad); background: color-mix(in srgb, var(--bad) 16%, transparent); }
+.ps-rec.ps-zero { color: var(--muted); background: color-mix(in srgb, var(--muted) 16%, transparent); }
+.ps-results { display: flex; flex-direction: column; gap: 8px; }
+.ps-result { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; font-size: 14.5px; box-shadow: var(--shadow-sm); }
+.ps-result .ps-score { font-weight: 900; color: var(--gold); margin: 0 4px; font-variant-numeric: tabular-nums; }
+.ps-result .ps-sets { color: var(--muted); font-size: 13px; }
+
 @media (prefers-reduced-motion: reduce) {
   .s2-fade, .sk, .cs-ball { animation: none; }
   .s2-fade { opacity: 1; transform: none; }

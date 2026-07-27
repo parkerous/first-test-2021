@@ -43,6 +43,23 @@ function cleanPlayers(arr) {
   }).filter(p => p && p.name).slice(0, 30);
 }
 function cleanStr(s, n) { return String(s == null ? "" : s).trim().slice(0, n); }
+/* preseason scrims: seed data + set-score sanitiser */
+const DEFAULT_SCRIM_TEAMS = ["Green Giants", "Equinox", "Senzai", "Seishin Skyblade", "The Order", "Canopus", "Miku", "Vanguard", "Volare", "Teiko", "Zenith", "Nekopara", "Ground Zero", "Invictus", "Stinger", "Ho-Kago Kawaii Larps", "Yakamoz"];
+const DEFAULT_SCRIMS = [
+  { id: "seed_gg_neko", teamA: "Green Giants", teamB: "Nekopara", sets: [{ a: 25, b: 23 }, { a: 25, b: 15 }], createdAt: 1 },
+  { id: "seed_van_gg", teamA: "Vanguard", teamB: "Green Giants", sets: [{ a: 25, b: 21 }, { a: 25, b: 15 }], createdAt: 2 },
+  { id: "seed_sen_gz", teamA: "Senzai", teamB: "Ground Zero", sets: [{ w: "A" }, { w: "A" }], createdAt: 3 },
+  { id: "seed_van_hkk", teamA: "Vanguard", teamB: "Ho-Kago Kawaii Larps", sets: [{ a: 25, b: 19 }, { a: 25, b: 18 }], createdAt: 4 },
+];
+function cleanSets(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.map(s => {
+    if (s && typeof s.a === "number" && typeof s.b === "number" && isFinite(s.a) && isFinite(s.b))
+      return { a: Math.max(0, Math.round(s.a)), b: Math.max(0, Math.round(s.b)) };
+    if (s && (s.w === "A" || s.w === "B")) return { w: s.w };
+    return null;
+  }).filter(Boolean).slice(0, 5);
+}
 /* build a roster-change log from the old vs new player lists */
 function diffPlayers(oldArr, newArr) {
   const norm = a => (Array.isArray(a) ? a : []).map(p => typeof p === "string" ? { name: p, role: "" } : { name: (p && p.name) || "", role: (p && p.role) || "" }).filter(p => p.name);
@@ -404,6 +421,44 @@ async function handleApi(req, env, url) {
     const raw = await KV.get("learn");
     return json(raw ? JSON.parse(raw) : { actions: {}, results: {}, videos: 0, touches: 0 });
   }
+  /* ---- Preseason scrims: standings source (public read, admin write) ---- */
+  if (p === "/scrims" && req.method === "GET") {
+    let tRaw = await KV.get("scrimteams");
+    if (tRaw == null) { tRaw = JSON.stringify(DEFAULT_SCRIM_TEAMS); await KV.put("scrimteams", tRaw); }
+    let mRaw = await KV.get("scrims");
+    if (mRaw == null) { mRaw = JSON.stringify(DEFAULT_SCRIMS); await KV.put("scrims", mRaw); }
+    return json({ teams: JSON.parse(tRaw), matches: JSON.parse(mRaw) });
+  }
+  if (p === "/admin/scrims/teams" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const b = await req.json();
+    const teams = (Array.isArray(b.teams) ? b.teams : []).map(s => cleanStr(s, 40)).filter(Boolean).slice(0, 100);
+    await KV.put("scrimteams", JSON.stringify(teams));
+    return json({ ok: true });
+  }
+  if (p === "/admin/scrims/add" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const b = await req.json();
+    const teamA = cleanStr(b.teamA, 40), teamB = cleanStr(b.teamB, 40);
+    const sets = cleanSets(b.sets);
+    if (!teamA || !teamB) return json({ error: "both teams are required" }, 400);
+    if (teamA === teamB) return json({ error: "a team can't scrim itself" }, 400);
+    if (!sets.length) return json({ error: "at least one set score is required" }, 400);
+    const raw = await KV.get("scrims");
+    const list = raw ? JSON.parse(raw) : DEFAULT_SCRIMS.slice();
+    list.push({ id: "s_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), teamA, teamB, sets, createdAt: Date.now() });
+    await KV.put("scrims", JSON.stringify(list));
+    return json({ ok: true });
+  }
+  if (p === "/admin/scrims/delete" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const { id } = await req.json();
+    const raw = await KV.get("scrims");
+    const list = (raw ? JSON.parse(raw) : DEFAULT_SCRIMS.slice()).filter(x => x.id !== id);
+    await KV.put("scrims", JSON.stringify(list));
+    return json({ ok: true });
+  }
+
   if (p === "/site" && req.method === "GET") {
     const s = await KV.get("site");
     return json(s ? JSON.parse(s) : {});
