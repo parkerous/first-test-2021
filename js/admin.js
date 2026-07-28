@@ -113,25 +113,41 @@ function renderScrimAdmin() {
       <button class="btn warn" onclick="deleteScrim('${m.id}')">🗑</button></div></div>`;
   }).join("");
 }
+/* show either the per-set score inputs or the result-only picker */
+function toggleScrimNoScore() {
+  const on = document.getElementById("scNoScore").checked;
+  document.getElementById("scSets").style.display = on ? "none" : "";
+  document.getElementById("scAddSetRow").style.display = on ? "none" : "";
+  document.getElementById("scResultOnly").style.display = on ? "flex" : "none";
+}
 async function addScrim() {
   const m = document.getElementById("scMsg");
   const teamA = document.getElementById("scA").value, teamB = document.getElementById("scB").value;
   if (!teamA || !teamB) { m.textContent = "Pick both teams."; return; }
   if (teamA === teamB) { m.textContent = "A team can't scrim itself."; return; }
   const sets = [];
-  for (let i = 0; i < scrimSetCount; i++) {
-    const av = document.getElementById("scS" + i + "a").value, bv = document.getElementById("scS" + i + "b").value;
-    if (av === "" && bv === "") continue;
-    if (av === "" || bv === "") { m.textContent = `Set ${i + 1} needs both scores.`; return; }
-    sets.push({ a: +av, b: +bv });
+  if (document.getElementById("scNoScore").checked) {
+    // result only: build winner-only sets (no points recorded)
+    const wa = +document.getElementById("scWonA").value, wb = +document.getElementById("scWonB").value;
+    if (wa === wb) { m.textContent = "Enter a decisive result (e.g. 2–0)."; return; }
+    for (let i = 0; i < wa; i++) sets.push({ w: "A" });
+    for (let i = 0; i < wb; i++) sets.push({ w: "B" });
+  } else {
+    for (let i = 0; i < scrimSetCount; i++) {
+      const av = document.getElementById("scS" + i + "a").value, bv = document.getElementById("scS" + i + "b").value;
+      if (av === "" && bv === "") continue;
+      if (av === "" || bv === "") { m.textContent = `Set ${i + 1} needs both scores.`; return; }
+      sets.push({ a: +av, b: +bv });
+    }
+    if (!sets.length) { m.textContent = "Enter at least one set score."; return; }
   }
-  if (!sets.length) { m.textContent = "Enter at least one set score."; return; }
   m.textContent = "Posting…";
   try {
     const r = await apiPost("/admin/scrims/add", { teamA, teamB, sets }, true);
     if (r && r.ok) {
       m.textContent = "✅ Result posted";
       document.getElementById("scA").value = ""; document.getElementById("scB").value = "";
+      document.getElementById("scNoScore").checked = false; toggleScrimNoScore();
       scrimSetCount = 2; await loadScrims();
     } else m.textContent = "⚠️ " + ((r && r.error) || "failed");
   } catch (e) { m.textContent = "⚠️ " + e.message; }
@@ -467,6 +483,7 @@ function init() {
   document.getElementById("rulesReset").addEventListener("click", loadDefaultRules);
   document.getElementById("refreshSuggestBtn").addEventListener("click", loadRules);
   document.getElementById("scAdd").addEventListener("click", addScrim);
+  document.getElementById("scNoScore").addEventListener("change", toggleScrimNoScore);
   document.getElementById("scAddSet").addEventListener("click", () => { if (scrimSetCount < 5) { scrimSetCount++; renderScrimSets(); } });
   document.getElementById("scTeamsSave").addEventListener("click", saveScrimTeams);
   document.getElementById("refreshScrimBtn").addEventListener("click", loadScrims);
