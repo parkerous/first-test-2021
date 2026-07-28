@@ -1,0 +1,120 @@
+/* ============================================================
+   Binsu Star — redesigned landing page.
+   Layered on top of voll-e.css + home.css: a bold gradient hero,
+   an overlapping feature grid, and refreshed section framing.
+   Theme-aware via the site's CSS variables.
+   ============================================================ */
+
+/* ---------- hero ---------- */
+.lp-hero {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  border-bottom: 3px solid var(--gold);
+  background: radial-gradient(130% 150% at 12% 8%, #ff7a45 0%, #d6336c 40%, #7048e8 70%, #1c7ed6 100%);
+  isolation: isolate;
+}
+.lp-hero::before,
+.lp-hero::after {
+  content: "🏐";
+  position: absolute;
+  z-index: 0;
+  opacity: .14;
+  filter: blur(.4px);
+  animation: lp-float 9s ease-in-out infinite;
+}
+.lp-hero::before { font-size: 200px; right: -30px; top: -40px; }
+.lp-hero::after { font-size: 120px; left: 6%; bottom: -30px; animation-delay: -4s; }
+@keyframes lp-float { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-16px) rotate(8deg); } }
+
+.lp-hero-inner {
+  position: relative; z-index: 1;
+  max-width: 1120px; margin: 0 auto;
+  padding: 66px 22px 82px;
+  display: grid; grid-template-columns: 1.25fr .75fr; gap: 34px; align-items: center;
+}
+.lp-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 900; letter-spacing: 1.6px; text-transform: uppercase;
+  background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.34);
+  padding: 6px 15px; border-radius: 999px; backdrop-filter: blur(6px);
+}
+.lp-hero h1 {
+  margin: 16px 0 10px;
+  font-size: clamp(38px, 6.5vw, 68px); font-weight: 900; line-height: 1.02;
+  letter-spacing: -.5px; text-wrap: balance;
+  text-shadow: 0 2px 30px rgba(0,0,0,.25);
+}
+.lp-hero h1 .hl {
+  background: linear-gradient(92deg, #fff 0%, #ffe9a8 55%, #ffd24a 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.lp-lead { margin: 0; font-size: clamp(15px, 1.7vw, 18px); line-height: 1.6; color: rgba(255,255,255,.92); max-width: 54ch; }
+
+.lp-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+.lp-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-weight: 800; font-size: 15px; text-decoration: none;
+  padding: 12px 22px; border-radius: 12px; transition: transform .16s ease, box-shadow .16s ease;
+}
+.lp-btn.solid { color: #221a00; background: linear-gradient(92deg, var(--gold-lite), var(--yellow)); box-shadow: 0 10px 26px rgba(0,0,0,.22); }
+.lp-btn.glass { color: #fff; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.4); backdrop-filter: blur(6px); }
+.lp-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(0,0,0,.28); }
+
+/* hero crest */
+.lp-crest { display: grid; place-items: center; }
+.lp-crest .disc {
+  width: min(280px, 62vw); aspect-ratio: 1; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.35);
+  box-shadow: 0 30px 70px rgba(0,0,0,.35), inset 0 0 40px rgba(255,255,255,.15);
+  backdrop-filter: blur(8px);
+}
+.lp-crest .disc img { width: 74%; height: 74%; object-fit: cover; border-radius: 50%; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+
+/* stat strip */
+.lp-stats { display: flex; flex-wrap: wrap; gap: 10px 26px; margin-top: 30px; }
+.lp-stat { display: flex; flex-direction: column; }
+.lp-stat b { font-size: 22px; font-weight: 900; line-height: 1; }
+.lp-stat span { font-size: 11.5px; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,.8); margin-top: 4px; }
+
+/* ---------- overlapping feature grid ---------- */
+.lp-features {
+  max-width: 1120px; margin: -44px auto 0; padding: 0 22px;
+  position: relative; z-index: 3;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr)); gap: 16px;
+}
+.lp-tile {
+  display: block; text-decoration: none; color: inherit;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 18px;
+  padding: 20px 20px 18px; box-shadow: var(--shadow-sm);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  position: relative; overflow: hidden;
+}
+.lp-tile::after {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 4px;
+  background: linear-gradient(92deg, var(--gold-lite), var(--yellow)); opacity: 0; transition: opacity .18s ease;
+}
+.lp-tile:hover { transform: translateY(-4px); box-shadow: 0 16px 34px rgba(0,0,0,.16); border-color: color-mix(in srgb, var(--gold) 40%, var(--line)); }
+.lp-tile:hover::after { opacity: 1; }
+.lp-ic { font-size: 26px; line-height: 1; }
+.lp-tile h3 { margin: 12px 0 5px; font-size: 17px; font-weight: 900; }
+.lp-tile p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.lp-tile .go { display: inline-block; margin-top: 12px; font-size: 13px; font-weight: 800; color: var(--gold); }
+.lp-tile.hot { background: linear-gradient(160deg, color-mix(in srgb, var(--gold) 14%, var(--panel)), var(--panel)); }
+
+/* ---------- section rhythm ---------- */
+.lp-band { max-width: 1120px; margin: 0 auto; padding: 0 22px; }
+.lp-band-head { display: flex; align-items: baseline; gap: 12px; margin: 46px 0 16px; }
+.lp-band-head h2 { margin: 0; font-size: clamp(22px, 3vw, 30px); font-weight: 900; }
+.lp-band-head .sub { color: var(--muted); font-size: 14px; }
+
+@media (max-width: 820px) {
+  .lp-hero-inner { grid-template-columns: 1fr; padding: 48px 20px 66px; }
+  .lp-crest { order: -1; }
+  .lp-crest .disc { width: 150px; }
+  .lp-features { margin-top: -30px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-hero::before, .lp-hero::after { animation: none; }
+}
