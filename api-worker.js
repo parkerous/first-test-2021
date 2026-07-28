@@ -466,6 +466,12 @@ async function handleApi(req, env, url) {
     await KV.put("scrims", JSON.stringify(list));
     return json({ ok: true });
   }
+  if (p === "/admin/scrims/reset" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    await KV.put("scrimteams", JSON.stringify(DEFAULT_SCRIM_TEAMS.map(n => ({ name: n, logo: "" }))));
+    await KV.put("scrims", JSON.stringify(DEFAULT_SCRIMS));
+    return json({ ok: true });
+  }
 
   if (p === "/site" && req.method === "GET") {
     const s = await KV.get("site");
