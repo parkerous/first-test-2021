@@ -3,17 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Binsu Star — Soai</title>
-  <meta name="description" content="Binsu Star volleyball league: rankings, rules, strategy guide, volleyball news, and match analysis tools." />
+  <title>Binsu Star — Roblox Volleyball League</title>
+  <meta name="description" content="Binsu Star: the Roblox volleyball league. Season 2 standings, rankings, rules, coaching, team profiles, a strategy guide, and match analysis tools." />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
   <link href="css/voll-e.css" rel="stylesheet" />
   <link href="css/home.css" rel="stylesheet" />
+  <link href="css/landing.css" rel="stylesheet" />
   <script src="js/theme.js"></script>
 </head>
 <body>
 
-  <!-- top nav — menu bar sits at the far right -->
+  <!-- top nav -->
   <nav class="nav">
     <div class="wrap">
       <a class="brand" href="index.html"><img class="brand-logo" src="img/binsu-pfp.jpg" alt="Binsu Star logo" /><span class="word">Binsu Star</span></a>
@@ -54,80 +55,120 @@
     </div>
   </nav>
 
-  <!-- Binsu Star intro -->
-  <section class="intro-hero">
-    <div class="intro-inner">
-      <img class="binsu-logo" src="img/binsu-pfp.jpg" alt="Binsu Star" />
-      <div class="intro-txt">
-        <span class="league-pill">Binsu Star League</span>
-        <h1>Welcome to Binsu Star</h1>
-        <p>The home of the Binsu Star volleyball league — official player rankings, league rules, and a full strategy guide, all in one place. New here? Start with the guide, then see where you stack up in the rankings.</p>
-        <div class="cta-row">
-          <a class="btn" href="guide.html">📖 Guide</a>
-          <a class="btn" href="rankings.html">🏆 Rankings</a>
-          <a class="btn" href="rules.html">📜 Rules</a>
-          <a class="btn ghost" href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">💬 Discord</a>
+  <!-- hero -->
+  <header class="lp-hero">
+    <div class="lp-hero-inner">
+      <div class="lp-hero-txt">
+        <span class="lp-eyebrow">🏐 Roblox Volleyball · Season 2 Live</span>
+        <h1>Welcome to <span class="hl">Binsu Star</span></h1>
+        <p class="lp-lead">The home of the Binsu Star volleyball league — live standings, player rankings, team profiles, coaching, the official rule book, and a full strategy guide. Everything for the league, in one place.</p>
+        <div class="lp-cta">
+          <a class="lp-btn solid" href="standings.html">📊 Season 2 Standings</a>
+          <a class="lp-btn glass" href="guide.html">📖 Strategy Guide</a>
+          <a class="lp-btn glass" href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">💬 Discord</a>
+        </div>
+        <div class="lp-stats">
+          <div class="lp-stat"><b>17</b><span>Teams</span></div>
+          <div class="lp-stat"><b>Season 2</b><span>Now active</span></div>
+          <div class="lp-stat"><b>Preseason</b><span>Scrims live</span></div>
         </div>
       </div>
-    </div>
-  </section>
-
-  <!-- prioritized quick access -->
-  <section class="section">
-    <div class="section-head"><h2><span class="bar"></span>Binsu Star</h2></div>
-    <div class="tools">
-      <a class="tool" href="guide.html"><div class="t">📖 General Guide</div><div class="d">Settings, key binds, hitter &amp; setter play, and callouts.</div></a>
-      <a class="tool" href="rankings.html"><div class="t">🏆 Binsu League Rankings</div><div class="d">Season 1 Top 10 for every position — score &amp; tier grade.</div></a>
-      <a class="tool" href="rules.html"><div class="t">📜 League Rules</div><div class="d">The league's official rules, all in one place.</div></a>
-    </div>
-  </section>
-
-  <!-- analyze / learn search -->
-  <section class="analyze" style="margin-top:30px">
-    <div class="box">
-      <h2>🎥 Analyze a match — paste a YouTube or TikTok link</h2>
-      <p class="sub">Drop a game link and Soai opens the analyzer, where it learns from the footage (tag touches, stats, spike habits). Upload the clip for automatic self-study.</p>
-      <div class="field">
-        <input id="ytUrl" type="text" placeholder="YouTube or TikTok link…" />
-        <button class="btn" id="goBtn">Learn from this →</button>
+      <div class="lp-crest">
+        <div class="disc"><img src="img/binsu-pfp.jpg" alt="Binsu Star" /></div>
       </div>
-      <p class="msg" id="analyzeMsg"></p>
     </div>
+  </header>
+
+  <!-- quick access -->
+  <section class="lp-features">
+    <a class="lp-tile hot" href="standings.html">
+      <span class="lp-ic">📊</span>
+      <h3>Season 2 Standings</h3>
+      <p>Live preseason scrim standings — points, set win-rate and point differential.</p>
+      <span class="go">View standings →</span>
+    </a>
+    <a class="lp-tile" href="rankings.html">
+      <span class="lp-ic">🏆</span>
+      <h3>League Rankings</h3>
+      <p>Season 1 Top 10 for every position, with score and tier grade.</p>
+      <span class="go">See rankings →</span>
+    </a>
+    <a class="lp-tile" href="teams.html">
+      <span class="lp-ic">👥</span>
+      <h3>Teams &amp; Rosters</h3>
+      <p>Every team in the league — logos, rosters, jerseys and captains.</p>
+      <span class="go">Browse teams →</span>
+    </a>
+    <a class="lp-tile" href="coaching.html">
+      <span class="lp-ic">🎓</span>
+      <h3>Coaching</h3>
+      <p>Get better with league coaches by position — or request a session.</p>
+      <span class="go">Find a coach →</span>
+    </a>
+    <a class="lp-tile" href="rules.html">
+      <span class="lp-ic">📜</span>
+      <h3>League Rules</h3>
+      <p>The official Binsu Volleyball rule book — and suggest your own rule.</p>
+      <span class="go">Read the rules →</span>
+    </a>
+    <a class="lp-tile" href="guide.html">
+      <span class="lp-ic">📖</span>
+      <h3>Strategy Guide</h3>
+      <p>Settings, key binds, hitter &amp; setter play, and callouts.</p>
+      <span class="go">Open the guide →</span>
+    </a>
   </section>
+
+  <!-- analyze / learn -->
+  <div class="lp-band">
+    <section class="analyze" style="margin-top:40px">
+      <div class="box">
+        <h2>🎥 Analyze a match — paste a YouTube or TikTok link</h2>
+        <p class="sub">Drop a game link and Binsu Star opens the analyzer, where it learns from the footage (tag touches, stats, spike habits). Upload the clip for automatic self-study.</p>
+        <div class="field">
+          <input id="ytUrl" type="text" placeholder="YouTube or TikTok link…" />
+          <button class="btn" id="goBtn">Learn from this →</button>
+        </div>
+        <p class="msg" id="analyzeMsg"></p>
+      </div>
+    </section>
+  </div>
 
   <!-- Volleyball News -->
-  <section class="section" id="news">
-    <div class="section-head">
-      <h2><span class="bar"></span>Volleyball News &amp; Announcements</h2>
-    </div>
-    <p class="mini-note" style="color:var(--muted);font-size:13px;margin:-6px 0 14px">
-      League announcements plus curated launchers to real, credited volleyball outlets. Only admins can post or change announcements (in the admin panel).
-    </p>
-
-    <!-- hero news carousel -->
-    <div class="hero news-carousel" style="margin-bottom:18px;border-radius:16px">
-      <div class="slides" id="slides"></div>
-      <button class="arrow left" aria-label="Previous">‹</button>
-      <button class="arrow right" aria-label="Next">›</button>
-      <div class="dots" id="dots"></div>
-    </div>
-
-    <!-- Binsu Star Discord — league announcements -->
-    <div class="discord-banner">
-      <span class="dc-ic">💬</span>
-      <div class="dc-txt">
-        <b>League announcements are posted in the Binsu Star Discord.</b>
-        <span>Join to catch every league update as it happens — admins mirror the important ones here on Soai.</span>
+  <div class="lp-band">
+    <section class="section" id="news">
+      <div class="section-head">
+        <h2><span class="bar"></span>Volleyball News &amp; Announcements</h2>
       </div>
-      <a class="btn" href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">Join the Discord →</a>
-    </div>
+      <p class="mini-note" style="color:var(--muted);font-size:13px;margin:-6px 0 14px">
+        League announcements plus curated launchers to real, credited volleyball outlets. Only admins can post or change announcements (in the admin panel).
+      </p>
 
-    <div class="news-rail-wrap">
-      <button class="rail-arrow left" id="newsPrev" aria-label="Scroll left">‹</button>
-      <div class="news-grid" id="newsGrid"></div>
-      <button class="rail-arrow right" id="newsNext" aria-label="Scroll right">›</button>
-    </div>
-  </section>
+      <!-- hero news carousel -->
+      <div class="hero news-carousel" style="margin-bottom:18px;border-radius:16px">
+        <div class="slides" id="slides"></div>
+        <button class="arrow left" aria-label="Previous">‹</button>
+        <button class="arrow right" aria-label="Next">›</button>
+        <div class="dots" id="dots"></div>
+      </div>
+
+      <!-- Binsu Star Discord -->
+      <div class="discord-banner">
+        <span class="dc-ic">💬</span>
+        <div class="dc-txt">
+          <b>League announcements are posted in the Binsu Star Discord.</b>
+          <span>Join to catch every league update as it happens — admins mirror the important ones here on Binsu Star.</span>
+        </div>
+        <a class="btn" href="https://discord.gg/3vKMxvqdb" target="_blank" rel="noopener">Join the Discord →</a>
+      </div>
+
+      <div class="news-rail-wrap">
+        <button class="rail-arrow left" id="newsPrev" aria-label="Scroll left">‹</button>
+        <div class="news-grid" id="newsGrid"></div>
+        <button class="rail-arrow right" id="newsNext" aria-label="Scroll right">›</button>
+      </div>
+    </section>
+  </div>
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · &copy; 2026</p>
 
