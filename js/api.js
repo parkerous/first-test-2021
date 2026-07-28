@@ -184,12 +184,20 @@ function fileToDataUrl(file, max = 420) {
   const ROLES = ["Setter", "Outside Hitter", "Middle Blocker", "Opposite", "Libero", "All Rounder", "Sub"];
 
   // Preseason scrims — seeded on first access (17 teams + posted results).
-  const DEFAULT_SCRIM_TEAMS = ["Green Giants", "Equinox", "Senzai", "Seishin Skyblade", "The Order", "Canopus", "Miku", "Vanguard", "Volare", "Teiko", "Zenith", "Nekopara", "Ground Zero", "Invictus", "Stinger", "Ho-Kago Kawaii Larps", "Yakamoz"];
+  const DEFAULT_SCRIM_TEAMS = ["Green Giants", "Equinox", "Senzai", "Seishin Skyblade", "The Order", "Canopus", "Miku", "Vanguard", "Volare", "Teiko", "Zenith", "Nekopara", "Ground Zero", "Invictus", "Stinger", "Ho-Kago Kawaii Larps", "Yakamoz", "Kittyoo"];
   const DEFAULT_SCRIMS = [
     { id: "seed_gg_neko", teamA: "Green Giants", teamB: "Nekopara", sets: [{ a: 25, b: 23 }, { a: 25, b: 15 }], createdAt: 1 },
     { id: "seed_van_gg", teamA: "Vanguard", teamB: "Green Giants", sets: [{ a: 25, b: 21 }, { a: 25, b: 15 }], createdAt: 2 },
     { id: "seed_sen_gz", teamA: "Senzai", teamB: "Ground Zero", sets: [{ w: "A" }, { w: "A" }], createdAt: 3 },
     { id: "seed_van_hkk", teamA: "Vanguard", teamB: "Ho-Kago Kawaii Larps", sets: [{ a: 25, b: 19 }, { a: 25, b: 18 }], createdAt: 4 },
+    { id: "seed_sen_sei", teamA: "Senzai", teamB: "Seishin Skyblade", sets: [{ a: 25, b: 16 }, { a: 25, b: 19 }], createdAt: 5 },
+    { id: "seed_miku_neko", teamA: "Miku", teamB: "Nekopara", sets: [{ a: 14, b: 25 }, { a: 22, b: 25 }], createdAt: 6 },
+    { id: "seed_inv_can", teamA: "Invictus", teamB: "Canopus", sets: [{ a: 25, b: 19 }, { a: 25, b: 20 }], createdAt: 7 },
+    { id: "seed_sei_inv", teamA: "Seishin Skyblade", teamB: "Invictus", sets: [{ a: 12, b: 25 }, { a: 19, b: 25 }], createdAt: 8 },
+    { id: "seed_inv_gz", teamA: "Invictus", teamB: "Ground Zero", sets: [{ a: 1, b: 0 }, { a: 1, b: 0 }], createdAt: 9 },
+    { id: "seed_miku_eq", teamA: "Miku", teamB: "Equinox", sets: [{ a: 25, b: 23 }, { a: 16, b: 25 }, { a: 25, b: 23 }], createdAt: 10 },
+    { id: "seed_kit_van", teamA: "Kittyoo", teamB: "Vanguard", sets: [{ a: 16, b: 25 }, { a: 25, b: 27 }], createdAt: 11 },
+    { id: "seed_neko_van", teamA: "Nekopara", teamB: "Vanguard", sets: [{ a: 20, b: 25 }, { a: 11, b: 25 }], createdAt: 12 },
   ];
   function cleanSets(arr) {
     if (!Array.isArray(arr)) return [];
