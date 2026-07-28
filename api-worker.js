@@ -476,7 +476,12 @@ async function handleApi(req, env, url) {
   }
   if (p === "/admin/scrims/reset" && req.method === "POST") {
     if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
-    await KV.put("scrimteams", JSON.stringify(DEFAULT_SCRIM_TEAMS.map(n => ({ name: n, logo: "" }))));
+    // reset the games, but KEEP any team logos already uploaded
+    const existing = normScrimTeams(JSON.parse((await KV.get("scrimteams")) || "[]"));
+    const logoByName = {}; existing.forEach(t => { if (t.logo) logoByName[t.name] = t.logo; });
+    const teams = DEFAULT_SCRIM_TEAMS.map(n => ({ name: n, logo: logoByName[n] || "" }));
+    existing.forEach(t => { if (!DEFAULT_SCRIM_TEAMS.includes(t.name)) teams.push(t); });
+    await KV.put("scrimteams", JSON.stringify(teams));
     await KV.put("scrims", JSON.stringify(DEFAULT_SCRIMS));
     return json({ ok: true });
   }

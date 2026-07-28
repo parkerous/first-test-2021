@@ -528,7 +528,12 @@ function fileToDataUrl(file, max = 420) {
     }
     if (p === "/admin/scrims/reset" && method === "POST") {
       if (!isAdmin(adminHdr)) return err("unauthorized", 401);
-      kvPut("scrimteams", JSON.stringify(DEFAULT_SCRIM_TEAMS.map(n => ({ name: n, logo: "" }))));
+      // reset the games, but KEEP any team logos already uploaded
+      const existing = normScrimTeams(JSON.parse(kvGet("scrimteams") || "[]"));
+      const logoByName = {}; existing.forEach(t => { if (t.logo) logoByName[t.name] = t.logo; });
+      const teams = DEFAULT_SCRIM_TEAMS.map(n => ({ name: n, logo: logoByName[n] || "" }));
+      existing.forEach(t => { if (!DEFAULT_SCRIM_TEAMS.includes(t.name)) teams.push(t); });
+      kvPut("scrimteams", JSON.stringify(teams));
       kvPut("scrims", JSON.stringify(DEFAULT_SCRIMS));
       return ok({ ok: true });
     }
