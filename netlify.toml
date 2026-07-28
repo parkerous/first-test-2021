@@ -22,3 +22,20 @@
   to = "/index.html"
   status = 404
   force = true
+
+# Always revalidate the app files so a new deploy shows immediately
+# (no hard-refresh needed). Netlify still returns 304 when unchanged.
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
