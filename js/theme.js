@@ -35,6 +35,28 @@ document.addEventListener("DOMContentLoaded", function () {
     refresh();
   });
 
+  /* ---- Admin link in the nav on every page EXCEPT the home page ---- */
+  var pageFile = (location.pathname.split("/").pop() || "index.html").toLowerCase();
+  var isHome = pageFile === "" || pageFile === "index.html";
+  if (!isHome) {
+    var navLinks = document.querySelector(".nav .links");
+    var topWrap = document.querySelector(".topbar .wrap");
+    if (navLinks && !navLinks.querySelector('a[href="admin.html"]')) {
+      var adminLink = document.createElement("a");
+      adminLink.href = "admin.html";
+      adminLink.textContent = "Admin";
+      if (pageFile === "admin.html") adminLink.className = "on";
+      navLinks.appendChild(adminLink);
+    } else if (!navLinks && topWrap && !topWrap.querySelector('a[href="admin.html"]')) {
+      var topAdmin = document.createElement("a");
+      topAdmin.href = "admin.html";
+      topAdmin.className = "home-link";
+      topAdmin.textContent = "🔒 Admin";
+      var homeBack = topWrap.querySelector('a.home-link[href="index.html"]');
+      if (homeBack) topWrap.insertBefore(topAdmin, homeBack); else topWrap.appendChild(topAdmin);
+    }
+  }
+
   host.appendChild(btn);
 
   /* ---- mobile hamburger for the main nav ---- */
