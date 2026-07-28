@@ -141,6 +141,11 @@ async function deleteScrim(id) {
   try { await apiPost("/admin/scrims/delete", { id }, true); SCRIMS.matches = (SCRIMS.matches || []).filter(x => x.id !== id); renderScrimAdmin(); }
   catch (e) { /* ignore */ }
 }
+async function resetScrims() {
+  if (!confirm("Restore the 4 posted preseason results and the 17-team pool? This replaces the current scrim data.")) return;
+  try { await apiPost("/admin/scrims/reset", {}, true); await loadScrims(); }
+  catch (e) { /* ignore */ }
+}
 async function saveScrimTeams() {
   const m = document.getElementById("scTeamsMsg");
   const teams = scrimTeamCtl ? scrimTeamCtl.get() : [];
@@ -465,6 +470,7 @@ function init() {
   document.getElementById("scAddSet").addEventListener("click", () => { if (scrimSetCount < 5) { scrimSetCount++; renderScrimSets(); } });
   document.getElementById("scTeamsSave").addEventListener("click", saveScrimTeams);
   document.getElementById("refreshScrimBtn").addEventListener("click", loadScrims);
+  document.getElementById("scResetBtn").addEventListener("click", resetScrims);
   document.getElementById("brandFile").addEventListener("change", e => pickBrand(e.target));
   document.getElementById("brandSave").addEventListener("click", saveBrand);
   document.querySelectorAll(".atab").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));

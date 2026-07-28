@@ -518,6 +518,12 @@ function fileToDataUrl(file, max = 420) {
       const raw = kvGet("scrims"); const list = (raw ? JSON.parse(raw) : DEFAULT_SCRIMS.slice()).filter(x => x.id !== body.id);
       kvPut("scrims", JSON.stringify(list)); return ok({ ok: true });
     }
+    if (p === "/admin/scrims/reset" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      kvPut("scrimteams", JSON.stringify(DEFAULT_SCRIM_TEAMS.map(n => ({ name: n, logo: "" }))));
+      kvPut("scrims", JSON.stringify(DEFAULT_SCRIMS));
+      return ok({ ok: true });
+    }
 
     /* ---- site logo + admin login ---- */
     if (p === "/site" && method === "GET") { const s = kvGet("site"); return ok(s ? JSON.parse(s) : {}); }
