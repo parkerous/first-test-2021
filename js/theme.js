@@ -84,6 +84,21 @@ document.addEventListener("DOMContentLoaded", function () {
     window.addEventListener("resize", function () { if (window.innerWidth > 820) setOpen(false); });
   }
 
+  /* ---- nav dropdowns: only one open at a time, and click-away closes ---- */
+  var dropdowns = document.querySelectorAll(".nav details.menu-dd");
+  if (dropdowns.length) {
+    dropdowns.forEach(function (d) {
+      d.addEventListener("toggle", function () {
+        if (d.open) dropdowns.forEach(function (o) { if (o !== d) o.open = false; });
+      });
+    });
+    document.addEventListener("click", function (e) {
+      if (!e.target.closest(".nav details.menu-dd")) {
+        dropdowns.forEach(function (o) { o.open = false; });
+      }
+    });
+  }
+
   /* ---- site footer with Discord (moved down from the top bar) ---- */
   if (!document.querySelector(".site-footer")) {
     var sf = document.createElement("footer");
