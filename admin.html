@@ -126,8 +126,15 @@
             <span style="align-self:center;color:var(--muted);font-weight:900">vs</span>
             <select id="scB" style="flex:1;min-width:160px"><option value="">Team B…</option></select>
           </div>
+          <label class="row" style="gap:8px;align-items:center;font-size:13px;color:var(--muted);margin-top:6px"><input type="checkbox" id="scNoScore" /> No set scores — enter the result only (e.g. a 2–0 with no points)</label>
           <div id="scSets" style="margin-top:6px"></div>
-          <div class="row" style="margin-top:4px"><button class="btn ghost" id="scAddSet">＋ Add a set</button><span class="mini-note" style="margin:0;align-self:center">BO3 → up to 3 · BO5 → up to 5</span></div>
+          <div class="row" id="scAddSetRow" style="margin-top:4px"><button class="btn ghost" id="scAddSet">＋ Add a set</button><span class="mini-note" style="margin:0;align-self:center">BO3 → up to 3 · BO5 → up to 5</span></div>
+          <div class="row" id="scResultOnly" style="display:none;align-items:center;gap:8px">
+            <span style="color:var(--muted);font-size:13px">Sets won —</span>
+            <select id="scWonA" style="width:70px"><option>0</option><option>1</option><option selected>2</option><option>3</option></select>
+            <span style="font-weight:900;color:var(--muted)">–</span>
+            <select id="scWonB" style="width:70px"><option selected>0</option><option>1</option><option>2</option><option>3</option></select>
+          </div>
           <div class="row"><button class="btn" id="scAdd">＋ Post result</button><span class="msg" id="scMsg" style="color:var(--muted);font-size:12.5px"></span></div>
         </div>
         <div class="card">

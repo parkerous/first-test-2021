@@ -54,9 +54,9 @@ const DEFAULT_SCRIMS = [
   { id: "seed_miku_neko", teamA: "Miku", teamB: "Nekopara", sets: [{ a: 14, b: 25 }, { a: 22, b: 25 }], createdAt: 6 },
   { id: "seed_inv_can", teamA: "Invictus", teamB: "Canopus", sets: [{ a: 25, b: 19 }, { a: 25, b: 20 }], createdAt: 7 },
   { id: "seed_sei_inv", teamA: "Seishin Skyblade", teamB: "Invictus", sets: [{ a: 12, b: 25 }, { a: 19, b: 25 }], createdAt: 8 },
-  { id: "seed_inv_gz", teamA: "Invictus", teamB: "Ground Zero", sets: [{ a: 1, b: 0 }, { a: 1, b: 0 }], createdAt: 9 },
+  { id: "seed_inv_gz", teamA: "Invictus", teamB: "Ground Zero", sets: [{ w: "A" }, { w: "A" }], createdAt: 9 },
   { id: "seed_miku_eq", teamA: "Miku", teamB: "Equinox", sets: [{ a: 25, b: 23 }, { a: 16, b: 25 }, { a: 25, b: 23 }], createdAt: 10 },
-  { id: "seed_kit_van", teamA: "Kittyoo", teamB: "Vanguard", sets: [{ a: 16, b: 25 }, { a: 25, b: 27 }], createdAt: 11 },
+  { id: "seed_kit_van", teamA: "Kittyoo", teamB: "Vanguard", sets: [{ w: "B" }, { w: "B" }], createdAt: 11 },
   { id: "seed_neko_van", teamA: "Nekopara", teamB: "Vanguard", sets: [{ a: 20, b: 25 }, { a: 11, b: 25 }], createdAt: 12 },
 ];
 function cleanSets(arr) {
