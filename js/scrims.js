@@ -49,10 +49,10 @@ function computeScrimStandings(teams, matches) {
     t.diff = t.pointed ? (t.pf - t.pa) : null;    // null → no point scores recorded
     return t;
   }).sort((a, b) =>
-    b.record - a.record ||                        // win +1 / loss −1
-    b.played - a.played ||                         // teams that have played rank above unplayed
-    ((b.diff || 0) - (a.diff || 0)) ||            // point differential
-    ((b.setWinrate || 0) - (a.setWinrate || 0)) || // set win-rate
+    b.record - a.record ||                                    // Pts: win +1 / loss −1
+    ((b.played > 0 ? 1 : 0) - (a.played > 0 ? 1 : 0)) ||      // teams that have played rank above teams with no games
+    ((b.diff || 0) - (a.diff || 0)) ||                        // point differential
+    ((b.setWinrate || 0) - (a.setWinrate || 0)) ||            // set win-rate
     a.name.localeCompare(b.name)
   );
 }
