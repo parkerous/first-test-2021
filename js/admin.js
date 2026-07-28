@@ -456,15 +456,19 @@ function renderReqAdmin() {
 }
 async function deleteReq(id) { await apiPost("/admin/coaching/requests/delete", { id }, true); REQS = REQS.filter(x => x.id !== id); renderReqAdmin(); }
 
-/* ---------- tabs ---------- */
-function switchTab(name) {
+/* ---------- tabs (history-aware: back = undo, forward = redo) ---------- */
+const TABS = ["teams", "ann", "players", "coaching", "scrims", "rules"];
+function tabFromHash() { const h = (location.hash || "").replace(/^#/, ""); return TABS.includes(h) ? h : "teams"; }
+/* update just the UI (which tab + pane is shown) */
+function showTab(name) {
   document.querySelectorAll(".atab").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
-  document.getElementById("pane-teams").style.display = name === "teams" ? "block" : "none";
-  document.getElementById("pane-ann").style.display = name === "ann" ? "block" : "none";
-  document.getElementById("pane-players").style.display = name === "players" ? "block" : "none";
-  document.getElementById("pane-coaching").style.display = name === "coaching" ? "block" : "none";
-  document.getElementById("pane-scrims").style.display = name === "scrims" ? "block" : "none";
-  document.getElementById("pane-rules").style.display = name === "rules" ? "block" : "none";
+  TABS.forEach(t => { const el = document.getElementById("pane-" + t); if (el) el.style.display = t === name ? "block" : "none"; });
+}
+/* clicking a tab records a history entry (a new "branch") so the browser's
+   back/forward buttons undo/redo the navigation, and a refresh keeps the tab. */
+function switchTab(name) {
+  if (tabFromHash() === name) { showTab(name); return; }
+  location.hash = name;   // pushes a history entry → fires hashchange → showTab
 }
 
 function init() {
@@ -491,5 +495,8 @@ function init() {
   document.getElementById("brandFile").addEventListener("change", e => pickBrand(e.target));
   document.getElementById("brandSave").addEventListener("click", saveBrand);
   document.querySelectorAll(".atab").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
+  // back/forward (undo/redo) and refresh restore the tab from the URL
+  window.addEventListener("hashchange", () => showTab(tabFromHash()));
+  showTab(tabFromHash());
 }
 document.addEventListener("DOMContentLoaded", init);
