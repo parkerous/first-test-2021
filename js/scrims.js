@@ -82,8 +82,13 @@ async function renderScrimStandings() {
   let data = { teams: [], matches: [] };
   try { data = await apiGet("/scrims"); } catch (e) { /* leave empty */ }
   const rows = computeScrimStandings(data.teams, data.matches);
+  // logo per team: use the preseason-pool logo, else fall back to the logo of a
+  // team with the same name already registered on the Teams page.
+  const regLogo = {};
+  try { const teams = await apiGet("/teams"); (teams || []).forEach(t => { if (t && t.name && t.logo) regLogo[t.name] = t.logo; }); } catch (e) { /* optional */ }
   const logoBy = {};
-  (data.teams || []).forEach(t => { if (t && t.name) logoBy[t.name] = t.logo || ""; });
+  (data.teams || []).forEach(t => { if (t && t.name) logoBy[t.name] = t.logo || regLogo[t.name] || ""; });
+  rows.forEach(t => { if (!logoBy[t.name]) logoBy[t.name] = regLogo[t.name] || ""; });
   const pct = v => v == null ? "—" : Math.round(v * 100) + "%";
   const diff = v => v == null ? "—" : (v > 0 ? "+" + v : "" + v);
   const rec = v => (v > 0 ? "+" + v : "" + v);
