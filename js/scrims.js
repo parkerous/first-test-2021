@@ -96,7 +96,6 @@ async function renderScrimStandings() {
     <tr>
       <td class="rk">${i + 1}</td>
       <td><span class="team">${crest(t.name)}${scrimEsc(t.name)}</span></td>
-      <td class="num">${t.played}</td>
       <td class="num">${t.mw}</td>
       <td class="num">${t.ml}</td>
       <td class="num"><span class="ps-rec ${recCls(t.record)}">${rec(t.record)}</span></td>
