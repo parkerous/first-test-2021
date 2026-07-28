@@ -8,37 +8,64 @@
 .reveal.in { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
 
-/* ---------- top nav ---------- */
+/* ---------- top nav — clean, professional ---------- */
 .nav {
   position: sticky; top: 0; z-index: 50;
-  background: rgba(13,13,16,0.96); backdrop-filter: blur(8px);
-  border-bottom: 2px solid var(--gold);
+  background: color-mix(in srgb, #0d0d10 82%, transparent);
+  backdrop-filter: saturate(140%) blur(14px);
+  -webkit-backdrop-filter: saturate(140%) blur(14px);
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 6px 24px rgba(0,0,0,0.28);
 }
-.nav .wrap { max-width: 1200px; margin: 0 auto; padding: 12px 18px; display: flex; align-items: center; gap: 18px; }
-.nav .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-.nav .brand .logo { font-size: 30px; line-height: 1; }
-.nav .brand .brand-logo { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); box-shadow: 0 0 0 2px rgba(198,151,31,.18), 0 0 16px rgba(255,210,30,.25); flex: none; }
+.nav .wrap { max-width: 1200px; margin: 0 auto; padding: 11px 20px; display: flex; align-items: center; gap: 20px; }
+.nav .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; }
+.nav .brand .logo { font-size: 28px; line-height: 1; }
+.nav .brand .brand-logo { width: 36px; height: 36px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 2px 10px rgba(0,0,0,0.35); flex: none; }
 .nav .brand .word {
-  font-size: 30px; font-weight: 900; letter-spacing: .5px;
-  background: linear-gradient(92deg, var(--gold-lite), var(--gold) 55%, var(--yellow));
+  font-size: 21px; font-weight: 800; letter-spacing: .2px;
+  background: linear-gradient(92deg, #ffffff, #ffe9a8 70%, var(--gold-lite));
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-.nav .links { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
-.nav .links a { color: #e9e9ee; text-decoration: none; font-weight: 700; font-size: 13.5px; padding: 8px 12px; border-radius: 999px; transition: color .12s, background .12s; }
-.nav .links a:hover, .nav .links a.on { color: #0d0d10; background: linear-gradient(92deg, var(--gold-lite), var(--gold)); }
 
-/* separate menu bar (far right) */
-.nav .links.menubar { gap: 3px; padding: 5px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); border-radius: 999px; align-items: center; }
+/* link row */
+.nav .links { margin-left: auto; display: flex; gap: 2px; flex-wrap: wrap; align-items: center; }
+.nav .links a,
+.menu-dd summary {
+  position: relative; color: rgba(255,255,255,0.82); text-decoration: none;
+  font-weight: 650; font-size: 13.5px; letter-spacing: .2px;
+  padding: 8px 13px; border-radius: 10px; white-space: nowrap; cursor: pointer;
+  transition: color .15s ease, background .15s ease;
+}
+.nav .links a:hover, .menu-dd summary:hover { color: #fff; background: rgba(255,255,255,0.08); }
+/* active page — subtle gold underline, not a loud pill */
+.nav .links a.on {
+  color: #fff; background: rgba(255,255,255,0.06);
+}
+.nav .links a.on::after {
+  content: ""; position: absolute; left: 13px; right: 13px; bottom: 4px; height: 2px; border-radius: 2px;
+  background: linear-gradient(92deg, var(--gold-lite), var(--yellow));
+}
 
-/* "More" dropdown for non-Binsu volleyball tools */
+/* the menubar is just the link row now — no heavy pill container */
+.nav .links.menubar { gap: 2px; padding: 0; background: none; border: none; align-items: center; }
+
+/* dropdowns */
 .menu-dd { position: relative; }
-.menu-dd summary { list-style: none; cursor: pointer; color: #e9e9ee; font-weight: 700; font-size: 13.5px; padding: 8px 12px; border-radius: 999px; white-space: nowrap; }
+.menu-dd summary { list-style: none; display: inline-flex; align-items: center; gap: 5px; }
 .menu-dd summary::-webkit-details-marker { display: none; }
-.menu-dd summary:hover, .menu-dd[open] summary { color: #0d0d10; background: linear-gradient(92deg, var(--gold-lite), var(--gold)); }
-.dd-panel { position: absolute; right: 0; top: calc(100% + 10px); min-width: 210px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 6px; box-shadow: var(--shadow); z-index: 60; display: flex; flex-direction: column; gap: 2px; }
-.dd-panel a { color: var(--ink) !important; text-decoration: none; padding: 10px 12px; border-radius: 8px; font-weight: 700; font-size: 13.5px; background: transparent !important; }
-.dd-panel a:hover { background: var(--bg) !important; color: var(--gold) !important; }
-.dd-panel .dd-label { font-size: 10.5px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); padding: 6px 12px 2px; }
+.menu-dd[open] summary { color: #fff; background: rgba(255,255,255,0.10); }
+.dd-panel {
+  position: absolute; right: 0; top: calc(100% + 8px); min-width: 216px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 7px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.18);
+  z-index: 60; display: flex; flex-direction: column; gap: 1px;
+  transform-origin: top right; animation: ddIn .16s cubic-bezier(.2,.7,.2,1) both;
+}
+@keyframes ddIn { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
+.dd-panel a { color: var(--ink) !important; text-decoration: none; padding: 10px 12px; border-radius: 9px; font-weight: 650; font-size: 13.5px; background: transparent !important; transition: background .12s ease; }
+.dd-panel a:hover { background: color-mix(in srgb, var(--gold) 14%, transparent) !important; color: var(--gold) !important; }
+.dd-panel .dd-label { font-size: 10px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); padding: 7px 12px 3px; }
+@media (prefers-reduced-motion: reduce) { .dd-panel { animation: none; } }
 
 /* ---------- Binsu intro hero ---------- */
 .intro-hero {
