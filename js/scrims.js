@@ -75,26 +75,20 @@ function scrimMatchLine(m) {
   };
 }
 
-/* ---- rank movement (▲/▼ vs the previous day) ----
-   Snapshots the day's ranks and compares to the previous day so teams that
-   climbed show a green up-arrow and teams that fell show a red down-arrow. */
-function computeMovement(fullRows) {
-  const cur = {};
-  fullRows.forEach((t, i) => { cur[t.name] = i + 1; });
+/* ---- rank movement (▲/▼ from today's games) ----
+   Compares the standings BEFORE today's games to the standings now, and shows
+   an arrow on each team that played today: green ▲ if it climbed, red ▼ if it
+   fell. Works the same day results are posted. */
+function computeMovement(teams, matches) {
   const day = preseasonDay();
-  let snap = null;
-  try { snap = JSON.parse(localStorage.getItem("soai_rank_snap") || "null"); } catch (e) { }
-  if (!snap || typeof snap.curDay !== "number") {
-    snap = { curDay: day, curRanks: cur, prevRanks: {} };            // first ever: no baseline yet
-  } else if (snap.curDay < day) {
-    snap = { curDay: day, prevRanks: snap.curRanks || {}, curRanks: cur };  // new day: yesterday's ranks become the baseline
-  } else {
-    snap.curRanks = cur;                                             // same day: refresh, keep the baseline
-  }
-  const prev = snap.prevRanks || {};
-  try { localStorage.setItem("soai_rank_snap", JSON.stringify(snap)); } catch (e) { }
+  const cur = computeScrimStandings(teams, matches);
+  const before = computeScrimStandings(teams, (matches || []).filter(m => matchDay(m) < day));
+  const cr = {}; cur.forEach((t, i) => { cr[t.name] = i + 1; });
+  const pr = {}; before.forEach((t, i) => { pr[t.name] = i + 1; });
+  const playedToday = new Set();
+  (matches || []).forEach(m => { if (m && matchDay(m) === day) { playedToday.add(m.teamA); playedToday.add(m.teamB); } });
   const mv = {};
-  fullRows.forEach(t => { if (prev[t.name] != null) mv[t.name] = prev[t.name] - cur[t.name]; });  // + = moved up
+  cur.forEach(t => { if (playedToday.has(t.name)) mv[t.name] = (pr[t.name] || 0) - (cr[t.name] || 0); });  // + = moved up
   return mv;
 }
 function moveArrow(m) {
@@ -126,7 +120,7 @@ async function renderScrimStandings() {
   const crest = name => logoBy[name]
     ? `<img class="ps-logo" src="${scrimEsc(logoBy[name])}" alt="" />`
     : `<span class="dot"></span>`;
-  const mv = computeMovement(rows);
+  const mv = computeMovement(data.teams, data.matches);
 
   body.innerHTML = rows.map((t, i) => `
     <tr>
@@ -161,7 +155,7 @@ async function renderPreseasonLeaders() {
   const full = computeScrimStandings(data.teams, data.matches);
   const played = full.filter(t => t.played > 0);
   if (!played.length) { host.style.display = "none"; return; }
-  const mv = computeMovement(full);
+  const mv = computeMovement(data.teams, data.matches);
   // team logos: preseason-pool logo, else a same-named registered team's logo
   const regLogo = {};
   try { const teams = await apiGet("/teams"); (teams || []).forEach(t => { if (t && t.name && t.logo) regLogo[t.name] = t.logo; }); } catch (e) { /* optional */ }
