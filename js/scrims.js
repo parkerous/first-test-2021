@@ -154,10 +154,26 @@ async function renderPreseasonLeaders() {
 }
 
 /* ---- homepage "Latest Matches" widget (#psMatches) ----
-   Shows the most recent scrim results, recomputed live on every visit. */
+   Shows the most recent scrim results with a preseason "Day N" counter that
+   auto-increments each day. The widget auto-hides once the preseason window
+   is over (Day > PRESEASON_DAYS). Edit the two constants below to change the
+   start date or how many days it stays up. */
+const PRESEASON_START = "2026-07-27";   // Day 1 of the preseason
+const PRESEASON_DAYS = 3;               // widget shows for this many days, then auto-hides
+
+function preseasonDay() {
+  const startMs = new Date(PRESEASON_START + "T00:00:00").getTime();
+  const n = new Date();
+  const todayMs = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
+  return Math.floor((todayMs - startMs) / 86400000) + 1;
+}
+
 async function renderLatestMatches() {
   const host = document.getElementById("psMatches");
   if (!host) return;
+  // preseason window: show a "Day N" badge, and take the widget down once it's over
+  const day = preseasonDay();
+  if (isNaN(day) || day < 1 || day > PRESEASON_DAYS) { host.style.display = "none"; return; }
   let data = { teams: [], matches: [] };
   try { data = await apiGet("/scrims"); } catch (e) { /* leave empty */ }
   const ms = (data.matches || []).slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 8);
@@ -167,8 +183,8 @@ async function renderLatestMatches() {
   const dateStr = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
   host.innerHTML = `
     <div class="psl-head">
-      <span class="psl-eyebrow">🏐 Latest Matches</span>
-      <span class="psl-date">Updated daily · ${dateStr}</span>
+      <span class="psl-eyebrow">🏐 Preseason Matches · Day ${day}</span>
+      <span class="psl-date">${dateStr}</span>
     </div>
     <div class="psm-list">
       ${ms.map(m => `<div class="psm-row">${scrimMatchLine(m).text}</div>`).join("")}
