@@ -119,4 +119,38 @@ async function renderScrimStandings() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", renderScrimStandings);
+/* ---- homepage "Preseason Leaders" widget (#psLeaders) ----
+   Recomputed live on every visit and stamped with today's date, so it always
+   shows the current leader + top 3 with no manual updating. */
+async function renderPreseasonLeaders() {
+  const host = document.getElementById("psLeaders");
+  if (!host) return;
+  let data = { teams: [], matches: [] };
+  try { data = await apiGet("/scrims"); } catch (e) { /* leave empty */ }
+  const played = computeScrimStandings(data.teams, data.matches).filter(t => t.played > 0);
+  if (!played.length) { host.style.display = "none"; return; }
+  const top = played.slice(0, 3);
+  const leader = top[0];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const d = new Date();
+  const dateStr = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
+  const fmt = v => v > 0 ? "+" + v : "" + v;
+  const medal = ["🥇", "🥈", "🥉"];
+  host.innerHTML = `
+    <div class="psl-head">
+      <span class="psl-eyebrow">🏆 Preseason Leaders</span>
+      <span class="psl-date">Updated daily · ${dateStr}</span>
+    </div>
+    <div class="psl-leader">
+      <span class="psl-crown">👑</span>
+      <div><b>${scrimEsc(leader.name)}</b> is leading the preseason
+        <span class="psl-sub">${leader.mw}–${leader.ml} · ${fmt(leader.record)} pts${leader.diff != null ? ` · ${fmt(leader.diff)} diff` : ""}</span>
+      </div>
+    </div>
+    <div class="psl-top3">
+      ${top.map((t, i) => `<div class="psl-item"><span class="psl-medal">${medal[i]}</span><span class="psl-name">${scrimEsc(t.name)}</span><span class="psl-pts">${fmt(t.record)} pts</span></div>`).join("")}
+    </div>
+    <a class="psl-link" href="standings.html">Full standings →</a>`;
+}
+
+document.addEventListener("DOMContentLoaded", function () { renderScrimStandings(); renderPreseasonLeaders(); });
