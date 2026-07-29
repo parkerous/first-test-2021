@@ -154,29 +154,39 @@ async function renderPreseasonLeaders() {
 }
 
 /* ---- homepage "Latest Matches" widget (#psMatches) ----
-   Shows the most recent scrim results with a preseason "Day N" counter that
-   auto-increments each day. The widget auto-hides once the preseason window
-   is over (Day > PRESEASON_DAYS). Edit the two constants below to change the
-   start date or how many days it stays up. */
+   A rolling window: shows the last DAYS_SHOWN days of matches with a "Day N"
+   counter. Each new day, the oldest day rolls off (e.g. on Day 4, Day 1's
+   matches drop). Edit the two constants below to change the start or window. */
 const PRESEASON_START = "2026-07-27";   // Day 1 of the preseason
-const PRESEASON_DAYS = 3;               // widget shows for this many days, then auto-hides
+const DAYS_SHOWN = 3;                   // keep this many days of matches (older days roll off)
 
-function preseasonDay() {
+/* Preseason day number for a given time (default: now). */
+function preseasonDay(ms) {
   const startMs = new Date(PRESEASON_START + "T00:00:00").getTime();
-  const n = new Date();
-  const todayMs = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
-  return Math.floor((todayMs - startMs) / 86400000) + 1;
+  const base = (ms != null) ? new Date(ms) : new Date();
+  const dMs = new Date(base.getFullYear(), base.getMonth(), base.getDate()).getTime();
+  return Math.floor((dMs - startMs) / 86400000) + 1;
+}
+/* Which day a match was played: explicit m.day, else from a real timestamp,
+   else the seed backfill (first batch = Day 1, later batch = Day 2). */
+function matchDay(m) {
+  if (typeof m.day === "number") return m.day;
+  if (typeof m.createdAt === "number" && m.createdAt > 1e11) return preseasonDay(m.createdAt);
+  return (typeof m.createdAt === "number" && m.createdAt > 12) ? 2 : 1;
 }
 
 async function renderLatestMatches() {
   const host = document.getElementById("psMatches");
   if (!host) return;
-  // preseason window: show a "Day N" badge, and take the widget down once it's over
   const day = preseasonDay();
-  if (isNaN(day) || day < 1 || day > PRESEASON_DAYS) { host.style.display = "none"; return; }
+  if (isNaN(day) || day < 1) { host.style.display = "none"; return; }
+  const minDay = day - DAYS_SHOWN + 1;   // rolling window: keep the last DAYS_SHOWN days
   let data = { teams: [], matches: [] };
   try { data = await apiGet("/scrims"); } catch (e) { /* leave empty */ }
-  const ms = (data.matches || []).slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 8);
+  const ms = (data.matches || [])
+    .filter(m => { const md = matchDay(m); return md >= minDay && md <= day; })
+    .sort((a, b) => matchDay(b) - matchDay(a) || (b.createdAt || 0) - (a.createdAt || 0))
+    .slice(0, 14);
   if (!ms.length) { host.style.display = "none"; return; }
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const d = new Date();
@@ -184,10 +194,10 @@ async function renderLatestMatches() {
   host.innerHTML = `
     <div class="psl-head">
       <span class="psl-eyebrow">🏐 Preseason Matches · Day ${day}</span>
-      <span class="psl-date">${dateStr}</span>
+      <span class="psl-date">Last ${DAYS_SHOWN} days · ${dateStr}</span>
     </div>
     <div class="psm-list">
-      ${ms.map(m => `<div class="psm-row">${scrimMatchLine(m).text}</div>`).join("")}
+      ${ms.map(m => `<div class="psm-row"><span class="psm-day">Day ${matchDay(m)}</span>${scrimMatchLine(m).text}</div>`).join("")}
     </div>
     <a class="psl-link" href="standings.html">All results &amp; standings →</a>`;
 }
