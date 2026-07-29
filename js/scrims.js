@@ -129,6 +129,11 @@ async function renderPreseasonLeaders() {
   try { data = await apiGet("/scrims"); } catch (e) { /* leave empty */ }
   const played = computeScrimStandings(data.teams, data.matches).filter(t => t.played > 0);
   if (!played.length) { host.style.display = "none"; return; }
+  // team logos: preseason-pool logo, else a same-named registered team's logo
+  const regLogo = {};
+  try { const teams = await apiGet("/teams"); (teams || []).forEach(t => { if (t && t.name && t.logo) regLogo[t.name] = t.logo; }); } catch (e) { /* optional */ }
+  const logoBy = {};
+  (data.teams || []).forEach(t => { if (t && t.name) logoBy[t.name] = t.logo || regLogo[t.name] || ""; });
   const top = played.slice(0, 3);
   const leader = top[0];
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -136,29 +141,32 @@ async function renderPreseasonLeaders() {
   const dateStr = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
   const fmt = v => v > 0 ? "+" + v : "" + v;
   const medal = ["🥇", "🥈", "🥉"];
+  // each top-3 team shows its logo when available, else the medal
+  const crest = (name, i) => logoBy[name]
+    ? `<img class="psl-logo" src="${scrimEsc(logoBy[name])}" alt="" />`
+    : `<span class="psl-medal">${medal[i]}</span>`;
   host.innerHTML = `
     <div class="psl-head">
-      <span class="psl-eyebrow">🏆 Preseason Leaders</span>
-      <span class="psl-date">Updated daily · ${dateStr}</span>
+      <span class="psl-eyebrow">🏆 Top 3 · Day ${preseasonDay()}</span>
+      <span class="psl-date">${dateStr}</span>
     </div>
     <div class="psl-leader">
-      <span class="psl-crown">👑</span>
+      ${logoBy[leader.name] ? `<img class="psl-lead-logo" src="${scrimEsc(logoBy[leader.name])}" alt="" />` : `<span class="psl-crown">👑</span>`}
       <div><b>${scrimEsc(leader.name)}</b> is leading the preseason
         <span class="psl-sub">${leader.mw}–${leader.ml} · ${fmt(leader.record)} pts${leader.diff != null ? ` · ${fmt(leader.diff)} diff` : ""}</span>
       </div>
     </div>
     <div class="psl-top3">
-      ${top.map((t, i) => `<div class="psl-item"><span class="psl-medal">${medal[i]}</span><span class="psl-name">${scrimEsc(t.name)}</span><span class="psl-pts">${fmt(t.record)} pts</span></div>`).join("")}
+      ${top.map((t, i) => `<div class="psl-item"><span class="psl-rank">${i + 1}</span>${crest(t.name, i)}<span class="psl-name">${scrimEsc(t.name)}</span><span class="psl-pts">${fmt(t.record)} pts</span></div>`).join("")}
     </div>
     <a class="psl-link" href="standings.html">Full standings →</a>`;
 }
 
 /* ---- homepage "Latest Matches" widget (#psMatches) ----
-   A rolling window: shows the last DAYS_SHOWN days of matches with a "Day N"
-   counter. Each new day, the oldest day rolls off (e.g. on Day 4, Day 1's
-   matches drop). Edit the two constants below to change the start or window. */
-const PRESEASON_START = "2026-07-27";   // Day 1 of the preseason
-const DAYS_SHOWN = 3;                   // keep this many days of matches (older days roll off)
+   Shows the last GAMES_SHOWN games (most recent first) with a "Day N" counter
+   and a per-game day tag. Edit the constants below to change the start day. */
+const PRESEASON_START = "2026-07-28";   // Day 1 of the preseason (today = Day 2)
+const GAMES_SHOWN = 5;                  // how many recent games to show on the homepage
 
 /* Preseason day number for a given time (default: now). */
 function preseasonDay(ms) {
@@ -179,22 +187,20 @@ async function renderLatestMatches() {
   const host = document.getElementById("psMatches");
   if (!host) return;
   const day = preseasonDay();
-  if (isNaN(day) || day < 1) { host.style.display = "none"; return; }
-  const minDay = day - DAYS_SHOWN + 1;   // rolling window: keep the last DAYS_SHOWN days
   let data = { teams: [], matches: [] };
   try { data = await apiGet("/scrims"); } catch (e) { /* leave empty */ }
   const ms = (data.matches || [])
-    .filter(m => { const md = matchDay(m); return md >= minDay && md <= day; })
+    .slice()
     .sort((a, b) => matchDay(b) - matchDay(a) || (b.createdAt || 0) - (a.createdAt || 0))
-    .slice(0, 14);
+    .slice(0, GAMES_SHOWN);
   if (!ms.length) { host.style.display = "none"; return; }
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const d = new Date();
   const dateStr = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
   host.innerHTML = `
     <div class="psl-head">
-      <span class="psl-eyebrow">🏐 Preseason Matches · Day ${day}</span>
-      <span class="psl-date">Last ${DAYS_SHOWN} days · ${dateStr}</span>
+      <span class="psl-eyebrow">🏐 Latest Matches · Day ${day}</span>
+      <span class="psl-date">Last ${GAMES_SHOWN} games · ${dateStr}</span>
     </div>
     <div class="psm-list">
       ${ms.map(m => `<div class="psm-row"><span class="psm-day">Day ${matchDay(m)}</span>${scrimMatchLine(m).text}</div>`).join("")}
