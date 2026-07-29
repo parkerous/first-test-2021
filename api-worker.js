@@ -67,6 +67,15 @@ const DEFAULT_SCRIMS = [
   { id: "seed_order_eq", teamA: "The Order", teamB: "Equinox", sets: [{ a: 25, b: 15 }, { a: 26, b: 24 }], createdAt: 19 },
   { id: "seed_eq_sen", teamA: "Equinox", teamB: "Senzai", sets: [{ a: 25, b: 19 }, { a: 25, b: 23 }], createdAt: 20 },
   { id: "seed_order_van", teamA: "The Order", teamB: "Vanguard", sets: [{ a: 18, b: 25 }, { a: 25, b: 21 }, { a: 25, b: 22 }], createdAt: 21 },
+  { id: "seed_gg_van_ff", teamA: "Green Giants", teamB: "Vanguard", sets: [{ w: "B" }, { w: "B" }], createdAt: 22 },
+  { id: "seed_miku_inv", teamA: "Miku", teamB: "Invictus", sets: [{ a: 24, b: 26 }, { a: 13, b: 25 }], createdAt: 23 },
+  { id: "seed_sti_gz", teamA: "Stinger", teamB: "Ground Zero", sets: [{ a: 25, b: 15 }, { a: 25, b: 19 }], createdAt: 24 },
+  { id: "seed_gg_order_ff", teamA: "Green Giants", teamB: "The Order", sets: [{ w: "B" }, { w: "B" }], createdAt: 25 },
+  { id: "seed_gg_kit_ff", teamA: "Green Giants", teamB: "Kittyoo", sets: [{ w: "B" }, { w: "B" }], createdAt: 26 },
+  { id: "seed_sen_van", teamA: "Senzai", teamB: "Vanguard", sets: [{ a: 18, b: 25 }, { a: 27, b: 25 }, { a: 15, b: 25 }], createdAt: 27 },
+  { id: "seed_gg_sti_ff", teamA: "Green Giants", teamB: "Stinger", sets: [{ w: "B" }, { w: "B" }], createdAt: 28 },
+  { id: "seed_miku_eq2", teamA: "Miku", teamB: "Equinox", sets: [{ a: 18, b: 25 }, { a: 25, b: 20 }, { a: 21, b: 25 }], createdAt: 29 },
+  { id: "seed_miku_sti", teamA: "Miku", teamB: "Stinger", sets: [{ a: 25, b: 18 }, { a: 25, b: 13 }], createdAt: 30 },
 ];
 function cleanSets(arr) {
   if (!Array.isArray(arr)) return [];
