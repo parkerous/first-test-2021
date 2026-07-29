@@ -20,7 +20,7 @@
 .nav .wrap { max-width: 1200px; margin: 0 auto; padding: 11px 20px; display: flex; align-items: center; gap: 20px; }
 .nav .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; }
 .nav .brand .logo { font-size: 28px; line-height: 1; }
-.nav .brand .brand-logo { width: 36px; height: 36px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 2px 10px rgba(0,0,0,0.35); flex: none; }
+.nav .brand .brand-logo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); box-shadow: 0 0 0 2px rgba(198,151,31,.18), 0 0 16px rgba(255,210,30,.28); flex: none; }
 .nav .brand .word {
   font-size: 21px; font-weight: 800; letter-spacing: .2px;
   background: linear-gradient(92deg, #ffffff, #ffe9a8 70%, var(--gold-lite));
