@@ -153,4 +153,27 @@ async function renderPreseasonLeaders() {
     <a class="psl-link" href="standings.html">Full standings →</a>`;
 }
 
-document.addEventListener("DOMContentLoaded", function () { renderScrimStandings(); renderPreseasonLeaders(); });
+/* ---- homepage "Latest Matches" widget (#psMatches) ----
+   Shows the most recent scrim results, recomputed live on every visit. */
+async function renderLatestMatches() {
+  const host = document.getElementById("psMatches");
+  if (!host) return;
+  let data = { teams: [], matches: [] };
+  try { data = await apiGet("/scrims"); } catch (e) { /* leave empty */ }
+  const ms = (data.matches || []).slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 8);
+  if (!ms.length) { host.style.display = "none"; return; }
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const d = new Date();
+  const dateStr = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
+  host.innerHTML = `
+    <div class="psl-head">
+      <span class="psl-eyebrow">🏐 Latest Matches</span>
+      <span class="psl-date">Updated daily · ${dateStr}</span>
+    </div>
+    <div class="psm-list">
+      ${ms.map(m => `<div class="psm-row">${scrimMatchLine(m).text}</div>`).join("")}
+    </div>
+    <a class="psl-link" href="standings.html">All results &amp; standings →</a>`;
+}
+
+document.addEventListener("DOMContentLoaded", function () { renderScrimStandings(); renderPreseasonLeaders(); renderLatestMatches(); });
