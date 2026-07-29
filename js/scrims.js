@@ -75,6 +75,36 @@ function scrimMatchLine(m) {
   };
 }
 
+/* ---- rank movement (▲/▼ vs the previous day) ----
+   Snapshots the day's ranks and compares to the previous day so teams that
+   climbed show a green up-arrow and teams that fell show a red down-arrow. */
+function computeMovement(fullRows) {
+  const cur = {};
+  fullRows.forEach((t, i) => { cur[t.name] = i + 1; });
+  const day = preseasonDay();
+  let snap = null;
+  try { snap = JSON.parse(localStorage.getItem("soai_rank_snap") || "null"); } catch (e) { }
+  if (!snap || typeof snap.curDay !== "number") {
+    snap = { curDay: day, curRanks: cur, prevRanks: {} };            // first ever: no baseline yet
+  } else if (snap.curDay < day) {
+    snap = { curDay: day, prevRanks: snap.curRanks || {}, curRanks: cur };  // new day: yesterday's ranks become the baseline
+  } else {
+    snap.curRanks = cur;                                             // same day: refresh, keep the baseline
+  }
+  const prev = snap.prevRanks || {};
+  try { localStorage.setItem("soai_rank_snap", JSON.stringify(snap)); } catch (e) { }
+  const mv = {};
+  fullRows.forEach(t => { if (prev[t.name] != null) mv[t.name] = prev[t.name] - cur[t.name]; });  // + = moved up
+  return mv;
+}
+function moveArrow(m) {
+  if (m == null || m === 0) return "";
+  const n = Math.abs(m);
+  return m > 0
+    ? `<span class="mv up" title="Up ${n}">▲${n > 1 ? n : ""}</span>`
+    : `<span class="mv down" title="Down ${n}">▼${n > 1 ? n : ""}</span>`;
+}
+
 /* ---- public standings page (#scrimBody / #scrimResults) ---- */
 async function renderScrimStandings() {
   const body = document.getElementById("scrimBody");
@@ -96,11 +126,12 @@ async function renderScrimStandings() {
   const crest = name => logoBy[name]
     ? `<img class="ps-logo" src="${scrimEsc(logoBy[name])}" alt="" />`
     : `<span class="dot"></span>`;
+  const mv = computeMovement(rows);
 
   body.innerHTML = rows.map((t, i) => `
     <tr>
       <td class="rk">${i + 1}</td>
-      <td><span class="team">${crest(t.name)}${scrimEsc(t.name)}</span></td>
+      <td><span class="team">${crest(t.name)}${scrimEsc(t.name)}${t.played > 0 ? moveArrow(mv[t.name]) : ""}</span></td>
       <td class="num">${t.mw}</td>
       <td class="num">${t.ml}</td>
       <td class="num"><span class="ps-rec ${recCls(t.record)}">${rec(t.record)}</span></td>
@@ -127,8 +158,10 @@ async function renderPreseasonLeaders() {
   if (!host) return;
   let data = { teams: [], matches: [] };
   try { data = await apiGet("/scrims"); } catch (e) { /* leave empty */ }
-  const played = computeScrimStandings(data.teams, data.matches).filter(t => t.played > 0);
+  const full = computeScrimStandings(data.teams, data.matches);
+  const played = full.filter(t => t.played > 0);
   if (!played.length) { host.style.display = "none"; return; }
+  const mv = computeMovement(full);
   // team logos: preseason-pool logo, else a same-named registered team's logo
   const regLogo = {};
   try { const teams = await apiGet("/teams"); (teams || []).forEach(t => { if (t && t.name && t.logo) regLogo[t.name] = t.logo; }); } catch (e) { /* optional */ }
@@ -157,7 +190,7 @@ async function renderPreseasonLeaders() {
       </div>
     </div>
     <div class="psl-top3">
-      ${top.map((t, i) => `<div class="psl-item"><span class="psl-rank">${i + 1}</span>${crest(t.name, i)}<span class="psl-name">${scrimEsc(t.name)}</span><span class="psl-pts">${fmt(t.record)} pts</span></div>`).join("")}
+      ${top.map((t, i) => `<div class="psl-item"><span class="psl-rank">${i + 1}</span>${crest(t.name, i)}<span class="psl-name">${scrimEsc(t.name)}${moveArrow(mv[t.name])}</span><span class="psl-pts">${fmt(t.record)} pts</span></div>`).join("")}
     </div>
     <a class="psl-link" href="standings.html">Full standings →</a>`;
 }
