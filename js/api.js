@@ -198,6 +198,15 @@ function fileToDataUrl(file, max = 420) {
     { id: "seed_miku_eq", teamA: "Miku", teamB: "Equinox", sets: [{ a: 25, b: 23 }, { a: 16, b: 25 }, { a: 25, b: 23 }], createdAt: 10 },
     { id: "seed_kit_van", teamA: "Kittyoo", teamB: "Vanguard", sets: [{ w: "B" }, { w: "B" }], createdAt: 11 },
     { id: "seed_neko_van", teamA: "Nekopara", teamB: "Vanguard", sets: [{ a: 20, b: 25 }, { a: 11, b: 25 }], createdAt: 12 },
+    { id: "seed_zen_van", teamA: "Zenith", teamB: "Vanguard", sets: [{ a: 13, b: 25 }, { a: 25, b: 23 }, { a: 19, b: 25 }], createdAt: 13 },
+    { id: "seed_order_can", teamA: "The Order", teamB: "Canopus", sets: [{ w: "A" }, { w: "A" }], createdAt: 14 },
+    { id: "seed_inv_van", teamA: "Invictus", teamB: "Vanguard", sets: [{ a: 25, b: 21 }, { a: 18, b: 25 }, { a: 18, b: 25 }], createdAt: 15 },
+    { id: "seed_gg_can", teamA: "Green Giants", teamB: "Canopus", sets: [{ a: 25, b: 19 }, { a: 25, b: 17 }], createdAt: 16 },
+    { id: "seed_inv_zen", teamA: "Invictus", teamB: "Zenith", sets: [{ a: 25, b: 17 }, { a: 25, b: 17 }], createdAt: 17 },
+    { id: "seed_sen_kit", teamA: "Senzai", teamB: "Kittyoo", sets: [{ w: "A" }, { w: "A" }], createdAt: 18 },
+    { id: "seed_order_eq", teamA: "The Order", teamB: "Equinox", sets: [{ a: 25, b: 15 }, { a: 26, b: 24 }], createdAt: 19 },
+    { id: "seed_eq_sen", teamA: "Equinox", teamB: "Senzai", sets: [{ a: 25, b: 19 }, { a: 25, b: 23 }], createdAt: 20 },
+    { id: "seed_order_van", teamA: "The Order", teamB: "Vanguard", sets: [{ a: 18, b: 25 }, { a: 25, b: 21 }, { a: 25, b: 22 }], createdAt: 21 },
   ];
   function cleanSets(arr) {
     if (!Array.isArray(arr)) return [];
