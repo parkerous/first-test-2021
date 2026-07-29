@@ -120,7 +120,10 @@
 .psl-date { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
 .psl-leader { display: flex; align-items: center; gap: 13px; margin: 15px 0 16px; }
 .psl-crown { font-size: 30px; line-height: 1; flex: none; }
+.psl-lead-logo { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); flex: none; box-shadow: 0 0 0 2px rgba(198,151,31,.18); }
 .psl-leader b { font-size: 20px; font-weight: 900; }
+.psl-rank { font-weight: 900; color: var(--muted); width: 16px; text-align: center; flex: none; font-variant-numeric: tabular-nums; }
+.psl-logo { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1px solid var(--line); background: var(--panel); flex: none; }
 .psl-leader .psl-sub { display: block; color: var(--muted); font-size: 13px; margin-top: 3px; font-variant-numeric: tabular-nums; }
 .psl-top3 { display: grid; gap: 8px; }
 .psl-item { display: flex; align-items: center; gap: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; }
