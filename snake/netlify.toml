@@ -1,0 +1,9 @@
+# Netlify settings for the Retro Snake game.
+# Pure static HTML/CSS/JS — no build step. Publish this folder as-is.
+[build]
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
