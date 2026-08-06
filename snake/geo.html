@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GEO GUESS</title>
+<link rel="stylesheet" href="arcade.css" />
+<style>
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+  .hud .round { color: var(--neon-dim); }
+  .hud .round b { color: var(--amber); text-shadow: 0 0 6px var(--amber); font-weight: normal; }
+  .hud .turn {
+    padding: 5px 12px;
+    border: 2px solid currentColor;
+    border-radius: 4px;
+    text-shadow: 0 0 6px currentColor;
+  }
+
+  .clue-box {
+    border: 2px solid var(--neon-dim);
+    border-radius: 8px;
+    background: rgba(57,255,20,0.05);
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .clue-box .tag { font-size: 10px; letter-spacing: 3px; color: var(--neon-dim); }
+  .clue-box .clue {
+    margin-top: 6px;
+    font-size: clamp(13px, 2.6vw, 16px);
+    letter-spacing: 1px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  #map { cursor: crosshair; }
+
+  .totals {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 12px;
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+  .totals .chip {
+    border: 2px solid currentColor;
+    border-radius: 4px;
+    padding: 5px 12px;
+    text-shadow: 0 0 6px currentColor;
+  }
+
+  /* Player-count picker */
+  .pick-row { display: flex; gap: 10px; }
+  .pick-row .btn { min-width: 56px; }
+
+  /* Reveal table */
+  table.results {
+    border-collapse: collapse;
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin: 4px 0;
+  }
+  table.results td, table.results th {
+    padding: 4px 12px;
+    text-align: left;
+  }
+  table.results th { color: var(--neon-dim); font-weight: normal; font-size: 10px; letter-spacing: 2px; }
+  table.results .pts { color: var(--amber); text-shadow: 0 0 6px var(--amber); text-align: right; }
+  table.results .dist { text-align: right; }
+</style>
+</head>
+<body>
+  <nav class="arcade-nav">
+    <a class="brand" href="index.html">◆ PIXEL ARCADE</a>
+    <a class="tab" href="index.html">ARCADE</a>
+    <a class="tab" href="snake.html">SNAKE</a>
+    <a class="tab active" href="geo.html">GEO GUESS</a>
+  </nav>
+
+  <div class="cabinet wide">
+    <h1 class="arcade-title">GEO GUESS</h1>
+    <p class="subtitle">◆ WHERE IN THE WORLD? &bull; PASS &amp; PLAY ◆</p>
+
+    <div class="hud">
+      <div class="round">ROUND <b id="roundNum">–</b>/<span id="roundMax">5</span></div>
+      <div class="turn hidden" id="turnBadge">P1 — DROP YOUR PIN</div>
+      <div class="round">BEST <b id="bestScore">0</b></div>
+    </div>
+
+    <div class="clue-box">
+      <div class="tag">◆ CLUE ◆</div>
+      <div class="clue" id="clueText">Press START to begin. Read the clue, then click the map where you think it is. Closer pin = more points.</div>
+    </div>
+
+    <div class="stage">
+      <canvas id="map" class="screen" width="880" height="440" aria-label="World map"></canvas>
+
+      <!-- Setup screen -->
+      <div id="setupScreen" class="overlay">
+        <h2>GEO GUESS</h2>
+        <p>5 ROUNDS &bull; MAX 1000 PTS EACH</p>
+        <p>HOW MANY PLAYERS? (SAME DEVICE)</p>
+        <div class="pick-row">
+          <button class="btn" data-n="1">1</button>
+          <button class="btn" data-n="2">2</button>
+          <button class="btn" data-n="3">3</button>
+          <button class="btn" data-n="4">4</button>
+        </div>
+        <p style="color:var(--neon-dim)">EACH PLAYER TAKES A TURN DROPPING A PIN,<br/>THEN THE TRUE LOCATION IS REVEALED.</p>
+      </div>
+
+      <!-- Round reveal -->
+      <div id="revealScreen" class="overlay hidden">
+        <h2 id="revealName">PARIS</h2>
+        <p id="revealFact" style="color:var(--neon-dim)"></p>
+        <table class="results" id="revealTable"></table>
+        <button id="nextBtn" class="btn">NEXT ROUND</button>
+      </div>
+
+      <!-- Final results -->
+      <div id="finalScreen" class="overlay hidden">
+        <h2>FINAL STANDINGS</h2>
+        <table class="results" id="finalTable"></table>
+        <p id="finalHi" class="hidden" style="color:var(--food);text-shadow:0 0 8px var(--food-glow)">★ NEW BEST RUN ★</p>
+        <button id="againBtn" class="btn">PLAY AGAIN</button>
+      </div>
+    </div>
+
+    <div class="totals" id="totals"></div>
+
+    <div class="controls">
+      CLICK / TAP THE MAP TO GUESS &nbsp;&bull;&nbsp; PINS STAY SECRET UNTIL EVERYONE HAS GUESSED
+    </div>
+
+    <div class="footer-row">
+      <span>© PIXEL ARCADE</span>
+      <button id="resetBest" class="link-btn">RESET BEST</button>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    // ---- Constants ----
+    var ROUNDS = 5;
+    var MAX_PTS = 1000;
+    var BEST_KEY = "retroGeo.best";   // localStorage key
+    var PLAYER_COLORS = ["#39ff14", "#ff2e88", "#00d0ff", "#ffb000"];
+
+    // ---- Locations: name, lat, lon, clue (shown before), fact (shown after) ----
+    var LOCATIONS = [
+      { name: "PARIS", lat: 48.86, lon: 2.35, clue: "An iron tower watches over cafés and a famous river of light.", fact: "France — the Eiffel Tower is 330 m tall." },
+      { name: "TOKYO", lat: 35.68, lon: 139.69, clue: "Neon crossings, bullet trains, and a snow-capped volcano on the horizon.", fact: "Japan — the world's largest metro area." },
+      { name: "NEW YORK", lat: 40.71, lon: -74.01, clue: "A copper lady holds her torch outside the city that never sleeps.", fact: "USA — the Statue of Liberty was a gift from France." },
+      { name: "CAIRO", lat: 30.04, lon: 31.24, clue: "Ancient triangles rise from the desert beside a very long river.", fact: "Egypt — the Great Pyramid is 4,500+ years old." },
+      { name: "SYDNEY", lat: -33.87, lon: 151.21, clue: "White sails of an opera house shine in a harbour down under.", fact: "Australia — the Opera House opened in 1973." },
+      { name: "RIO DE JANEIRO", lat: -22.91, lon: -43.17, clue: "A giant statue spreads its arms above beaches and samba.", fact: "Brazil — Christ the Redeemer stands on Corcovado." },
+      { name: "LONDON", lat: 51.51, lon: -0.13, clue: "A giant clock tower rings beside a river crossed by a famous bridge.", fact: "UK — Big Ben is the bell, not the tower." },
+      { name: "MOSCOW", lat: 55.76, lon: 37.62, clue: "Candy-coloured onion domes stand on a very red square.", fact: "Russia — St. Basil's Cathedral, built 1561." },
+      { name: "CAPE TOWN", lat: -33.92, lon: 18.42, clue: "A flat-topped mountain looms where two oceans nearly meet.", fact: "South Africa — Table Mountain has its own 'tablecloth' cloud." },
+      { name: "MUMBAI", lat: 19.08, lon: 72.88, clue: "Bollywood's home town, a gateway arch facing the Arabian Sea.", fact: "India — makes more films than anywhere on Earth." },
+      { name: "MEXICO CITY", lat: 19.43, lon: -99.13, clue: "A megacity built on a drained lake, near ancient stepped pyramids.", fact: "Mexico — built over the Aztec capital Tenochtitlan." },
+      { name: "REYKJAVIK", lat: 64.15, lon: -21.94, clue: "The world's northernmost capital, land of geysers and lava.", fact: "Iceland — heated almost entirely by geothermal energy." },
+      { name: "NAIROBI", lat: -1.29, lon: 36.82, clue: "A capital city with a safari park where lions roam beside skyscrapers.", fact: "Kenya — the only capital with a national park inside it." },
+      { name: "MACHU PICCHU", lat: -13.16, lon: -72.55, clue: "A lost stone city hides in the clouds of a great mountain range.", fact: "Peru — an Inca citadel at 2,430 m altitude." },
+      { name: "GRAND CANYON", lat: 36.11, lon: -112.11, clue: "A river spent 6 million years carving this mile-deep gash.", fact: "USA — up to 29 km wide and 446 km long." },
+      { name: "VENICE", lat: 45.44, lon: 12.34, clue: "No cars here — the streets are water and the taxis are boats.", fact: "Italy — built across 118 small islands." },
+      { name: "ISTANBUL", lat: 41.01, lon: 28.98, clue: "One city, two continents, a grand bazaar and blue-tiled domes.", fact: "Türkiye — straddles Europe and Asia." },
+      { name: "DUBAI", lat: 25.20, lon: 55.27, clue: "The world's tallest needle of glass rises out of the sand.", fact: "UAE — the Burj Khalifa is 828 m tall." },
+      { name: "SINGAPORE", lat: 1.35, lon: 103.82, clue: "A tiny island nation with supertrees and a rooftop ship.", fact: "A city, an island, and a country all at once." },
+      { name: "HONOLULU", lat: 21.31, lon: -157.86, clue: "Surf's up on this Pacific island chain's capital beach.", fact: "USA — Hawai'i is the most isolated population center on Earth." },
+      { name: "BUENOS AIRES", lat: -34.60, lon: -58.38, clue: "Tango was born in the colourful streets of this southern port.", fact: "Argentina — 'the Paris of South America'." },
+      { name: "BEIJING", lat: 39.90, lon: 116.41, clue: "A forbidden palace sits near a wall you can follow for thousands of km.", fact: "China — the Forbidden City has 980 buildings." },
+      { name: "ATHENS", lat: 37.98, lon: 23.73, clue: "Marble columns crown a hill where democracy was invented.", fact: "Greece — the Parthenon is ~2,470 years old." },
+      { name: "ANCHORAGE", lat: 61.22, lon: -149.90, clue: "Moose wander this northern city between mountains and a frozen sea.", fact: "USA — Alaska's biggest city." }
+    ];
+
+    // ---- Simplified world map (lon/lat polygons, equirectangular) ----
+    var WORLD = [
+      // North America
+      [[-168,66],[-150,70],[-125,70],[-110,73],[-95,72],[-85,70],[-80,73],[-70,62],[-55,52],[-65,45],[-70,42],[-75,35],[-80,30],[-81,25],[-90,29],[-97,26],[-100,20],[-97,16],[-92,15],[-85,12],[-80,9],[-83,8],[-88,13],[-95,17],[-105,20],[-110,24],[-115,30],[-122,37],[-125,43],[-125,49],[-132,55],[-140,60],[-150,60],[-158,58],[-165,60],[-168,66]],
+      // Greenland
+      [[-45,60],[-30,68],[-20,70],[-25,78],[-35,83],[-60,82],[-68,78],[-55,70],[-52,64],[-45,60]],
+      // South America
+      [[-80,9],[-75,10],[-70,12],[-62,10],[-52,4],[-50,0],[-44,-3],[-35,-8],[-39,-14],[-40,-22],[-48,-28],[-54,-32],[-58,-34],[-62,-39],[-65,-45],[-70,-52],[-68,-55],[-72,-50],[-74,-45],[-73,-37],[-70,-25],[-70,-18],[-76,-14],[-80,-6],[-81,-3],[-80,3],[-78,7],[-80,9]],
+      // Africa
+      [[-17,15],[-16,22],[-10,30],[-6,35],[0,36],[10,37],[12,33],[20,32],[25,32],[32,31],[35,28],[38,20],[43,12],[48,11],[51,12],[46,5],[41,-2],[40,-10],[38,-15],[35,-20],[32,-26],[28,-32],[20,-35],[17,-33],[15,-28],[12,-18],[13,-12],[9,-2],[9,4],[5,5],[-2,5],[-8,4],[-13,8],[-17,15]],
+      // Eurasia (very rough)
+      [[-10,36],[-8,43],[-2,44],[0,47],[-2,49],[2,51],[8,54],[8,57],[12,56],[13,54],[20,55],[21,59],[25,60],[22,63],[25,66],[20,70],[30,71],[40,68],[45,68],[55,69],[60,70],[70,73],[80,73],[90,76],[105,77],[115,74],[130,72],[140,72],[150,70],[160,70],[170,67],[179,66],[178,64],[162,60],[155,53],[142,50],[135,44],[131,43],[128,40],[122,38],[120,32],[112,22],[108,16],[105,10],[103,1],[100,4],[98,10],[94,17],[91,22],[88,21],[85,19],[80,10],[77,8],[74,14],[72,20],[68,23],[64,25],[60,25],[57,26],[54,25],[52,16],[45,13],[43,15],[41,18],[38,22],[35,28],[33,31],[30,32],[27,37],[23,36],[19,40],[15,38],[13,41],[12,45],[8,44],[5,43],[3,40],[0,39],[-6,37],[-10,36]],
+      // Great Britain
+      [[-5,50],[1,51],[-1,54],[-3,56],[-5,58],[-7,55],[-5,53],[-5,50]],
+      // Scandinavia bump (Norway coast)
+      [[5,58],[7,62],[12,65],[16,68],[22,70],[26,71],[20,70],[15,67],[10,63],[6,60],[5,58]],
+      // Japan
+      [[130,31],[132,33],[135,34],[140,36],[141,40],[142,43],[144,44],[141,42],[137,37],[133,34],[130,32],[130,31]],
+      // Indonesia (rough blobs)
+      [[95,5],[98,3],[102,0],[106,-3],[104,-6],[100,-1],[96,3],[95,5]],
+      [[105,-6],[112,-7],[114,-8],[110,-8],[106,-7],[105,-6]],
+      [[109,1],[114,4],[117,2],[116,-2],[112,-3],[109,-1],[109,1]],
+      [[131,-1],[137,-2],[141,-3],[143,-6],[140,-8],[135,-5],[131,-3],[131,-1]],
+      // Philippines
+      [[120,18],[122,16],[121,12],[124,10],[122,7],[120,10],[120,14],[120,18]],
+      // Australia
+      [[114,-22],[118,-20],[122,-17],[127,-14],[130,-12],[136,-12],[137,-15],[141,-13],[143,-11],[145,-15],[146,-19],[149,-21],[151,-24],[153,-27],[152,-32],[150,-35],[146,-39],[141,-38],[136,-35],[132,-32],[126,-32],[122,-34],[116,-35],[113,-30],[113,-25],[114,-22]],
+      // New Zealand
+      [[173,-35],[176,-38],[178,-38],[176,-41],[174,-40],[173,-35]],
+      [[167,-46],[170,-44],[173,-41],[171,-42],[168,-46],[167,-46]],
+      // Madagascar
+      [[44,-16],[47,-15],[50,-16],[49,-20],[47,-24],[44,-25],[43,-21],[44,-16]]
+    ];
+
+    // ---- Canvas ----
+    var canvas = document.getElementById("map");
+    var ctx = canvas.getContext("2d");
+    var W = canvas.width, H = canvas.height;
+
+    function project(lon, lat) {
+      return { x: (lon + 180) / 360 * W, y: (90 - lat) / 180 * H };
+    }
+    function unproject(x, y) {
+      return { lon: x / W * 360 - 180, lat: 90 - y / H * 180 };
+    }
+
+    // ---- DOM ----
+    var $ = function (id) { return document.getElementById(id); };
+    var roundNumEl = $("roundNum"), turnBadge = $("turnBadge"), clueText = $("clueText");
+    var setupScreen = $("setupScreen"), revealScreen = $("revealScreen"), finalScreen = $("finalScreen");
+    var revealName = $("revealName"), revealFact = $("revealFact"), revealTable = $("revealTable");
+    var finalTable = $("finalTable"), finalHi = $("finalHi"), totalsEl = $("totals"), bestEl = $("bestScore");
+
+    // ---- State ----
+    var players = [], roundIdx = 0, picks = [], guesses = [], turn = 0;
+    var phase = "setup";   // setup | guessing | reveal | final
+
+    // ---- Best score (localStorage) ----
+    function loadBest() {
+      try { return JSON.parse(localStorage.getItem(BEST_KEY) || "null"); }
+      catch (e) { return null; }
+    }
+    function showBest() {
+      var b = loadBest();
+      bestEl.textContent = b ? b.score : 0;
+    }
+    showBest();
+
+    // ---- Distance / scoring ----
+    function haversineKm(a, b) {
+      var R = 6371, rad = Math.PI / 180;
+      var dLat = (b.lat - a.lat) * rad, dLon = (b.lon - a.lon) * rad;
+      var s = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(a.lat * rad) * Math.cos(b.lat * rad) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      return 2 * R * Math.asin(Math.sqrt(s));
+    }
+    function pointsFor(km) {
+      if (km < 50) return MAX_PTS;                       // basically nailed it
+      return Math.round(MAX_PTS * Math.exp(-km / 2000)); // smooth falloff
+    }
+
+    // ---- Game flow ----
+    function startGame(nPlayers) {
+      players = [];
+      for (var i = 0; i < nPlayers; i++) {
+        players.push({ name: "P" + (i + 1), color: PLAYER_COLORS[i], total: 0 });
+      }
+      // Pick ROUNDS distinct random locations
+      var pool = LOCATIONS.slice();
+      picks = [];
+      for (var r = 0; r < ROUNDS; r++) {
+        picks.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+      }
+      roundIdx = 0;
+      setupScreen.classList.add("hidden");
+      finalScreen.classList.add("hidden");
+      startRound();
+    }
+
+    function startRound() {
+      guesses = [];
+      turn = 0;
+      phase = "guessing";
+      roundNumEl.textContent = roundIdx + 1;
+      clueText.textContent = picks[roundIdx].clue;
+      revealScreen.classList.add("hidden");
+      updateTurnBadge();
+      renderTotals();
+      drawMap();
+    }
+
+    function updateTurnBadge() {
+      var p = players[turn];
+      turnBadge.classList.remove("hidden");
+      turnBadge.style.color = p.color;
+      turnBadge.textContent = p.name + " — DROP YOUR PIN" + (players.length > 1 ? " (OTHERS LOOK AWAY!)" : "");
+    }
+
+    function mapClick(e) {
+      if (phase !== "guessing") return;
+      var rect = canvas.getBoundingClientRect();
+      var x = (e.clientX - rect.left) / rect.width * W;
+      var y = (e.clientY - rect.top) / rect.height * H;
+      guesses.push(unproject(x, y));
+      // Brief confirmation flash so the next player knows to take over,
+      // but the pin itself stays hidden until everyone has guessed.
+      if (turn < players.length - 1) {
+        turn++;
+        updateTurnBadge();
+        flashMessage("PIN LOCKED — PASS THE DEVICE");
+      } else {
+        revealRound();
+      }
+    }
+
+    function flashMessage(msg) {
+      clueText.textContent = msg;
+      setTimeout(function () {
+        if (phase === "guessing") clueText.textContent = picks[roundIdx].clue;
+      }, 900);
+    }
+
+    function revealRound() {
+      phase = "reveal";
+      turnBadge.classList.add("hidden");
+      var loc = picks[roundIdx];
+
+      var rows = "<tr><th>PLAYER</th><th class='dist'>DISTANCE</th><th class='pts'>PTS</th></tr>";
+      for (var i = 0; i < players.length; i++) {
+        var km = Math.round(haversineKm(guesses[i], loc));
+        var pts = pointsFor(km);
+        players[i].total += pts;
+        rows += "<tr style='color:" + players[i].color + "'>" +
+          "<td>" + players[i].name + "</td>" +
+          "<td class='dist'>" + km.toLocaleString() + " KM</td>" +
+          "<td class='pts'>+" + pts + "</td></tr>";
+      }
+      revealTable.innerHTML = rows;
+      revealName.textContent = loc.name;
+      revealFact.textContent = loc.fact;
+      $("nextBtn").textContent = roundIdx === ROUNDS - 1 ? "FINAL RESULTS" : "NEXT ROUND";
+      clueText.textContent = loc.clue;
+      drawMap(true);
+      revealScreen.classList.remove("hidden");
+      renderTotals();
+    }
+
+    function nextRound() {
+      if (roundIdx < ROUNDS - 1) {
+        roundIdx++;
+        startRound();
+      } else {
+        showFinal();
+      }
+    }
+
+    function showFinal() {
+      phase = "final";
+      revealScreen.classList.add("hidden");
+
+      var ranked = players.slice().sort(function (a, b) { return b.total - a.total; });
+      var rows = "<tr><th>RANK</th><th>PLAYER</th><th class='pts'>TOTAL</th></tr>";
+      var medals = ["🏆", "🥈", "🥉", " "];
+      for (var i = 0; i < ranked.length; i++) {
+        rows += "<tr style='color:" + ranked[i].color + "'>" +
+          "<td>" + medals[i] + "</td>" +
+          "<td>" + ranked[i].name + "</td>" +
+          "<td class='pts'>" + ranked[i].total + "</td></tr>";
+      }
+      finalTable.innerHTML = rows;
+
+      // Persist the best individual run locally
+      var best = loadBest();
+      var isNewBest = !best || ranked[0].total > best.score;
+      if (isNewBest) {
+        localStorage.setItem(BEST_KEY, JSON.stringify({ score: ranked[0].total, name: ranked[0].name }));
+        showBest();
+      }
+      finalHi.classList.toggle("hidden", !isNewBest);
+      finalScreen.classList.remove("hidden");
+    }
+
+    function renderTotals() {
+      var html = "";
+      for (var i = 0; i < players.length; i++) {
+        html += "<div class='chip' style='color:" + players[i].color + "'>" +
+          players[i].name + " " + players[i].total + "</div>";
+      }
+      totalsEl.innerHTML = html;
+    }
+
+    // ---- Map rendering ----
+    function drawMap(reveal) {
+      // Ocean
+      ctx.fillStyle = "#06140c";
+      ctx.fillRect(0, 0, W, H);
+
+      // Graticule
+      ctx.strokeStyle = "rgba(57,255,20,0.07)";
+      ctx.lineWidth = 1;
+      for (var lon = -150; lon <= 150; lon += 30) {
+        var p = project(lon, 0);
+        ctx.beginPath(); ctx.moveTo(p.x, 0); ctx.lineTo(p.x, H); ctx.stroke();
+      }
+      for (var lat = -60; lat <= 60; lat += 30) {
+        var q = project(0, lat);
+        ctx.beginPath(); ctx.moveTo(0, q.y); ctx.lineTo(W, q.y); ctx.stroke();
+      }
+      // Equator, slightly brighter
+      ctx.strokeStyle = "rgba(57,255,20,0.15)";
+      var eq = project(0, 0);
+      ctx.beginPath(); ctx.moveTo(0, eq.y); ctx.lineTo(W, eq.y); ctx.stroke();
+
+      // Landmasses
+      ctx.save();
+      ctx.shadowColor = "rgba(57,255,20,0.5)";
+      ctx.shadowBlur = 6;
+      for (var i = 0; i < WORLD.length; i++) {
+        var poly = WORLD[i];
+        ctx.beginPath();
+        for (var j = 0; j < poly.length; j++) {
+          var pt = project(poly[j][0], poly[j][1]);
+          if (j === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = "#123c1c";
+        ctx.fill();
+        ctx.strokeStyle = "#2aa316";
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      if (reveal) {
+        var loc = picks[roundIdx];
+        var target = project(loc.lon, loc.lat);
+
+        // Lines from each guess to the target, then the pins
+        for (var g = 0; g < guesses.length; g++) {
+          var gp = project(guesses[g].lon, guesses[g].lat);
+          ctx.strokeStyle = players[g].color;
+          ctx.globalAlpha = 0.5;
+          ctx.setLineDash([4, 4]);
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(gp.x, gp.y); ctx.lineTo(target.x, target.y); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.globalAlpha = 1;
+          drawPin(gp.x, gp.y, players[g].color);
+        }
+        // Target: glowing star
+        drawStar(target.x, target.y);
+      }
+    }
+
+    function drawPin(x, y, color) {
+      ctx.save();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = "#04120a";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    function drawStar(x, y) {
+      ctx.save();
+      ctx.shadowColor = "#ffb000";
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = "#ffb000";
+      ctx.beginPath();
+      for (var i = 0; i < 10; i++) {
+        var r = i % 2 === 0 ? 9 : 4;
+        var a = -Math.PI / 2 + i * Math.PI / 5;
+        var px = x + Math.cos(a) * r, py = y + Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ---- Wire up ----
+    canvas.addEventListener("click", mapClick);
+    setupScreen.querySelectorAll("[data-n]").forEach(function (b) {
+      b.addEventListener("click", function () { startGame(Number(b.dataset.n)); });
+    });
+    $("nextBtn").addEventListener("click", nextRound);
+    $("againBtn").addEventListener("click", function () {
+      finalScreen.classList.add("hidden");
+      setupScreen.classList.remove("hidden");
+      totalsEl.innerHTML = "";
+      roundNumEl.textContent = "–";
+      clueText.textContent = "Press START to begin. Read the clue, then click the map where you think it is. Closer pin = more points.";
+      phase = "setup";
+      drawMap();
+    });
+    $("resetBest").addEventListener("click", function () {
+      localStorage.removeItem(BEST_KEY);
+      showBest();
+    });
+
+    // First paint
+    drawMap();
+  })();
+  </script>
+</body>
+</html>

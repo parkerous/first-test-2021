@@ -1,53 +1,41 @@
-# 🐍 Retro Snake
+# 🕹️ Pixel Arcade
 
-A retro arcade-style Snake game — neon phosphor-green graphics, CRT scanlines,
-**WASD** (or arrow-key) controls, and a points system that's saved locally in
-your browser so your high score survives between sessions.
+A retro arcade of mini-games with a shared top menu — neon phosphor-green
+graphics, CRT scanlines, and scores saved locally in your browser via
+`localStorage`. Pure HTML/CSS/JS, no build step, no server.
 
-## ▶️ Play it
+## Games
 
-Just open `index.html` in any modern browser — no server, no build step, no
-install. Double-click the file, or drag it into a browser tab.
+### 🐍 Snake (`snake.html`)
+- Smooth, slithering snake with a tapered body, scales, eyes, and a flicking
+  tongue — eats apples, not squares.
+- **WASD** or arrow keys to move, `Space` to start, `P` to pause.
+- +10 points per apple, speeds up as it grows.
+- High score persists locally (`retroSnake.highScore`).
+- Touch: on-screen D-pad + swipe.
 
-### Controls
+### 🌍 Geo Guess (`geo.html`)
+- GeoGuessr-style: read a clue, drop a pin on the neon world map.
+- **1–4 players pass-and-play on the same device** — pins stay secret until
+  everyone has guessed, then the true location is revealed with distances.
+- 5 rounds, up to 1000 pts each (closer = more points, <50 km = perfect).
+- Best run persists locally (`retroGeo.best`).
 
-| Key | Action |
-| --- | --- |
-| `W` `A` `S` `D` | Move up / left / down / right |
-| Arrow keys | Also move (same as WASD) |
-| `Space` | Start the game |
-| `P` | Pause / resume |
+### Menu (`index.html`)
+The arcade hub — a top menu bar on every page plus game cards showing your
+saved scores. Add more games by dropping in a new page and a new card.
 
-On phones/tablets you get an on-screen D-pad, and you can also swipe on the
-board to steer.
+## ▶️ Play locally
 
-### Points system
+Open `index.html` in any modern browser — double-click it, done.
 
-- Each pellet eaten = **+10 points**.
-- The snake speeds up a little every time it eats.
-- Your **high score is stored locally** in the browser via `localStorage`
-  (key: `retroSnake.highScore`) — it stays even after you close the tab.
-- Use **RESET HI-SCORE** at the bottom to clear it.
-
-## 🚀 Upload to Netlify
-
-This folder is a complete, self-contained static site. Two easy ways to deploy:
+## 🚀 Deploy to Netlify
 
 ### Option A — Drag & drop (fastest)
 1. Go to <https://app.netlify.com/drop>.
-2. Drag this whole `snake` folder onto the page.
-3. Netlify gives you a live URL in seconds. Done.
+2. Drag this whole folder onto the page.
+3. Live URL in seconds.
 
 ### Option B — Connect the Git repo
-1. In Netlify: **Add new site → Import an existing project** and pick this repo.
-2. Set **Base directory** to `snake` (or **Publish directory** to `snake` if
-   deploying from the repo root).
-3. No build command is needed — it's plain HTML/CSS/JS.
-
-The included `netlify.toml` already tells Netlify to publish the folder as-is
-with no build step.
-
----
-
-Everything lives in a single `index.html` (HTML + CSS + JavaScript inline), so
-it's trivial to copy, host anywhere, or tweak.
+Import the repo in Netlify and set the base/publish directory to `snake`.
+No build command needed — `netlify.toml` is already configured.
