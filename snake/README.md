@@ -16,8 +16,9 @@ graphics, CRT scanlines, and scores saved locally in your browser via
 
 ### 🌍 Geo Guess (`geo.html`)
 - GeoGuessr-style: read a clue, drop a pin on the neon world map.
-- **1–4 players pass-and-play on the same device** — pins stay secret until
-  everyone has guessed, then the true location is revealed with distances.
+- **2-player head-to-head on the same device** — pins stay secret until both
+  have guessed, then the true location is revealed with distances.
+- **60 locations** across every continent (yes, including Antarctica).
 - 5 rounds, up to 1000 pts each (closer = more points, <50 km = perfect).
 - Best run persists locally (`retroGeo.best`).
 
