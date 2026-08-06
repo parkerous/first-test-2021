@@ -38,11 +38,16 @@
     padding-top: 12px;
   }
   .portrait {
-    width: clamp(120px, 26vw, 200px);
+    width: clamp(120px, 24vw, 186px);
     transition: filter 0.25s, transform 0.25s, opacity 0.25s;
     filter: brightness(0.45) saturate(0.6);
     transform: translateY(6px);
     opacity: 0;
+  }
+  .portrait canvas {
+    display: block;
+    width: 100%;
+    image-rendering: pixelated;
   }
   .portrait.met { opacity: 1; }
   .portrait.talking {
@@ -207,73 +212,209 @@
       p: { name: "MR. PIXEL", color: "#ffb000" }
     };
 
-    // ---- SVG chibi portraits (expression-swappable) ----
-    function portraitSVG(who, ex) {
+    // ---- Pixel-art bust portraits (72x96, drawn pixel by pixel) ----
+    // Each portrait is rendered once per expression onto a tiny canvas and
+    // upscaled with image-rendering:pixelated for a crisp retro look.
+    var PORTRAIT_W = 72, PORTRAIT_H = 96, portraitCache = {};
+
+    function drawPortrait(who, ex) {
+      var cv = document.createElement("canvas");
+      cv.width = PORTRAIT_W; cv.height = PORTRAIT_H;
+      var g = cv.getContext("2d");
+
+      // helpers -----------------------------------------------------------
+      function px(x, y, c) { g.fillStyle = c; g.fillRect(x, y, 1, 1); }
+      function rect(x, y, w, h, c) { g.fillStyle = c; g.fillRect(x, y, w, h); }
+      function hl(x1, x2, y, c) { g.fillStyle = c; g.fillRect(x1, y, x2 - x1 + 1, 1); }
+      function ell(cx, cy, rx, ry, c) {
+        for (var yy = -ry; yy <= ry; yy++) {
+          var t = 1 - (yy * yy) / (ry * ry);
+          if (t < 0) continue;
+          var w = Math.round(rx * Math.sqrt(t));
+          hl(cx - w, cx + w, cy + yy, c);
+        }
+      }
+      function dither(x1, x2, y1, y2, c) {       // checkerboard shading
+        for (var y = y1; y <= y2; y++)
+          for (var x = x1; x <= x2; x++)
+            if ((x + y) % 2 === 0) px(x, y, c);
+      }
+      var MIRROR = PORTRAIT_W - 1;               // x -> MIRROR - x
+
+      // palette -----------------------------------------------------------
       var pink = who === "m";
-      var hair = pink ? "#ff5fb0" : "#5fd0ff";
-      var hairD = pink ? "#d13d8b" : "#3aa6d6";
-      var jacket = pink ? "#ff2e88" : "#0b6f8f";
-      var skin = "#ffe3c9";
+      var OUT = "#180b12";
+      var SKIN = "#ffdcc2", SKIN_SH = "#eaae8c", BLUSH = "#ff8fae";
+      var WHITE = "#ffffff", MOUTH = "#a33d4d", MOUTH_IN = "#7e2430", TONGUE = "#ff7d8f";
+      var HAIR   = pink ? "#ff5fb0" : "#5fd0ff";
+      var HAIR_D = pink ? "#c1327f" : "#2f93c9";
+      var HAIR_L = pink ? "#ffa2d2" : "#aee7ff";
+      var JACKET   = pink ? "#ff2e88" : "#16405c";
+      var JACKET_D = pink ? "#b81f63" : "#0c2a3e";
+      var TRIM = pink ? "#ffffff" : "#00d0ff";
+      var IRIS   = pink ? "#e8a13c" : "#31c8f0";
+      var IRIS_D = pink ? "#a05f12" : "#127396";
+      var BROW = pink ? "#8c2b5c" : "#1e5d80";
+      var ACC = "#ffe14d", PHONE = "#23262e";
 
-      var eyes = "", mouth = "", brows = "", blush = "";
-      if (ex === "happy") {
-        eyes = '<path d="M36 54 q5 -7 10 0" stroke="#2b1c1c" stroke-width="2.5" fill="none" stroke-linecap="round"/>' +
-               '<path d="M56 54 q5 -7 10 0" stroke="#2b1c1c" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
-        mouth = '<path d="M45 66 q6 6 12 0" stroke="#c94f4f" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
-      } else if (ex === "blush") {
-        eyes = '<ellipse cx="41" cy="54" rx="3.2" ry="4.4" fill="#2b1c1c"/><ellipse cx="61" cy="54" rx="3.2" ry="4.4" fill="#2b1c1c"/>' +
-               '<circle cx="40" cy="52.5" r="1.1" fill="#fff"/><circle cx="60" cy="52.5" r="1.1" fill="#fff"/>';
-        mouth = '<path d="M47 66 q4 4 8 0" stroke="#c94f4f" stroke-width="2.2" fill="none" stroke-linecap="round"/>';
-        blush = '<ellipse cx="33" cy="62" rx="5" ry="3" fill="#ff8fae" opacity="0.75"/><ellipse cx="69" cy="62" rx="5" ry="3" fill="#ff8fae" opacity="0.75"/>';
-      } else if (ex === "annoyed") {
-        eyes = '<path d="M36 53 l10 2" stroke="#2b1c1c" stroke-width="2.6" stroke-linecap="round"/>' +
-               '<path d="M66 53 l-10 2" stroke="#2b1c1c" stroke-width="2.6" stroke-linecap="round"/>';
-        brows = '<path d="M35 47 l11 3" stroke="#2b1c1c" stroke-width="2" stroke-linecap="round"/>' +
-                '<path d="M67 47 l-11 3" stroke="#2b1c1c" stroke-width="2" stroke-linecap="round"/>';
-        mouth = '<path d="M46 68 q5 -4 10 0" stroke="#c94f4f" stroke-width="2.2" fill="none" stroke-linecap="round"/>';
-      } else if (ex === "surprised") {
-        eyes = '<circle cx="41" cy="54" r="4.6" fill="#2b1c1c"/><circle cx="61" cy="54" r="4.6" fill="#2b1c1c"/>' +
-               '<circle cx="39.5" cy="52" r="1.6" fill="#fff"/><circle cx="59.5" cy="52" r="1.6" fill="#fff"/>';
-        mouth = '<ellipse cx="51" cy="67" rx="3.5" ry="4.5" fill="#c94f4f"/>';
-      } else { // neutral
-        eyes = '<ellipse cx="41" cy="54" rx="3.2" ry="4.4" fill="#2b1c1c"/><ellipse cx="61" cy="54" rx="3.2" ry="4.4" fill="#2b1c1c"/>' +
-               '<circle cx="40" cy="52.5" r="1.1" fill="#fff"/><circle cx="60" cy="52.5" r="1.1" fill="#fff"/>';
-        mouth = '<path d="M47 67 h8" stroke="#c94f4f" stroke-width="2.2" stroke-linecap="round"/>';
-      }
-
-      var hairBack, hairFront, accessory;
+      // back hair ---------------------------------------------------------
       if (pink) {
-        // Mika: twin tails + varsity jacket
-        hairBack =
-          '<ellipse cx="18" cy="58" rx="11" ry="24" fill="' + hairD + '"/>' +
-          '<ellipse cx="84" cy="58" rx="11" ry="24" fill="' + hairD + '"/>' +
-          '<circle cx="51" cy="46" r="30" fill="' + hair + '"/>';
-        hairFront =
-          '<path d="M23 50 q-2 -26 28 -28 q30 2 28 28 q-6 -14 -12 -16 q2 6 -2 10 q-4 -10 -14 -12 q-10 2 -14 12 q-4 -4 -2 -10 q-6 2 -12 16z" fill="' + hair + '"/>' +
-          '<circle cx="22" cy="36" r="5" fill="#ffe14d"/><circle cx="80" cy="36" r="5" fill="#ffe14d"/>';
-        accessory = '<rect x="30" y="86" width="42" height="6" rx="3" fill="#fff" opacity="0.85"/>';
-      } else {
-        // Juno: sleek bob + headphones around neck
-        hairBack = '<circle cx="51" cy="46" r="30" fill="' + hair + '"/>' +
-          '<path d="M21 46 q0 30 12 36 l-2 -26z" fill="' + hairD + '"/>' +
-          '<path d="M81 46 q0 30 -12 36 l2 -26z" fill="' + hairD + '"/>';
-        hairFront =
-          '<path d="M21 50 q-2 -30 30 -30 q32 0 30 30 q-4 -16 -10 -18 q1 7 -3 11 q-3 -11 -17 -13 q-14 2 -17 13 q-4 -4 -3 -11 q-6 2 -10 18z" fill="' + hair + '"/>' +
-          '<path d="M60 24 l6 -8" stroke="' + hairD + '" stroke-width="3" stroke-linecap="round"/>';
-        accessory =
-          '<path d="M34 88 q17 10 34 0" stroke="#222" stroke-width="5" fill="none" stroke-linecap="round"/>' +
-          '<circle cx="34" cy="88" r="4.5" fill="#00d0ff"/><circle cx="68" cy="88" r="4.5" fill="#00d0ff"/>';
+        // twin tails behind everything
+        [13, MIRROR - 13].forEach(function (cx) {
+          ell(cx, 58, 9, 20, OUT);
+          ell(cx, 58, 8, 19, HAIR);
+          ell(cx + (cx < 36 ? 3 : -3), 60, 4, 14, HAIR_D);   // inner shadow
+          ell(cx + (cx < 36 ? -2 : 2), 50, 2, 7, HAIR_L);    // shine
+        });
+      }
+      ell(36, 34, 19, 17, OUT);
+      ell(36, 34, 18, 16, HAIR);
+      if (!pink) {
+        // Juno: bob side masses down the cheeks
+        [18, MIRROR - 23].forEach(function (x) {
+          rect(x, 34, 6, 27, HAIR);
+          rect(x, 58, 4, 5, HAIR);                            // angled tip
+          px(x + (x < 36 ? 0 : 5), 62, HAIR);
+        });
+        rect(22, 36, 2, 24, HAIR_D);
+        rect(MIRROR - 23, 36, 2, 24, HAIR_D);
       }
 
-      return '<svg viewBox="0 0 102 100" xmlns="http://www.w3.org/2000/svg">' +
-        hairBack +
-        // shoulders / jacket
-        '<path d="M22 100 q4 -18 29 -18 q25 0 29 18z" fill="' + jacket + '"/>' +
-        '<path d="M44 100 q7 -12 14 0z" fill="' + skin + '"/>' +
-        // face
-        '<circle cx="51" cy="55" r="24" fill="' + skin + '"/>' +
-        hairFront + brows + eyes + blush + mouth + accessory +
-        '</svg>';
+      // shoulders / jacket -------------------------------------------------
+      for (var y = 68; y <= 95; y++) {
+        var half = Math.min(28, 11 + Math.round((y - 68) * 1.4));
+        hl(36 - half - 1, 36 + half + 1, y, OUT);
+        hl(36 - half, 36 + half, y, JACKET);
+      }
+      rect(20, 80, 2, 16, JACKET_D);                          // sleeve seams
+      rect(50, 80, 2, 16, JACKET_D);
+
+      // neck ---------------------------------------------------------------
+      rect(32, 58, 1, 10, OUT); rect(39, 58, 1, 10, OUT);
+      rect(33, 58, 6, 11, SKIN);
+      hl(33, 38, 60, SKIN_SH); hl(33, 38, 61, SKIN_SH);       // chin shadow
+
+      if (pink) {
+        // varsity collar V + chest stripe
+        for (var t = 0; t < 7; t++) {
+          px(29 + t, 69 + t, TRIM); px(30 + t, 69 + t, TRIM);
+          px(MIRROR - 29 - t, 69 + t, TRIM); px(MIRROR - 30 - t, 69 + t, TRIM);
+        }
+        hl(14, 27, 88, TRIM); hl(45, 58, 88, TRIM);
+      } else {
+        // zipped collar + zipper line
+        rect(30, 66, 12, 3, JACKET_D);
+        rect(36, 70, 1, 26, TRIM);
+      }
+
+      // face ---------------------------------------------------------------
+      ell(36, 45, 15, 17, OUT);
+      ell(36, 45, 14, 16, SKIN);
+      hl(26, 46, 59, SKIN_SH);                                 // jaw shading
+      hl(29, 43, 60, SKIN);
+
+      // fringe -------------------------------------------------------------
+      ell(36, 30, 17, 11, HAIR);
+      var depths = pink
+        ? [40, 38, 41, 38, 40, 38, 41, 38, 40]                 // symmetric zigzag
+        : [44, 43, 41, 39, 38, 38, 39, 41, 36];                // side-swept
+      for (var s = 0; s < 9; s++) {
+        var sx = 23 + s * 3 - (s === 8 ? 1 : 0);
+        rect(sx, 32, 3, depths[s] - 32, HAIR);
+        hl(sx, sx + 2, depths[s], HAIR_D);                     // under-shade
+      }
+      hl(27, 34, 24, HAIR_L); hl(38, 45, 24, HAIR_L);          // shine band
+      hl(30, 33, 25, HAIR_L); hl(40, 43, 25, HAIR_L);
+      if (pink) {
+        // side locks + scrunchies where the tails gather
+        rect(21, 34, 3, 16, HAIR); px(21, 50, HAIR); px(22, 51, HAIR);
+        rect(MIRROR - 23, 34, 3, 16, HAIR);
+        px(MIRROR - 21, 50, HAIR); px(MIRROR - 22, 51, HAIR);
+        rect(9, 37, 8, 4, OUT); rect(10, 38, 6, 2, ACC);
+        rect(MIRROR - 16, 37, 8, 4, OUT); rect(MIRROR - 15, 38, 6, 2, ACC);
+      } else {
+        // headphone band + ear cups (kept inside the hair silhouette)
+        hl(30, 42, 21, PHONE); hl(29, 43, 22, PHONE); hl(28, 44, 23, PHONE);
+        [[26, 25], [25, 28], [24, 31], [23, 34], [22, 37]].forEach(function (p) {
+          px(p[0], p[1], PHONE); px(p[0] + 1, p[1], PHONE);
+          px(MIRROR - p[0], p[1], PHONE); px(MIRROR - p[0] - 1, p[1], PHONE);
+        });
+        rect(16, 41, 6, 11, OUT); rect(17, 42, 4, 9, PHONE); rect(20, 43, 1, 7, TRIM);
+        rect(MIRROR - 21, 41, 6, 11, OUT); rect(MIRROR - 20, 42, 4, 9, PHONE);
+        rect(MIRROR - 20, 43, 1, 7, TRIM);
+      }
+
+      // eyes ---------------------------------------------------------------
+      function eye(x0) {
+        if (ex === "happy") {                                  // closed, smiling ^
+          [[0,48],[1,47],[2,46],[3,46],[4,46],[5,47],[6,48]].forEach(function (p) {
+            px(x0 + p[0], p[1], OUT); px(x0 + p[0], p[1] + 1, OUT);
+          });
+          return;
+        }
+        var top = ex === "surprised" ? 45 : 46;
+        var lash = ex === "annoyed" ? 46 : 44;
+        hl(x0, x0 + 7, lash, OUT);                             // lash line
+        hl(x0, x0 + 7, lash + 1, OUT);
+        for (var y = top + 1; y <= 50; y++) hl(x0, x0 + 7, y, WHITE);
+        var iy1 = top + 1, iy2 = 50;
+        for (var yy = iy1; yy <= iy2; yy++)
+          hl(x0 + 2, x0 + 5, yy, yy === iy1 ? IRIS_D : IRIS);  // iris, shadowed top
+        rect(x0 + 3, iy1 + 1, 2, 2, OUT);                      // pupil
+        px(x0 + 2, iy1 + 1, WHITE);                            // catchlight
+        hl(x0 + 1, x0 + 6, 51, SKIN_SH);                       // lower lid
+      }
+      eye(26); eye(38);
+
+      // brows --------------------------------------------------------------
+      if (ex === "annoyed") {
+        for (var b = 0; b < 6; b++) {
+          px(27 + b, 40 + Math.round(b * 0.5), BROW);
+          px(MIRROR - 27 - b, 40 + Math.round(b * 0.5), BROW);
+        }
+      } else {
+        var by = ex === "surprised" ? 39 : 42;
+        hl(27, 32, by, BROW); px(27, by + 1, BROW);
+        hl(39, 44, by, BROW); px(44, by + 1, BROW);
+      }
+
+      // nose ---------------------------------------------------------------
+      px(36, 53, SKIN_SH); px(36, 54, SKIN_SH);
+
+      // mouth --------------------------------------------------------------
+      if (ex === "happy") {
+        px(31, 56, OUT); px(41, 56, OUT);
+        hl(31, 41, 57, OUT);
+        hl(32, 40, 58, MOUTH_IN);
+        hl(34, 38, 59, TONGUE);
+      } else if (ex === "surprised") {
+        ell(36, 58, 2, 2, OUT);
+        px(36, 58, MOUTH_IN);
+      } else if (ex === "annoyed") {
+        hl(33, 39, 58, MOUTH);
+        px(32, 57, MOUTH); px(40, 57, MOUTH);
+      } else if (ex === "blush") {
+        hl(33, 38, 58, MOUTH);
+        px(32, 57, MOUTH); px(39, 57, MOUTH);
+      } else {                                                 // neutral
+        hl(33, 38, 58, MOUTH);
+      }
+
+      // blush --------------------------------------------------------------
+      if (ex === "blush") {
+        rect(24, 52, 6, 2, BLUSH); rect(MIRROR - 29, 52, 6, 2, BLUSH);
+        dither(23, 30, 54, 55, BLUSH); dither(MIRROR - 30, MIRROR - 23, 54, 55, BLUSH);
+      } else if (ex === "happy") {
+        dither(24, 29, 52, 54, BLUSH); dither(MIRROR - 29, MIRROR - 24, 52, 54, BLUSH);
+      }
+
+      return cv;
+    }
+
+    function getPortrait(who, ex) {
+      var key = who + ":" + ex;
+      if (!portraitCache[key]) portraitCache[key] = drawPortrait(who, ex);
+      return portraitCache[key];
     }
 
     // ---- Story script ----
@@ -423,9 +564,17 @@
       jHearts.textContent = aff.j > 0 ? Array(aff.j + 1).join("♥") : "♡";
     }
 
+    function mountPortrait(slot, who, ex) {
+      var cv = getPortrait(who, ex);
+      if (slot.firstChild !== cv) {
+        slot.innerHTML = "";
+        slot.appendChild(cv);
+      }
+    }
+
     function renderPortraits(speaker) {
-      pMika.innerHTML = portraitSVG("m", exNow.m);
-      pJuno.innerHTML = portraitSVG("j", exNow.j);
+      mountPortrait(pMika, "m", exNow.m);
+      mountPortrait(pJuno, "j", exNow.j);
       pMika.classList.toggle("met", met.m);
       pJuno.classList.toggle("met", met.j);
       pMika.classList.toggle("talking", speaker === "m");
