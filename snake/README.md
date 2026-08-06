@@ -21,6 +21,14 @@ graphics, CRT scanlines, and scores saved locally in your browser via
 - 5 rounds, up to 1000 pts each (closer = more points, <50 km = perfect).
 - Best run persists locally (`retroGeo.best`).
 
+### 💘 Starlight Crush (`crush.html`)
+- Rom-com otome-style visual novel set in the arcade, with two lead girls:
+  Mika (hot-headed arcade champ) and Juno (deadpan synthwave DJ).
+- Decision-based branching story — choices earn affection hearts and steer
+  the plot across training, a blackout, and the big tournament.
+- **4 endings** (two romance routes, a friendship ending, and a secret one);
+  unlocked endings persist locally (`retroCrush.endings`).
+
 ### Menu (`index.html`)
 The arcade hub — a top menu bar on every page plus game cards showing your
 saved scores. Add more games by dropping in a new page and a new card.

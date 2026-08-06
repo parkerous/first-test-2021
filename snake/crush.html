@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>STARLIGHT CRUSH</title>
+<link rel="stylesheet" href="arcade.css" />
+<style>
+  .hearts-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    letter-spacing: 2px;
+  }
+  .hearts-row .meter { text-shadow: 0 0 6px currentColor; }
+  .hearts-row .meter .who { font-size: 11px; opacity: 0.85; }
+
+  .vn-stage {
+    position: relative;
+    border: 2px solid var(--neon-dim);
+    border-radius: 6px;
+    background:
+      radial-gradient(ellipse at 50% 120%, rgba(57,255,20,0.10), transparent 60%),
+      linear-gradient(#06140c, #04100a);
+    box-shadow: inset 0 0 24px rgba(57,255,20,0.10);
+    overflow: hidden;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .portraits {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    height: clamp(170px, 34vw, 260px);
+    padding-top: 12px;
+  }
+  .portrait {
+    width: clamp(120px, 26vw, 200px);
+    transition: filter 0.25s, transform 0.25s, opacity 0.25s;
+    filter: brightness(0.45) saturate(0.6);
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  .portrait.met { opacity: 1; }
+  .portrait.talking {
+    filter: brightness(1.05) drop-shadow(0 0 10px rgba(255,255,255,0.15));
+    transform: translateY(0);
+  }
+
+  .dialog {
+    border-top: 2px solid var(--neon-dim);
+    background: rgba(4, 10, 6, 0.92);
+    padding: 12px 16px 16px;
+    min-height: 108px;
+    position: relative;
+  }
+  .nametag {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 3px;
+    padding: 2px 10px;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+    margin-bottom: 8px;
+    text-shadow: 0 0 6px currentColor;
+  }
+  .nametag.hidden { visibility: hidden; }
+  .dialog .text {
+    font-size: clamp(13px, 2.6vw, 15px);
+    line-height: 1.7;
+    letter-spacing: 0.5px;
+    min-height: 3.4em;
+  }
+  .dialog .text.narr { color: var(--neon-dim); font-style: italic; }
+  .adv {
+    position: absolute;
+    right: 14px;
+    bottom: 8px;
+    color: var(--neon);
+    font-size: 12px;
+  }
+
+  .choices {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    background: rgba(4, 8, 5, 0.80);
+    z-index: 15;
+    padding: 14px;
+  }
+  .choices .prompt {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--neon-dim);
+    margin-bottom: 4px;
+  }
+  .choices .btn { width: min(92%, 480px); font-size: 12px; letter-spacing: 1.5px; }
+
+  .endings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+  .endings-list .locked { color: var(--neon-dim); }
+  .endings-list .unlocked { color: var(--amber); text-shadow: 0 0 6px var(--amber); }
+
+  .name-input {
+    background: rgba(57,255,20,0.06);
+    border: 2px solid var(--neon-dim);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    letter-spacing: 2px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    text-align: center;
+    width: 220px;
+  }
+  .name-input:focus { outline: none; border-color: var(--neon); box-shadow: 0 0 10px rgba(57,255,20,0.3); }
+</style>
+</head>
+<body>
+  <nav class="arcade-nav">
+    <a class="brand" href="index.html">◆ PIXEL ARCADE</a>
+    <a class="tab" href="index.html">ARCADE</a>
+    <a class="tab" href="snake.html">SNAKE</a>
+    <a class="tab" href="geo.html">GEO GUESS</a>
+    <a class="tab active" href="crush.html">CRUSH</a>
+  </nav>
+
+  <div class="cabinet wide">
+    <h1 class="arcade-title">STARLIGHT CRUSH</h1>
+    <p class="subtitle">◆ A ROM-COM VISUAL NOVEL &bull; YOUR CHOICES DECIDE ◆</p>
+
+    <div class="hearts-row">
+      <div class="meter" style="color:#ff5fb0"><span class="who">MIKA </span><span id="mHearts">♡</span></div>
+      <div class="meter" style="color:#00d0ff"><span class="who">JUNO </span><span id="jHearts">♡</span></div>
+    </div>
+
+    <div class="vn-stage" id="stage">
+      <div class="portraits">
+        <div class="portrait" id="pMika"></div>
+        <div class="portrait" id="pJuno"></div>
+      </div>
+
+      <div class="dialog">
+        <span class="nametag" id="nametag">???</span>
+        <div class="text" id="textBox"></div>
+        <span class="adv blink hidden" id="adv">▼</span>
+      </div>
+
+      <!-- Choice panel -->
+      <div class="choices hidden" id="choicePanel"></div>
+
+      <!-- Title screen -->
+      <div class="overlay" id="titleScreen">
+        <h2>STARLIGHT CRUSH</h2>
+        <p>TWO LEADS &bull; ONE SUMMER &bull; FOUR ENDINGS</p>
+        <p style="color:var(--neon-dim)">YOUR NAME, PLAYER?</p>
+        <input class="name-input" id="nameInput" maxlength="12" placeholder="NEW KID" />
+        <button class="btn pink" id="startBtn">START ♥</button>
+        <div class="endings-list" id="endingsList"></div>
+      </div>
+
+      <!-- Ending screen -->
+      <div class="overlay hidden" id="endScreen">
+        <h2 id="endTitle">THE END</h2>
+        <p id="endSub" style="max-width:520px;line-height:1.7"></p>
+        <p class="big-score" id="endHearts"></p>
+        <p id="endUnlocked" style="color:var(--food);text-shadow:0 0 8px var(--food-glow)"></p>
+        <button class="btn" id="againBtn">PLAY AGAIN</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      CLICK / <span class="key">SPACE</span> TO ADVANCE &nbsp;&bull;&nbsp; CHOICES SHAPE THE STORY &nbsp;&bull;&nbsp; ♥ = AFFECTION
+    </div>
+
+    <div class="footer-row">
+      <span>© PIXEL ARCADE</span>
+      <button id="resetSave" class="link-btn">RESET ENDINGS</button>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    var END_KEY = "retroCrush.endings";
+    var NAME_KEY = "retroCrush.name";
+
+    // ---- Characters ----
+    var CHARS = {
+      n: { name: "", color: "#5c8a5c" },
+      y: { name: "YOU", color: "#39ff14" },
+      m: { name: "MIKA", color: "#ff5fb0" },
+      j: { name: "JUNO", color: "#00d0ff" },
+      p: { name: "MR. PIXEL", color: "#ffb000" }
+    };
+
+    // ---- SVG chibi portraits (expression-swappable) ----
+    function portraitSVG(who, ex) {
+      var pink = who === "m";
+      var hair = pink ? "#ff5fb0" : "#5fd0ff";
+      var hairD = pink ? "#d13d8b" : "#3aa6d6";
+      var jacket = pink ? "#ff2e88" : "#0b6f8f";
+      var skin = "#ffe3c9";
+
+      var eyes = "", mouth = "", brows = "", blush = "";
+      if (ex === "happy") {
+        eyes = '<path d="M36 54 q5 -7 10 0" stroke="#2b1c1c" stroke-width="2.5" fill="none" stroke-linecap="round"/>' +
+               '<path d="M56 54 q5 -7 10 0" stroke="#2b1c1c" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
+        mouth = '<path d="M45 66 q6 6 12 0" stroke="#c94f4f" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
+      } else if (ex === "blush") {
+        eyes = '<ellipse cx="41" cy="54" rx="3.2" ry="4.4" fill="#2b1c1c"/><ellipse cx="61" cy="54" rx="3.2" ry="4.4" fill="#2b1c1c"/>' +
+               '<circle cx="40" cy="52.5" r="1.1" fill="#fff"/><circle cx="60" cy="52.5" r="1.1" fill="#fff"/>';
+        mouth = '<path d="M47 66 q4 4 8 0" stroke="#c94f4f" stroke-width="2.2" fill="none" stroke-linecap="round"/>';
+        blush = '<ellipse cx="33" cy="62" rx="5" ry="3" fill="#ff8fae" opacity="0.75"/><ellipse cx="69" cy="62" rx="5" ry="3" fill="#ff8fae" opacity="0.75"/>';
+      } else if (ex === "annoyed") {
+        eyes = '<path d="M36 53 l10 2" stroke="#2b1c1c" stroke-width="2.6" stroke-linecap="round"/>' +
+               '<path d="M66 53 l-10 2" stroke="#2b1c1c" stroke-width="2.6" stroke-linecap="round"/>';
+        brows = '<path d="M35 47 l11 3" stroke="#2b1c1c" stroke-width="2" stroke-linecap="round"/>' +
+                '<path d="M67 47 l-11 3" stroke="#2b1c1c" stroke-width="2" stroke-linecap="round"/>';
+        mouth = '<path d="M46 68 q5 -4 10 0" stroke="#c94f4f" stroke-width="2.2" fill="none" stroke-linecap="round"/>';
+      } else if (ex === "surprised") {
+        eyes = '<circle cx="41" cy="54" r="4.6" fill="#2b1c1c"/><circle cx="61" cy="54" r="4.6" fill="#2b1c1c"/>' +
+               '<circle cx="39.5" cy="52" r="1.6" fill="#fff"/><circle cx="59.5" cy="52" r="1.6" fill="#fff"/>';
+        mouth = '<ellipse cx="51" cy="67" rx="3.5" ry="4.5" fill="#c94f4f"/>';
+      } else { // neutral
+        eyes = '<ellipse cx="41" cy="54" rx="3.2" ry="4.4" fill="#2b1c1c"/><ellipse cx="61" cy="54" rx="3.2" ry="4.4" fill="#2b1c1c"/>' +
+               '<circle cx="40" cy="52.5" r="1.1" fill="#fff"/><circle cx="60" cy="52.5" r="1.1" fill="#fff"/>';
+        mouth = '<path d="M47 67 h8" stroke="#c94f4f" stroke-width="2.2" stroke-linecap="round"/>';
+      }
+
+      var hairBack, hairFront, accessory;
+      if (pink) {
+        // Mika: twin tails + varsity jacket
+        hairBack =
+          '<ellipse cx="18" cy="58" rx="11" ry="24" fill="' + hairD + '"/>' +
+          '<ellipse cx="84" cy="58" rx="11" ry="24" fill="' + hairD + '"/>' +
+          '<circle cx="51" cy="46" r="30" fill="' + hair + '"/>';
+        hairFront =
+          '<path d="M23 50 q-2 -26 28 -28 q30 2 28 28 q-6 -14 -12 -16 q2 6 -2 10 q-4 -10 -14 -12 q-10 2 -14 12 q-4 -4 -2 -10 q-6 2 -12 16z" fill="' + hair + '"/>' +
+          '<circle cx="22" cy="36" r="5" fill="#ffe14d"/><circle cx="80" cy="36" r="5" fill="#ffe14d"/>';
+        accessory = '<rect x="30" y="86" width="42" height="6" rx="3" fill="#fff" opacity="0.85"/>';
+      } else {
+        // Juno: sleek bob + headphones around neck
+        hairBack = '<circle cx="51" cy="46" r="30" fill="' + hair + '"/>' +
+          '<path d="M21 46 q0 30 12 36 l-2 -26z" fill="' + hairD + '"/>' +
+          '<path d="M81 46 q0 30 -12 36 l2 -26z" fill="' + hairD + '"/>';
+        hairFront =
+          '<path d="M21 50 q-2 -30 30 -30 q32 0 30 30 q-4 -16 -10 -18 q1 7 -3 11 q-3 -11 -17 -13 q-14 2 -17 13 q-4 -4 -3 -11 q-6 2 -10 18z" fill="' + hair + '"/>' +
+          '<path d="M60 24 l6 -8" stroke="' + hairD + '" stroke-width="3" stroke-linecap="round"/>';
+        accessory =
+          '<path d="M34 88 q17 10 34 0" stroke="#222" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+          '<circle cx="34" cy="88" r="4.5" fill="#00d0ff"/><circle cx="68" cy="88" r="4.5" fill="#00d0ff"/>';
+      }
+
+      return '<svg viewBox="0 0 102 100" xmlns="http://www.w3.org/2000/svg">' +
+        hairBack +
+        // shoulders / jacket
+        '<path d="M22 100 q4 -18 29 -18 q25 0 29 18z" fill="' + jacket + '"/>' +
+        '<path d="M44 100 q7 -12 14 0z" fill="' + skin + '"/>' +
+        // face
+        '<circle cx="51" cy="55" r="24" fill="' + skin + '"/>' +
+        hairFront + brows + eyes + blush + mouth + accessory +
+        '</svg>';
+    }
+
+    // ---- Story script ----
+    // Node: { s: speaker, e: expression, t: text, next: id }
+    //  or   { ch: [ {t, fx:{m,j}, next, cond:{stat,gte,else}} ], prompt }
+    //  or   { end: {key, title, sub} }
+    var S = {
+      p1:  { s:"n", t:"STARLIGHT ARCADE — FIRST DAY OF SUMMER. The neon hums. Somewhere, a claw machine is eating someone's allowance.", next:"p2" },
+      p2:  { s:"p", t:"Welcome aboard, {name}! Mr. Pixel — owner, legend, and three-time regional Skee-Ball finalist.", next:"p3" },
+      p3:  { s:"p", t:"House rules: keep the machines happy, keep the customers happier, and NEVER touch my Galaxy Raider high score.", next:"p4" },
+      p4:  { s:"n", t:"CRASH. The claw machine corner. A pink blur is shaking the cabinet with both hands.", next:"m1" },
+
+      m1:  { s:"m", e:"annoyed", t:"RIGGED! That space frog was 90% out of the chute! I demand JUSTICE!", next:"m2" },
+      m2:  { s:"n", t:"A pink-haired girl in a varsity jacket grips the joystick like it owes her money.", next:"c1" },
+      c1:  { prompt:"YOUR MOVE:", ch:[
+              { t:"Slip her a free retry. (Don't tell Mr. Pixel.)", fx:{m:2}, next:"m3a" },
+              { t:"'Have you tried... being good at the game?'", fx:{m:1}, next:"m3b" },
+              { t:"Inspect the machine with extreme seriousness.", fx:{m:1}, next:"m3c" } ] },
+      m3a: { s:"m", e:"surprised", t:"Wait, seriously? Okay. Stand back, new kid. Witness greatness.", next:"m4" },
+      m3b: { s:"m", e:"annoyed", t:"Oh. OH. Big talk from someone whose name tag is upside down.", next:"m3b2" },
+      m3b2:{ s:"y", t:"It's... a style choice.", next:"m4" },
+      m3c: { s:"n", t:"You nod at the claw like a doctor delivering bad news. 'Tension springs.' You tap the glass twice. The claw twitches, intimidated.", next:"m4" },
+      m4:  { s:"n", t:"One dramatic attempt later, the claw drops a sparkly space frog into the chute.", next:"m5" },
+      m5:  { s:"m", e:"happy", t:"GLORB LIVES! His name is Glorb. He is my son now. You did good, new kid.", next:"m6" },
+      m6:  { s:"m", e:"neutral", t:"Mika. Reigning champ of every cabinet in here. Learn the name — it's on all the leaderboards.", next:"j1" },
+
+      j1:  { s:"n", t:"Later. The smoothie counter. A blue-haired girl polishes a glass while reading 'BLACK HOLES FOR BEGINNERS'.", next:"j2" },
+      j2:  { s:"j", e:"neutral", t:"Welcome to the counter. The blender is haunted. The mango is fresh. Choose wisely.", next:"c2" },
+      c2:  { prompt:"YOUR ORDER:", ch:[
+              { t:"'One Haunted Blender Special, please.'", fx:{j:2}, next:"j3a" },
+              { t:"'Good book? I'm more of a nebula person myself.'", fx:{j:2}, next:"j3b" },
+              { t:"'Just water. I don't trust ghosts.'", fx:{}, next:"j3c" } ] },
+      j3a: { s:"j", e:"happy", t:"Bold. Technically it's a dying motor bearing, but the ghost rumor doubles sales. I respect a risk-taker.", next:"j4" },
+      j3b: { s:"j", e:"blush", t:"You know what a nebula is. Okay. Extra mango. Don't make it weird.", next:"j4" },
+      j3c: { s:"j", e:"neutral", t:"Riveting. A true thrill-seeker walks among us.", next:"j4" },
+      j4:  { s:"j", e:"neutral", t:"Juno. Counter by day, synthwave DJ on Fridays. If the walls shake at closing time — that's me.", next:"t1" },
+
+      t1:  { s:"p", t:"BIG NEWS, PEOPLE! Saturday is the STARLIGHT SHOWDOWN! Co-op tournament! Teams of two! Glory! Pizza!", next:"t2" },
+      t2:  { s:"m", e:"happy", t:"New kid. You. Me. Team. I need someone whose thumbs I can shape into weapons.", next:"t3" },
+      t3:  { s:"j", e:"neutral", t:"Or join me. I enter one game — rhythm. I have never lost. I will never lose.", next:"c3" },
+      c3:  { prompt:"PICK YOUR TOURNAMENT PARTNER:", ch:[
+              { t:"Team up with Mika ♥", fx:{m:3}, next:"mk1" },
+              { t:"Team up with Juno ♥", fx:{j:3}, next:"jn1" },
+              { t:"'You two should team up!'", fx:{m:1,j:1}, next:"duo1" } ] },
+
+      mk1: { s:"n", t:"Training montage: PUNCHO PUNCH 2. Mika solemnly assigns you 'the sacred left buttons'.", next:"mk2" },
+      mk2: { s:"m", e:"happy", t:"Faster! Good! Okay, now BOTH hands— no wait, that's MY joystick—", next:"mk3" },
+      mk3: { s:"n", t:"Your hands collide on the stick. Neither of you moves for exactly one eternity.", next:"mk4" },
+      mk4: { s:"m", e:"blush", t:"...Combo dropped. Your fault. Obviously. Anyway. Water break. Forever.", next:"cmk" },
+      cmk: { prompt:"SAY SOMETHING:", ch:[
+              { t:"'Your face is doing what the machine does. Overheating.'", fx:{m:2}, next:"mk5a" },
+              { t:"'Rematch. Loser buys victory pizza.'", fx:{m:1}, next:"mk5b" } ] },
+      mk5a:{ s:"m", e:"blush", t:"It is NOT— ...okay. Maybe. Shut up and hydrate, new kid.", next:"t4" },
+      mk5b:{ s:"m", e:"happy", t:"Deal! Hope you like buying pizza, because I NEVER— wait. Same team. YOU always buy. Ha!", next:"t4" },
+
+      jn1: { s:"n", t:"Training: BEAT ORBIT. Juno's hands move like the game owes her a debt from a past life.", next:"jn2" },
+      jn2: { s:"j", e:"neutral", t:"Follow my lead. Left is the moon. Right is the bass. Do not disrespect the bass.", next:"jn3" },
+      jn3: { s:"n", t:"Halfway through a perfect run, you realize she's humming a melody that isn't in the game.", next:"cjn" },
+      cjn: { prompt:"DO YOU...", ch:[
+              { t:"'What's that song? It's beautiful.'", fx:{j:2}, next:"jn4a" },
+              { t:"Stay quiet and keep the combo alive.", fx:{j:1}, next:"jn4b" } ] },
+      jn4a:{ s:"j", e:"blush", t:"It's... mine. Unfinished. It didn't have an ending until— nevermind. Eyes on the moon, partner.", next:"t4" },
+      jn4b:{ s:"n", t:"FULL COMBO. Juno looks at you like you just passed a test that was never announced.", next:"jn4b2" },
+      jn4b2:{ s:"j", e:"happy", t:"Acceptable. Extremely acceptable.", next:"t4" },
+
+      duo1:{ s:"m", e:"annoyed", t:"Team up with HER? She plays ONE game!", next:"duo2" },
+      duo2:{ s:"j", e:"neutral", t:"One game. Undefeated. Some of us specialize.", next:"duo3" },
+      duo3:{ s:"n", t:"They argue for ten minutes, then fist-bump over a shared hatred of the ticket-eating skee-ball lane. It's oddly beautiful.", next:"duo4" },
+      duo4:{ s:"p", t:"Guess that means YOU'RE with me, kid! Fair warning: I've been banned from three tournaments for being 'too intense'.", next:"t4" },
+
+      t4:  { s:"n", t:"FRIDAY NIGHT. One day before the Showdown. A storm rolls in — and the whole block goes dark.", next:"b1" },
+      b1:  { s:"n", t:"Blackout. Emergency lights. Mr. Pixel emerges from the office with an entire crate of glow sticks. 'FEAR NOT.'", next:"c4" },
+      c4:  { prompt:"IN THE DARK, YOU...", ch:[
+              { t:"Challenge Mika to a glow-stick duel.", fx:{m:2}, next:"b2a" },
+              { t:"Sit with Juno by the window and watch the storm.", fx:{j:2}, next:"b2b" },
+              { t:"Hand out snacks to the stranded kids.", fx:{m:1,j:1}, next:"b2c" } ] },
+      b2a: { s:"m", e:"happy", t:"EN GARDE! ...Okay, two glow sticks taped together is not a sword, but the SPIRIT is there!", next:"b3a" },
+      b3a: { s:"n", t:"She wins. You demand a rematch. She wins again, laughing so hard she drops her 'sword'.", next:"f1" },
+      b2b: { s:"j", e:"neutral", t:"Storms are just the sky doing a drum solo.", next:"b3b" },
+      b3b: { s:"j", e:"blush", t:"...I'm going to sample the thunder for Friday's set. Don't tell anyone I said something that nerdy.", next:"f1" },
+      b2c: { s:"n", t:"You distribute snacks like a wartime hero. Mika salutes. Juno slides you a smoothie 'for the trenches'. Mr. Pixel weeps — the outage reset his Galaxy Raider score.", next:"f1" },
+
+      f1:  { s:"n", t:"SATURDAY. THE STARLIGHT SHOWDOWN. Lights, crowds, the smell of pizza and ambition.", next:"f2" },
+      f2:  { s:"n", t:"Hours of button-mashing later... your team takes SECOND PLACE. First goes to Mr. Pixel and his terrifying cousin, Ms. Voxel.", next:"f3" },
+      f3:  { s:"n", t:"Fireworks crackle over the pier. The crowd spills outside. Someone is looking for you—", next:"c5" },
+      c5:  { prompt:"FIND THEM IN THE CROWD:", ch:[
+              { t:"Find Mika ♥", next:"endM1", cond:{ stat:"m", gte:6, els:"fr1" } },
+              { t:"Find Juno ♥", next:"endJ1", cond:{ stat:"j", gte:6, els:"fr2" } },
+              { t:"Stay behind and tidy the arcade.", next:"endP1" } ] },
+
+      endM1:{ s:"m", e:"blush", t:"There you are! I won you something from the claw machine. It's Glorb's sister, Glorbette, and— this is me asking you out, by the way. Obviously.", next:"endM2" },
+      endM2:{ s:"n", t:"Under the fireworks, the arcade champion takes your hand. Player 2 has entered your life.", next:"END_M" },
+      END_M:{ end:{ key:"mika", title:"♥ THE MIKA ENDING", sub:"Loud, competitive, secretly soft. You are now legally required to attend all her tournaments. Glorbette rides in your pocket." } },
+
+      endJ1:{ s:"j", e:"blush", t:"I finished the song. It has an ending now. It's... about you. Friday, front row — that's a date. I'm telling, not asking.", next:"endJ2" },
+      endJ2:{ s:"n", t:"The bass drops, the sky lights up, and Juno smiles just for you.", next:"END_J" },
+      END_J:{ end:{ key:"juno", title:"♥ THE JUNO ENDING", sub:"Calm, cosmic, devastatingly deadpan. Her new track 'New Kid Nebula' plays every Friday. You get free mango forever." } },
+
+      fr1: { s:"m", e:"happy", t:"New kid! Great tournament. You're like... the sibling I'd fight in a parking lot. Never change.", next:"frEnd" },
+      fr2: { s:"j", e:"neutral", t:"Good game today, coworker. The blender ghost speaks highly of you.", next:"frEnd" },
+      frEnd:{ s:"n", t:"Not every run is a romance run. Maybe spend more time with them next summer?", next:"END_F" },
+      END_F:{ end:{ key:"friends", title:"HIGH SCORE FRIENDS", sub:"The summer ends with inside jokes and a shared table at the pizza place. (Hint: choices build hearts — you need 6♥ for a romance ending.)" } },
+
+      endP1:{ s:"p", t:"Kid... everyone chased fireworks, but you stayed for the arcade. Take the spare keys. You're assistant manager now. The pay is nothing. The honor is everything.", next:"END_P" },
+      END_P:{ end:{ key:"pixel", title:"👑 SECRET: HEIR TO THE ARCADE", sub:"You now know where the claw machine's 'win' screw is. With great power comes great responsibility." } }
+    };
+
+    var ENDINGS = [
+      { key:"mika", label:"♥ THE MIKA ENDING" },
+      { key:"juno", label:"♥ THE JUNO ENDING" },
+      { key:"friends", label:"HIGH SCORE FRIENDS" },
+      { key:"pixel", label:"👑 HEIR TO THE ARCADE" }
+    ];
+
+    // ---- DOM ----
+    var $ = function (id) { return document.getElementById(id); };
+    var stage = $("stage"), textBox = $("textBox"), nametag = $("nametag"), adv = $("adv");
+    var choicePanel = $("choicePanel"), titleScreen = $("titleScreen"), endScreen = $("endScreen");
+    var pMika = $("pMika"), pJuno = $("pJuno");
+    var mHearts = $("mHearts"), jHearts = $("jHearts");
+
+    // ---- State ----
+    var cur = null, typing = false, typeTimer = null, fullText = "";
+    var aff = { m: 0, j: 0 };
+    var met = { m: false, j: false };
+    var exNow = { m: "neutral", j: "neutral" };
+    var playerName = localStorage.getItem(NAME_KEY) || "";
+    var started = false;
+
+    function loadEndings() {
+      try { return JSON.parse(localStorage.getItem(END_KEY) || "[]"); }
+      catch (e) { return []; }
+    }
+
+    function renderEndingsList() {
+      var got = loadEndings(), html = "ENDINGS UNLOCKED: " + got.length + "/4<br/>";
+      for (var i = 0; i < ENDINGS.length; i++) {
+        var has = got.indexOf(ENDINGS[i].key) >= 0;
+        html += "<span class='" + (has ? "unlocked" : "locked") + "'>" +
+          (has ? "★ " + ENDINGS[i].label : "☆ ???") + "</span><br/>";
+      }
+      $("endingsList").innerHTML = html;
+    }
+
+    function renderHearts() {
+      mHearts.textContent = aff.m > 0 ? Array(aff.m + 1).join("♥") : "♡";
+      jHearts.textContent = aff.j > 0 ? Array(aff.j + 1).join("♥") : "♡";
+    }
+
+    function renderPortraits(speaker) {
+      pMika.innerHTML = portraitSVG("m", exNow.m);
+      pJuno.innerHTML = portraitSVG("j", exNow.j);
+      pMika.classList.toggle("met", met.m);
+      pJuno.classList.toggle("met", met.j);
+      pMika.classList.toggle("talking", speaker === "m");
+      pJuno.classList.toggle("talking", speaker === "j");
+    }
+
+    // ---- Engine ----
+    function goTo(id) {
+      var node = S[id];
+      cur = id;
+
+      if (node.end) return showEnding(node.end);
+      if (node.ch) return showChoices(node);
+
+      if (node.s === "m") { met.m = true; if (node.e) exNow.m = node.e; }
+      if (node.s === "j") { met.j = true; if (node.e) exNow.j = node.e; }
+      renderPortraits(node.s);
+
+      var c = CHARS[node.s];
+      if (node.s === "n") {
+        nametag.classList.add("hidden");
+        textBox.classList.add("narr");
+      } else {
+        nametag.classList.remove("hidden");
+        textBox.classList.remove("narr");
+        nametag.textContent = c.name;
+        nametag.style.color = c.color;
+      }
+      typeText(node.t.replace(/\{name\}/g, playerName));
+    }
+
+    function typeText(t) {
+      fullText = t;
+      typing = true;
+      adv.classList.add("hidden");
+      textBox.textContent = "";
+      var i = 0;
+      clearInterval(typeTimer);
+      typeTimer = setInterval(function () {
+        textBox.textContent = fullText.slice(0, ++i);
+        if (i >= fullText.length) {
+          clearInterval(typeTimer);
+          typing = false;
+          adv.classList.remove("hidden");
+        }
+      }, 16);
+    }
+
+    function advance() {
+      if (!started || cur === null) return;
+      var node = S[cur];
+      if (node.ch || node.end) return;
+      if (typing) {                      // skip typewriter
+        clearInterval(typeTimer);
+        textBox.textContent = fullText;
+        typing = false;
+        adv.classList.remove("hidden");
+        return;
+      }
+      goTo(node.next);
+    }
+
+    function showChoices(node) {
+      renderPortraits(null);
+      var html = node.prompt ? "<div class='prompt'>◆ " + node.prompt + " ◆</div>" : "";
+      choicePanel.innerHTML = html;
+      node.ch.forEach(function (opt) {
+        var b = document.createElement("button");
+        b.className = "btn";
+        b.textContent = opt.t;
+        b.addEventListener("click", function (e) {
+          e.stopPropagation();
+          if (opt.fx) {
+            aff.m += opt.fx.m || 0;
+            aff.j += opt.fx.j || 0;
+            renderHearts();
+          }
+          choicePanel.classList.add("hidden");
+          var dest = opt.next;
+          if (opt.cond && aff[opt.cond.stat] < opt.cond.gte) dest = opt.cond.els;
+          goTo(dest);
+        });
+        choicePanel.appendChild(b);
+      });
+      choicePanel.classList.remove("hidden");
+    }
+
+    function showEnding(end) {
+      var got = loadEndings();
+      var isNew = got.indexOf(end.key) < 0;
+      if (isNew) {
+        got.push(end.key);
+        localStorage.setItem(END_KEY, JSON.stringify(got));
+      }
+      $("endTitle").textContent = end.title;
+      $("endSub").textContent = end.sub;
+      $("endHearts").innerHTML =
+        "<span style='color:#ff5fb0'>MIKA " + aff.m + "♥</span> &nbsp; " +
+        "<span style='color:#00d0ff'>JUNO " + aff.j + "♥</span>";
+      $("endUnlocked").textContent = (isNew ? "★ NEW ENDING UNLOCKED! " : "") +
+        "(" + got.length + "/4 FOUND)";
+      endScreen.classList.remove("hidden");
+    }
+
+    function startGame() {
+      playerName = ($("nameInput").value.trim() || "NEW KID").toUpperCase();
+      localStorage.setItem(NAME_KEY, playerName);
+      aff = { m: 0, j: 0 };
+      met = { m: false, j: false };
+      exNow = { m: "neutral", j: "neutral" };
+      renderHearts();
+      titleScreen.classList.add("hidden");
+      endScreen.classList.add("hidden");
+      started = true;
+      goTo("p1");
+    }
+
+    // ---- Wire up ----
+    stage.addEventListener("click", advance);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === " " || e.key === "Enter") {
+        if (document.activeElement === $("nameInput")) return;
+        e.preventDefault();
+        advance();
+      }
+    });
+    $("startBtn").addEventListener("click", function (e) { e.stopPropagation(); startGame(); });
+    $("againBtn").addEventListener("click", function (e) {
+      e.stopPropagation();
+      endScreen.classList.add("hidden");
+      titleScreen.classList.remove("hidden");
+      renderEndingsList();
+      started = false;
+    });
+    $("resetSave").addEventListener("click", function () {
+      localStorage.removeItem(END_KEY);
+      renderEndingsList();
+    });
+    $("nameInput").value = playerName;
+
+    // First paint
+    renderEndingsList();
+    renderHearts();
+    renderPortraits(null);
+  })();
+  </script>
+</body>
+</html>
