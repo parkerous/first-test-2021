@@ -7,10 +7,10 @@
   <meta name="description" content="Binsu Star Season 2 league standings — coming soon." />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=15" rel="stylesheet" />
-  <link href="css/home.css?v=15" rel="stylesheet" />
-  <link href="css/season.css?v=15" rel="stylesheet" />
-  <script src="js/theme.js?v=15"></script>
+  <link href="css/voll-e.css?v=16" rel="stylesheet" />
+  <link href="css/home.css?v=16" rel="stylesheet" />
+  <link href="css/season.css?v=16" rel="stylesheet" />
+  <script src="js/theme.js?v=16"></script>
 </head>
 <body>
 
@@ -41,15 +41,7 @@
           </div>
         </details>
         <a href="coaching.html">Coaching</a>
-        <details class="menu-dd">
-          <summary>More ▾</summary>
-          <div class="dd-panel">
-            <span class="dd-label">Other volleyball tools</span>
-            <a href="player.html">🎥 Analyze a match</a>
-            <a href="voll-e.html">📊 Team Stats</a>
-            <a href="film.html">🎬 Film Room</a>
-          </div>
-        </details>
+        <a href="stats.html">📊 Stats</a>
       </div>
     </div>
   </nav>
@@ -64,9 +56,9 @@
 
   <!-- Preseason scrims — live now -->
   <section class="section" style="max-width:1000px">
-    <div class="section-head"><h2><span class="bar"></span>🏐 Preseason Scrims</h2></div>
+    <div class="section-head"><h2><span class="bar"></span>🏐 Preseason Scrims — Final</h2><span class="spacer"></span><span class="pending-pill">🏁 End of Preseason Scrims</span></div>
     <p class="mini-note" style="margin:-6px 0 14px;color:var(--muted);font-size:13.5px">
-      Live preseason scrim standings — ranked by <b>Pts</b> (win +1 / loss −1), then <b>point differential</b>, then <b>set win-rate</b>. Admins post results in the admin panel.
+      The preseason scrim window is over — these are the <b>official final records</b>, checked and posted by the league. Ranked by <b>Pts</b> (win +1 / loss −1), then win-rate.
     </p>
     <div class="table-scroll s2-fade">
       <table class="standings">
@@ -75,14 +67,12 @@
           <th class="num" title="Wins">W</th>
           <th class="num" title="Losses">L</th>
           <th class="num" title="Points: win +1 / loss −1">Pts</th>
-          <th class="num" title="Sets won–lost">Sets</th>
-          <th class="num" title="Set win-rate">Set %</th>
-          <th class="num" title="Point differential (points scored − conceded)">Diff</th>
+          <th class="num" title="Win rate">Win %</th>
         </tr></thead>
         <tbody id="scrimBody"></tbody>
       </table>
     </div>
-    <h3 class="grp" style="margin:22px 0 10px">Recent scrim results</h3>
+    <h3 class="grp" style="margin:22px 0 10px">Recorded scrim results</h3>
     <div id="scrimResults" class="ps-results"></div>
   </section>
 
@@ -110,8 +100,8 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Season 2</p>
 
-  <script src="js/api.js?v=15"></script>
-  <script src="js/scrims.js?v=15"></script>
+  <script src="js/api.js?v=16"></script>
+  <script src="js/scrims.js?v=16"></script>
   <script>
     // build 8 shimmer rows behind the "coming soon" card
     var b = document.getElementById("ghostBody");

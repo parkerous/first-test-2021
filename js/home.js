@@ -104,18 +104,9 @@ function renderNews() {
 /* Announcements are admin-managed (see the admin panel) — the homepage is
    read-only, so there are no public add / edit / feature / delete helpers here. */
 
-/* ---------- YouTube "learn" search ---------- */
-function goLearn() {
-  const url = val("ytUrl");
-  if (!url) { msg2("Paste a YouTube or TikTok match link first."); return; }
-  if (!/(youtu\.be\/|youtube\.com\/|tiktok\.com\/|[\w-]{11})/.test(url)) { msg2("That doesn't look like a YouTube or TikTok link."); return; }
-  window.location.href = "player.html?v=" + encodeURIComponent(url);
-}
-
 /* ---------- helpers ---------- */
 function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ""; }
 function msg(t) { const el = document.getElementById("newsMsg"); if (el) el.textContent = t; }
-function msg2(t) { const el = document.getElementById("analyzeMsg"); if (el) el.textContent = t; }
 
 /* ---------- init ---------- */
 function init() {
@@ -127,9 +118,6 @@ function init() {
   const hero = document.querySelector(".hero");
   hero.addEventListener("mouseenter", stopAuto);
   hero.addEventListener("mouseleave", startAuto);
-
-  document.getElementById("goBtn").addEventListener("click", goLearn);
-  document.getElementById("ytUrl").addEventListener("keydown", e => { if (e.key === "Enter") goLearn(); });
 
   /* announcements are admin-managed (admin panel → Announcements); no public editing here */
 
