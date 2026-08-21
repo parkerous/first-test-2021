@@ -10,6 +10,37 @@
    ============================================================ */
 
 function scrimEsc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+/* ---- END OF PRESEASON — official final records ----
+   The preseason scrim window is over. These are the official checked
+   records posted by the league analyst; the standings page and the
+   homepage Top 3 render from this table instead of recomputing from
+   the match list. Set PRESEASON_OVER to false to go back to live mode. */
+const PRESEASON_OVER = true;
+const FINAL_RECORDS = [
+  { name: "Vanguard", w: 22, l: 3 },
+  { name: "The Order", w: 14, l: 0 },
+  { name: "Invictus", w: 12, l: 11 },
+  { name: "Equinox", w: 8, l: 5 },
+  { name: "Miku", w: 8, l: 9 },
+  { name: "Volare", w: 4, l: 4 },
+  { name: "Umino", w: 2, l: 4 },
+  { name: "Stinger", w: 2, l: 3 },
+  { name: "Teiko", w: 1, l: 3 },
+  { name: "Orchid", w: 1, l: 10 },
+  { name: "Kittyoo", w: 0, l: 2 },
+  { name: "Seishin Skyblade", w: 0, l: 6 },
+  { name: "Valencia Spike", w: 0, l: 8 },
+];
+const DISBANDED_TEAMS = ["Yakamoz"];
+
+/* Final standings rows: Pts = W − L, tiebreak by win-rate, then wins. */
+function computeFinalStandings() {
+  return FINAL_RECORDS.map(r => {
+    const played = r.w + r.l;
+    return { name: r.name, mw: r.w, ml: r.l, played, record: r.w - r.l, winrate: played ? r.w / played : 0 };
+  }).sort((a, b) => b.record - a.record || b.winrate - a.winrate || b.mw - a.mw || a.name.localeCompare(b.name));
+}
 /* team pool entries may be plain names (legacy) or {name, logo}. */
 function scrimTeamName(t) { return typeof t === "string" ? t : ((t && t.name) || ""); }
 
@@ -105,6 +136,7 @@ async function renderScrimStandings() {
   if (!body) return;
   let data = { teams: [], matches: [] };
   try { data = await apiGet("/scrims"); } catch (e) { /* leave empty */ }
+  if (PRESEASON_OVER) { return renderFinalStandings(body, data); }
   const rows = computeScrimStandings(data.teams, data.matches);
   // logo per team: use the preseason-pool logo, else fall back to the logo of a
   // team with the same name already registered on the Teams page.
@@ -144,6 +176,41 @@ async function renderScrimStandings() {
   }
 }
 
+/* Final standings table (Rank / Team / W / L / Pts / Win %) + disbanded note. */
+async function renderFinalStandings(body, data) {
+  const rows = computeFinalStandings();
+  const regLogo = {};
+  try { const teams = await apiGet("/teams"); (teams || []).forEach(t => { if (t && t.name && t.logo) regLogo[t.name] = t.logo; }); } catch (e) { /* optional */ }
+  const logoBy = {};
+  (data.teams || []).forEach(t => { if (t && t.name) logoBy[t.name] = t.logo || regLogo[t.name] || ""; });
+  rows.forEach(t => { if (!logoBy[t.name]) logoBy[t.name] = regLogo[t.name] || ""; });
+  const rec = v => (v > 0 ? "+" + v : "" + v);
+  const recCls = v => v > 0 ? "ps-pos" : v < 0 ? "ps-neg" : "ps-zero";
+  const crest = name => logoBy[name]
+    ? `<img class="ps-logo" src="${scrimEsc(logoBy[name])}" alt="" />`
+    : `<span class="dot"></span>`;
+  body.innerHTML = rows.map((t, i) => `
+    <tr>
+      <td class="rk">${i + 1}</td>
+      <td><span class="team">${crest(t.name)}${scrimEsc(t.name)}</span></td>
+      <td class="num">${t.mw}</td>
+      <td class="num">${t.ml}</td>
+      <td class="num"><span class="ps-rec ${recCls(t.record)}">${rec(t.record)}</span></td>
+      <td class="num">${Math.round(t.winrate * 100)}%</td>
+    </tr>`).join("")
+    + (DISBANDED_TEAMS.length ? `
+    <tr><td colspan="6" style="color:var(--muted);font-size:12.5px;padding-top:12px">☠️ Disbanded during the preseason: ${DISBANDED_TEAMS.map(scrimEsc).join(", ")}</td></tr>` : "");
+
+  // recorded scrim results below the table (the games posted on the site)
+  const rl = document.getElementById("scrimResults");
+  if (rl) {
+    const ms = (data.matches || []).slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    rl.innerHTML = ms.length
+      ? ms.map(m => `<div class="ps-result">🏐 ${scrimMatchLine(m).text}</div>`).join("")
+      : `<p class="empty">No scrim results posted yet.</p>`;
+  }
+}
+
 /* ---- homepage "Preseason Leaders" widget (#psLeaders) ----
    Recomputed live on every visit and stamped with today's date, so it always
    shows the current leader + top 3 with no manual updating. */
@@ -152,10 +219,10 @@ async function renderPreseasonLeaders() {
   if (!host) return;
   let data = { teams: [], matches: [] };
   try { data = await apiGet("/scrims"); } catch (e) { /* leave empty */ }
-  const full = computeScrimStandings(data.teams, data.matches);
+  const full = PRESEASON_OVER ? computeFinalStandings() : computeScrimStandings(data.teams, data.matches);
   const played = full.filter(t => t.played > 0);
   if (!played.length) { host.style.display = "none"; return; }
-  const mv = computeMovement(data.teams, data.matches);
+  const mv = PRESEASON_OVER ? {} : computeMovement(data.teams, data.matches);
   // team logos: preseason-pool logo, else a same-named registered team's logo
   const regLogo = {};
   try { const teams = await apiGet("/teams"); (teams || []).forEach(t => { if (t && t.name && t.logo) regLogo[t.name] = t.logo; }); } catch (e) { /* optional */ }
@@ -174,12 +241,12 @@ async function renderPreseasonLeaders() {
     : `<span class="psl-medal">${medal[i]}</span>`;
   host.innerHTML = `
     <div class="psl-head">
-      <span class="psl-eyebrow">🏆 Top 3 · Day ${preseasonDay()}</span>
+      <span class="psl-eyebrow">${PRESEASON_OVER ? "🏆 Final Top 3 · End of Preseason Scrims" : "🏆 Top 3 · Day " + preseasonDay()}</span>
       <span class="psl-date">${dateStr}</span>
     </div>
     <div class="psl-leader">
       ${logoBy[leader.name] ? `<img class="psl-lead-logo" src="${scrimEsc(logoBy[leader.name])}" alt="" />` : `<span class="psl-crown">👑</span>`}
-      <div><b>${scrimEsc(leader.name)}</b> is leading the preseason
+      <div><b>${scrimEsc(leader.name)}</b> ${PRESEASON_OVER ? "finished the preseason on top" : "is leading the preseason"}
         <span class="psl-sub">${leader.mw}–${leader.ml} · ${fmt(leader.record)} pts${leader.diff != null ? ` · ${fmt(leader.diff)} diff` : ""}</span>
       </div>
     </div>
@@ -226,7 +293,7 @@ async function renderLatestMatches() {
   const dateStr = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
   host.innerHTML = `
     <div class="psl-head">
-      <span class="psl-eyebrow">🏐 Latest Matches · Day ${day}</span>
+      <span class="psl-eyebrow">${PRESEASON_OVER ? "🏐 Last Matches · End of Preseason Scrims" : "🏐 Latest Matches · Day " + day}</span>
       <span class="psl-date">Last ${GAMES_SHOWN} games · ${dateStr}</span>
     </div>
     <div class="psm-list">
