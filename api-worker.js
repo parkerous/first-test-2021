@@ -531,6 +531,7 @@ async function handleApi(req, env, url) {
     const b = await req.json();
     const cur = JSON.parse((await KV.get("site")) || "{}");
     if (typeof b.logo === "string") cur.logo = b.logo;
+    if (typeof b.statSheet === "string") cur.statSheet = b.statSheet.trim().slice(0, 500);
     await KV.put("site", JSON.stringify(cur));
     return json({ ok: true });
   }
