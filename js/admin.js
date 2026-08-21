@@ -249,7 +249,36 @@ async function deleteProfile(id) {
 /* ---------- site logo ---------- */
 let brandLogo = "";
 async function loadSite() {
-  try { const s = await apiGet("/site"); if (s && s.logo) { brandLogo = s.logo; document.getElementById("brandPreview").src = s.logo; } } catch (e) {}
+  try {
+    const s = await apiGet("/site");
+    if (s && s.logo) { brandLogo = s.logo; document.getElementById("brandPreview").src = s.logo; }
+    const su = document.getElementById("sheetUrl");
+    if (su && s && s.statSheet) su.value = s.statSheet;
+  } catch (e) {}
+}
+
+/* ---------- live stat sheet (Google Sheet / CSV link) ---------- */
+async function previewSheet() {
+  const m = document.getElementById("sheetMsg"), host = document.getElementById("sheetPreview");
+  const url = document.getElementById("sheetUrl").value.trim();
+  if (!url) { m.textContent = "Paste a sheet link first."; return; }
+  m.textContent = "Fetching the sheet…";
+  try {
+    const data = await fetchSheet(url);
+    renderSheetTable(host, { headers: data.headers, rows: data.rows.slice(0, 8) });
+    m.textContent = `✅ Sheet loads — ${data.rows.length} row${data.rows.length === 1 ? "" : "s"}, ${data.headers.length} columns (showing the first 8). Click Connect to put it live.`;
+  } catch (e) { host.innerHTML = ""; m.textContent = "⚠️ " + e.message; }
+}
+async function saveSheet() {
+  const m = document.getElementById("sheetMsg");
+  const url = document.getElementById("sheetUrl").value.trim();
+  m.textContent = "Saving…";
+  try {
+    const r = await apiPost("/admin/site", { statSheet: url }, true);
+    m.textContent = (r && r.ok)
+      ? (url ? "✅ Connected — the Stats page now shows this sheet live." : "✅ Disconnected — the Stats page shows the setup note again.")
+      : "⚠️ " + ((r && r.error) || "failed");
+  } catch (e) { m.textContent = "⚠️ " + e.message; }
 }
 async function pickBrand(input) {
   const f = input.files[0]; if (!f) return;
@@ -494,6 +523,8 @@ function init() {
   document.getElementById("scResetBtn").addEventListener("click", resetScrims);
   document.getElementById("brandFile").addEventListener("change", e => pickBrand(e.target));
   document.getElementById("brandSave").addEventListener("click", saveBrand);
+  document.getElementById("sheetTest").addEventListener("click", previewSheet);
+  document.getElementById("sheetSave").addEventListener("click", saveSheet);
   document.querySelectorAll(".atab").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
   // back/forward (undo/redo) and refresh restore the tab from the URL
   window.addEventListener("hashchange", () => showTab(tabFromHash()));

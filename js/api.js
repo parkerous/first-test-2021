@@ -580,6 +580,7 @@ function fileToDataUrl(file, max = 420) {
       if (!isAdmin(adminHdr)) return err("unauthorized", 401);
       const cur = JSON.parse(kvGet("site") || "{}");
       if (typeof body.logo === "string") cur.logo = body.logo;
+      if (typeof body.statSheet === "string") cur.statSheet = body.statSheet.trim().slice(0, 500);
       kvPut("site", JSON.stringify(cur)); return ok({ ok: true });
     }
     if (p === "/admin/login" && method === "POST") { return ok({ ok: isAdmin(adminHdr) }); }
