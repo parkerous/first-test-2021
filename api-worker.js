@@ -209,7 +209,7 @@ const DEFAULT_PLAYERS = [
   { id: "p_160", name: "kenderdragoonca74", team: "Equinox", pos: "Outside" },
   { id: "p_161", name: "llewor1234", team: "Equinox", pos: "Opposite/Middle" },
 ];
-const BLANK_STATS = { games: 0, kills: 0, aces: 0, blocks: 0, digs: 0, assists: 0, mvps: 0 };
+const BLANK_STATS = { games: 0, kills: 0, aces: 0, blocks: 0, digs: 0, assists: 0 };
 function cleanPStats(s) {
   const out = {};
   for (const k in BLANK_STATS) { const v = +((s || {})[k]); out[k] = isFinite(v) && v >= 0 ? Math.round(v * 10) / 10 : 0; }

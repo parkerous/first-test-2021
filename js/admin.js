@@ -60,8 +60,8 @@ function renderPlayerAdmin() {
   if (!team) { el.innerHTML = `<p class="empty">Pick a team above to see its players (${PLAYERS.length} loaded).</p>`; return; }
   const rows = PLAYERS.filter(p => p.team === team).sort((a, b) => a.name.localeCompare(b.name));
   if (!rows.length) { el.innerHTML = `<p class="empty">No players on ${esc(team)} yet — add one above.</p>`; return; }
-  const KEYS = ["games", "kills", "aces", "blocks", "digs", "assists", "mvps"];
-  const LBL = ["G", "K", "A", "B", "D", "As", "MVP"];
+  const KEYS = ["games", "kills", "aces", "blocks", "digs", "assists"];
+  const LBL = ["G", "K", "A", "B", "D", "As"];
   el.innerHTML = rows.map(p => `
     <div class="card" style="background:var(--bg);margin-bottom:8px"><div class="row" style="align-items:center;gap:6px;flex-wrap:wrap">
       <span style="font-size:13.5px;min-width:180px"><b>${esc(p.name)}</b>${p.cap ? ' <span class="capb" title="Team captain">C</span>' : ""} <span style="color:var(--muted)">· ${esc(p.pos || "—")}</span></span>

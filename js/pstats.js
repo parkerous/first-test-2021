@@ -3,12 +3,12 @@
    Every registered player is seeded with zeroed stats; admins log
    stats in the admin panel (Players tab) and the boards below update
    instantly. Leaderboard formula:
-   Kills ×2 · Aces ×2 · Blocks ×2 · Digs ×1 · Assists ×1 · MVPs ×10.
+   Kills ×2 · Aces ×2 · Blocks ×2 · Digs ×1 · Assists ×1.
    Players are grouped by their FIRST listed position:
    Setter → Setters · Libero → Liberos · everything else → Hitters.
    ============================================================ */
 
-const PSTAT_WEIGHTS = { kills: 2, aces: 2, blocks: 2, digs: 1, assists: 1, mvps: 10 };
+const PSTAT_WEIGHTS = { kills: 2, aces: 2, blocks: 2, digs: 1, assists: 1 };
 const PSTAT_GROUPS = ["Hitters", "Setters", "Liberos"];
 
 function capBadge(p) { return p && p.cap ? ' <span class="capb" title="Team captain">C</span>' : ""; }
@@ -68,7 +68,7 @@ async function renderPlayerStats() {
   // --- category leaders (top 3 per stat, all positions) ---
   const cats = [
     ["kills", "💥 Kills"], ["aces", "🚀 Aces"], ["blocks", "🧱 Blocks"],
-    ["digs", "🛡️ Digs"], ["assists", "🤝 Assists"], ["mvps", "⭐ MVPs"],
+    ["digs", "🛡️ Digs"], ["assists", "🤝 Assists"],
   ];
   const leadHost = document.getElementById("catLeaders");
   if (leadHost) {
@@ -107,7 +107,7 @@ async function renderPlayerStats() {
         <table class="standings">
           <thead><tr><th>Player</th><th>Team</th><th>Position</th>
             <th class="num">G</th><th class="num">K</th><th class="num">A</th><th class="num">B</th>
-            <th class="num">D</th><th class="num">As</th><th class="num">MVP</th><th class="num">Pts</th></tr></thead>
+            <th class="num">D</th><th class="num">As</th><th class="num">Pts</th></tr></thead>
           <tbody>${rows.map(p => `
             <tr>
               <td><b>${pEsc(p.name)}</b>${capBadge(p)}</td>
@@ -116,8 +116,8 @@ async function renderPlayerStats() {
               <td class="num">${p.stats.games || 0}</td><td class="num">${p.stats.kills || 0}</td>
               <td class="num">${p.stats.aces || 0}</td><td class="num">${p.stats.blocks || 0}</td>
               <td class="num">${p.stats.digs || 0}</td><td class="num">${p.stats.assists || 0}</td>
-              <td class="num">${p.stats.mvps || 0}</td><td class="num"><b>${p.pts}</b></td>
-            </tr>`).join("") || `<tr><td colspan="11" class="empty">No players match this filter.</td></tr>`}</tbody>
+              <td class="num"><b>${p.pts}</b></td>
+            </tr>`).join("") || `<tr><td colspan="10" class="empty">No players match this filter.</td></tr>`}</tbody>
         </table>
       </div>`;
   };
@@ -148,7 +148,7 @@ async function initMvpRace() {
   const medal = ["🥇", "🥈", "🥉"];
   host.innerHTML = `
     <div class="psl-head">
-      <span class="psl-eyebrow">⭐ MVP Race · Official Player Leaderboard</span>
+      <span class="psl-eyebrow">⭐ Top Players · Official Player Leaderboard</span>
       <span class="psl-date">Logged by the league</span>
     </div>
     <div class="psl-top3">
