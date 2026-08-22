@@ -184,8 +184,8 @@ function fileToDataUrl(file, max = 420) {
   const ROLES = ["Setter", "Outside Hitter", "Middle Blocker", "Opposite", "Libero", "All Rounder", "Sub"];
 
   // Preseason scrims — seeded on first access (17 teams + posted results).
-  /* Season 2 team list (the 13 teams from the official preseason final records) */
-  const DEFAULT_S2_TEAMS = ["Vanguard", "The Order", "Invictus", "Equinox", "Miku", "Volare", "Umino", "Stinger", "Teiko", "Orchid", "Kittyoo", "Seishin Skyblade", "Valencia Spike"];
+  /* Season 2 team list — the 12 teams registered in the team-registration forum */
+  const DEFAULT_S2_TEAMS = ["Vanguard", "The Order", "Equinox", "Miku", "Umino", "Stinger", "Teiko", "Orchid", "Kittyoo", "Seishin Skyblade", "Sendai Crows", "Yakamoz"];
   const DEFAULT_SCRIM_TEAMS = ["Green Giants", "Equinox", "Senzai", "Seishin Skyblade", "The Order", "Canopus", "Miku", "Vanguard", "Volare", "Teiko", "Zenith", "Nekopara", "Ground Zero", "Invictus", "Stinger", "Ho-Kago Kawaii Larps", "Yakamoz", "Kittyoo"];
   const DEFAULT_SCRIMS = [
     { id: "seed_gg_neko", teamA: "Green Giants", teamB: "Nekopara", sets: [{ a: 25, b: 23 }, { a: 25, b: 15 }], createdAt: 1 },
@@ -580,7 +580,12 @@ function fileToDataUrl(file, max = 420) {
     if (p === "/s2" && method === "GET") {
       const raw = kvGet("s2");
       if (raw == null) { const d = { teams: DEFAULT_S2_TEAMS.slice(), fixtures: [] }; kvPut("s2", JSON.stringify(d)); return ok(d); }
-      return ok(JSON.parse(raw));
+      const d = JSON.parse(raw);
+      // superseded placeholder list (pre-registration) with nothing built on it → reseed
+      if ((!d.fixtures || !d.fixtures.length) && Array.isArray(d.teams) && d.teams.indexOf("Valencia Spike") !== -1) {
+        d.teams = DEFAULT_S2_TEAMS.slice(); kvPut("s2", JSON.stringify(d));
+      }
+      return ok(d);
     }
     if (p === "/admin/s2/teams" && method === "POST") {
       if (!isAdmin(adminHdr)) return err("unauthorized", 401);
