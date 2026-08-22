@@ -133,7 +133,12 @@ async function initStatSheet() {
       <div class="card" style="text-align:center;padding:26px">
         <div style="font-size:30px">📋</div>
         <b>No stat sheet connected yet</b>
-        <p class="mini-note" style="margin:6px auto 0;max-width:560px">Admins: open the <a href="admin.html">admin panel</a> → Preseason → <b>Live stat sheet</b> and paste a Google Sheet link (shared as “Anyone with the link → Viewer”). Stats logged in the sheet then show here automatically.</p>
+        <p class="mini-note" style="margin:6px auto 0;max-width:600px">Admins — three steps:
+          <b>1.</b> download the official stat sheet template below ·
+          <b>2.</b> import it into Google Sheets (File → Import) and set Share to “Anyone with the link → Viewer” ·
+          <b>3.</b> paste the sheet's link in the <a href="admin.html">admin panel</a> → Preseason → <b>Live stat sheet</b>.
+          Every stat logged in the sheet then shows here automatically — full instructions are on the template's Instructions tab.</p>
+        <p style="margin:14px 0 0"><a class="btn" href="files/binsu-stat-sheet.xlsx" download>⬇️ Download the stat sheet template (Excel)</a></p>
       </div>`;
     return;
   }

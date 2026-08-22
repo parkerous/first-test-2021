@@ -6,10 +6,10 @@
   <title>Admin — Soai</title>
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=18" rel="stylesheet" />
-  <link href="css/home.css?v=18" rel="stylesheet" />
-  <link href="css/teams.css?v=18" rel="stylesheet" />
-  <script src="js/theme.js?v=18"></script>
+  <link href="css/voll-e.css?v=19" rel="stylesheet" />
+  <link href="css/home.css?v=19" rel="stylesheet" />
+  <link href="css/teams.css?v=19" rel="stylesheet" />
+  <script src="js/theme.js?v=19"></script>
 </head>
 <body>
 
@@ -105,7 +105,7 @@
         </div>
         <div class="card">
           <h2>📋 Live stat sheet</h2>
-          <p class="mini-note" style="margin-top:0">Connect a <b>Google Sheet</b> and the <a href="stats.html" target="_blank">Stats page</a> shows it live — every stat you log in the sheet appears on the site automatically. In Google Sheets: <b>Share → Anyone with the link → Viewer</b>, then paste the sheet's link here. (Any direct CSV link works too — e.g. an Excel sheet exported/published as CSV.) Row 1 of the sheet becomes the column headers.</p>
+          <p class="mini-note" style="margin-top:0">Connect a <b>Google Sheet</b> and the <a href="stats.html" target="_blank">Stats page</a> shows it live — every stat you log in the sheet appears on the site automatically. Start from the official template (it has an Instructions tab): <a href="files/binsu-stat-sheet.xlsx" download><b>⬇️ Download the stat sheet template</b></a>. Import it at sheets.google.com (File → Import), set <b>Share → Anyone with the link → Viewer</b>, then paste the sheet's link here. (Any direct CSV link works too.) Row 1 of the sheet becomes the column headers, and every number column becomes a leaderboard category.</p>
           <div class="row"><input id="sheetUrl" type="text" placeholder="https://docs.google.com/spreadsheets/d/…" style="flex:1;min-width:220px" /><button class="btn ghost" id="sheetTest">👁 Preview</button><button class="btn" id="sheetSave">💾 Connect</button></div>
           <p class="msg" id="sheetMsg" style="color:var(--muted);font-size:12.5px;margin:6px 0 0"></p>
           <div id="sheetPreview" style="margin-top:10px"></div>
@@ -149,9 +149,9 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · admin</p>
 
-  <script src="js/api.js?v=18"></script>
-  <script src="js/scrims.js?v=18"></script>
-  <script src="js/statsheet.js?v=18"></script>
-  <script src="js/admin.js?v=18"></script>
+  <script src="js/api.js?v=19"></script>
+  <script src="js/scrims.js?v=19"></script>
+  <script src="js/statsheet.js?v=19"></script>
+  <script src="js/admin.js?v=19"></script>
 </body>
 </html>
