@@ -16,10 +16,10 @@
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=28" rel="stylesheet" />
-  <link href="css/home.css?v=28" rel="stylesheet" />
-  <link href="css/teams.css?v=28" rel="stylesheet" />
-  <script src="js/theme.js?v=28"></script>
+  <link href="css/voll-e.css?v=29" rel="stylesheet" />
+  <link href="css/home.css?v=29" rel="stylesheet" />
+  <link href="css/teams.css?v=29" rel="stylesheet" />
+  <script src="js/theme.js?v=29"></script>
 </head>
 <body>
 
@@ -62,7 +62,6 @@
         <button class="atab" data-tab="players">👤 Players</button>
         <button class="atab" data-tab="scrims">🏐 Preseason</button>
         <button class="atab" data-tab="honors">🏅 Honors</button>
-        <button class="atab" data-tab="rules">📖 Rules</button>
       </div>
 
       <div class="tabpane" id="pane-teams">
@@ -205,20 +204,6 @@
         </div>
       </div>
 
-      <div class="tabpane" id="pane-rules" style="display:none">
-        <div class="card">
-          <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0">📖 Official rule book</h2><span class="spacer"></span><button class="btn ghost" id="rulesReset">↺ Clear (use default)</button></div>
-          <p class="mini-note" style="margin-top:0">Edit the official league rule book shown on the Rules page. Simple formatting: <b># Heading</b>, <b>## Subheading</b>, <b>- bullet</b>. Leave blank to show the built-in default.</p>
-          <textarea id="rulesText" rows="18" placeholder="# Article I — General Rules…" style="width:100%;font-family:ui-monospace,monospace;font-size:13px"></textarea>
-          <div class="row" style="margin-top:8px"><button class="btn" id="rulesSave">💾 Save rule book</button><span class="msg" id="rulesMsg" style="color:var(--muted);font-size:13px"></span></div>
-        </div>
-        <div class="card">
-          <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0">💡 Rule suggestions</h2><span class="spacer"></span><button class="btn ghost" id="refreshSuggestBtn">↻ Refresh</button></div>
-          <p class="mini-note" style="margin-top:0">Rule ideas players sent from the Rules page.</p>
-          <div id="suggestAdmin"></div>
-        </div>
-      </div>
-
       <div class="tabpane" id="pane-ann" style="display:none">
         <div class="card">
           <h2>📢 Slideshow announcements</h2>
@@ -236,8 +221,8 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Admin</p>
 
-  <script src="js/api.js?v=28"></script>
-  <script src="js/scrims.js?v=28"></script>
-  <script src="js/admin.js?v=28"></script>
+  <script src="js/api.js?v=29"></script>
+  <script src="js/scrims.js?v=29"></script>
+  <script src="js/admin.js?v=29"></script>
 </body>
 </html>
