@@ -37,6 +37,50 @@ function s2RowHtml(f) {
   return `<div class="ps-result">📅 <b>${scrimEsc(f.teamA)}</b> <span class="ps-sets">vs</span> <b>${scrimEsc(f.teamB)}</b> <span class="ps-sets">· ${scrimEsc(s2When(f))}</span></div>`;
 }
 
+
+/* ---- homepage score strip (#scoreStrip) ----
+   ESPN-style ribbon: recent finals + upcoming fixtures in one
+   horizontal scroll. Falls back to the latest scrim results while the
+   S2 schedule is empty. */
+async function renderScoreStrip() {
+  const host = document.getElementById("scoreStrip");
+  if (!host) return;
+  let data = { fixtures: [] };
+  try { data = await apiGet("/s2"); } catch (e) { /* leave empty */ }
+  const fx = data.fixtures || [];
+  const played = fx.filter(s2Played).sort((a, b) => (b.when || b.createdAt || 0) - (a.when || a.createdAt || 0)).slice(0, 4).reverse();
+  const upcoming = fx.filter(f => !s2Played(f)).sort((a, b) => (a.when || Infinity) - (b.when || Infinity)).slice(0, 4);
+
+  const resCard = (m, tag) => {
+    let a = 0, b = 0;
+    (m.sets || []).forEach(st => {
+      const hp = typeof st.a === "number" && typeof st.b === "number";
+      (hp ? st.a >= st.b : st.w === "A") ? a++ : b++;
+    });
+    return `<div class="sc-card">
+      <span class="sc-tag">${tag}</span>
+      <span class="sc-line${a > b ? " win" : ""}"><span>${scrimEsc(m.teamA)}</span><b>${a}</b></span>
+      <span class="sc-line${b > a ? " win" : ""}"><span>${scrimEsc(m.teamB)}</span><b>${b}</b></span>
+    </div>`;
+  };
+  const upCard = f => `<div class="sc-card up">
+      <span class="sc-tag">${scrimEsc(s2When(f))}</span>
+      <span class="sc-line"><span>${scrimEsc(f.teamA)}</span></span>
+      <span class="sc-line"><span>${scrimEsc(f.teamB)}</span></span>
+    </div>`;
+
+  let cards = played.map(m => resCard(m, "FINAL")).concat(upcoming.map(upCard));
+  if (!cards.length) {
+    let scr = { matches: [] };
+    try { scr = await apiGet("/scrims"); } catch (e) { /* leave empty */ }
+    cards = (scr.matches || []).slice().sort((x, y) => (y.createdAt || 0) - (x.createdAt || 0)).slice(0, 5).reverse()
+      .map(m => resCard(m, "PRESEASON"))
+      .concat(`<div class="sc-card up"><span class="sc-tag">SEASON 2</span><span class="sc-line"><span>Schedule</span></span><span class="sc-line"><span>coming soon</span></span></div>`);
+  }
+  if (!cards.length) { host.style.display = "none"; return; }
+  host.innerHTML = `<div class="sc-rail">${cards.join("")}<a class="sc-more" href="schedule.html">All fixtures →</a></div>`;
+}
+
 /* ---- schedule page (#schedComing / #schedReal / #schedList / #bracketWrap) ---- */
 async function renderS2Schedule() {
   const list = document.getElementById("schedList");
@@ -109,6 +153,16 @@ async function renderS2Standings() {
   if (sec) sec.style.display = "";
 
   const rows = computeScrimStandings(data.teams || [], played);
+  // Premier-League-style form guide: each team's last 5 results, oldest → newest
+  const chrono = played.slice().sort((a, b) => (a.when || a.createdAt || 0) - (b.when || b.createdAt || 0));
+  const formBy = {};
+  chrono.forEach(m => {
+    const w = s2Winner(m);
+    [[m.teamA, w === m.teamA], [m.teamB, w === m.teamB]].forEach(([t, won]) => {
+      (formBy[t] = formBy[t] || []).push(won);
+    });
+  });
+  const formHtml = t => (formBy[t] || []).slice(-5).map(w => `<span class="fm ${w ? "w" : "l"}">${w ? "W" : "L"}</span>`).join("") || "—";
   const pct = v => v == null ? "—" : Math.round(v * 100) + "%";
   const diff = v => v == null ? "—" : (v > 0 ? "+" + v : "" + v);
   const rec = v => (v > 0 ? "+" + v : "" + v);
@@ -124,7 +178,8 @@ async function renderS2Standings() {
       <td class="num">${t.setsPlayed ? `${t.sw}–${t.sl}` : "—"}</td>
       <td class="num">${pct(t.setWinrate)}</td>
       <td class="num">${diff(t.diff)}</td>
+      <td class="fm-cell">${formHtml(t.name)}</td>
     </tr>`).join("");
 }
 
-document.addEventListener("DOMContentLoaded", function () { renderS2Schedule(); renderS2Standings(); });
+document.addEventListener("DOMContentLoaded", function () { renderS2Schedule(); renderS2Standings(); renderScoreStrip(); });

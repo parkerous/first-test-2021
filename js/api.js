@@ -193,7 +193,7 @@ function fileToDataUrl(file, max = 420) {
     { id: "p_004", name: "adeeblox", team: "Miku", pos: "Opposite" },
     { id: "p_005", name: "kiwiikaleb", team: "Miku", pos: "Middle/Setter" },
     { id: "p_006", name: "gileshong1", team: "Miku", pos: "Outside/Opposite" },
-    { id: "p_007", name: "Minir2k", team: "Miku", pos: "All-Rounder" },
+    { id: "p_007", name: "Minir2k", team: "Miku", pos: "All-Rounder", cap: true },
     { id: "p_008", name: "TeemoABC", team: "Miku", pos: "All-Rounder" },
     { id: "p_009", name: "EVOSgar150848", team: "Miku", pos: "Outside" },
     { id: "p_010", name: "YoshiroKoiske", team: "Miku", pos: "Opposite/Middle" },
@@ -203,7 +203,7 @@ function fileToDataUrl(file, max = 420) {
     { id: "p_014", name: "codyjay_5", team: "Miku", pos: "Outside/Opposite" },
     { id: "p_015", name: "seanbahopo", team: "Miku", pos: "Outside" },
     { id: "p_016", name: "Razu", team: "Miku", pos: "Middle" },
-    { id: "p_017", name: "Darkenesuo", team: "Yakamoz", pos: "Middle" },
+    { id: "p_017", name: "Darkenesuo", team: "Yakamoz", pos: "Middle", cap: true },
     { id: "p_018", name: "lodsan1122", team: "Yakamoz", pos: "Outside" },
     { id: "p_019", name: "wojnwfjn", team: "Yakamoz", pos: "Setter" },
     { id: "p_020", name: "pawpaWAOS", team: "Yakamoz", pos: "Outside" },
@@ -211,7 +211,7 @@ function fileToDataUrl(file, max = 420) {
     { id: "p_022", name: "ItsGrof", team: "Yakamoz", pos: "Middle" },
     { id: "p_023", name: "TheDOtheSO", team: "Yakamoz", pos: "All-Rounder" },
     { id: "p_024", name: "Dee7055", team: "Yakamoz", pos: "All-Rounder" },
-    { id: "p_025", name: "Mirto", team: "Stinger", pos: "All-Rounder" },
+    { id: "p_025", name: "Mirto", team: "Stinger", pos: "All-Rounder", cap: true },
     { id: "p_026", name: "Vazelin", team: "Stinger", pos: "Outside" },
     { id: "p_027", name: "Sloth", team: "Stinger", pos: "All-Rounder" },
     { id: "p_028", name: "Kukuruzni", team: "Stinger", pos: "Middle" },
@@ -221,7 +221,7 @@ function fileToDataUrl(file, max = 420) {
     { id: "p_032", name: "Special", team: "Stinger", pos: "Opposite" },
     { id: "p_033", name: "Oblachko", team: "Stinger", pos: "Opposite" },
     { id: "p_034", name: "hiori", team: "Stinger", pos: "Setter" },
-    { id: "p_035", name: "s0nr4ku", team: "Sendai Crows", pos: "Outside" },
+    { id: "p_035", name: "s0nr4ku", team: "Sendai Crows", pos: "Outside", cap: true },
     { id: "p_036", name: "delta_kendo", team: "Sendai Crows", pos: "Middle" },
     { id: "p_037", name: "TFX310", team: "Sendai Crows", pos: "Opposite" },
     { id: "p_038", name: "kyle292800", team: "Sendai Crows", pos: "All-Rounder" },
@@ -235,7 +235,7 @@ function fileToDataUrl(file, max = 420) {
     { id: "p_046", name: "buddysing466", team: "Sendai Crows", pos: "Outside/Opposite" },
     { id: "p_047", name: "iAspxctt", team: "Sendai Crows", pos: "Outside/Opposite" },
     { id: "p_048", name: "Takigawa24", team: "Umino", pos: "All-Rounder" },
-    { id: "p_049", name: "ImYourBackpack", team: "Umino", pos: "Opposite/Outside" },
+    { id: "p_049", name: "ImYourBackpack", team: "Umino", pos: "Opposite/Outside", cap: true },
     { id: "p_050", name: "edanacain3", team: "Umino", pos: "Middle" },
     { id: "p_051", name: "UchihaJpmark", team: "Umino", pos: "Setter" },
     { id: "p_052", name: "memenoob345", team: "Umino", pos: "Outside" },
@@ -250,7 +250,7 @@ function fileToDataUrl(file, max = 420) {
     { id: "p_061", name: "it0ylilk1ds", team: "Vanguard", pos: "Libero" },
     { id: "p_062", name: "Monkeybsj", team: "Vanguard", pos: "All-Rounder" },
     { id: "p_063", name: "Aryentei", team: "Vanguard", pos: "Outside" },
-    { id: "p_064", name: "Vanity_io", team: "Vanguard", pos: "Outside" },
+    { id: "p_064", name: "Vanity_io", team: "Vanguard", pos: "Outside", cap: true },
     { id: "p_065", name: "neonoppaein", team: "Vanguard", pos: "Opposite" },
     { id: "p_066", name: "Action_penguin20", team: "Vanguard", pos: "Libero" },
     { id: "p_067", name: "vexvex_skittles", team: "Vanguard", pos: "Outside" },
@@ -261,7 +261,7 @@ function fileToDataUrl(file, max = 420) {
     { id: "p_072", name: "apoleonicAvy", team: "Vanguard", pos: "Outside" },
     { id: "p_073", name: "tarutane", team: "Vanguard", pos: "Middle" },
     { id: "p_074", name: "The_ToxicCreeper", team: "Vanguard", pos: "Middle" },
-    { id: "p_075", name: "TTBPCCCA65437", team: "Seishin Skyblade", pos: "All-Rounder" },
+    { id: "p_075", name: "TTBPCCCA65437", team: "Seishin Skyblade", pos: "All-Rounder", cap: true },
     { id: "p_076", name: "thekillerreyven", team: "Seishin Skyblade", pos: "Setter" },
     { id: "p_077", name: "Green_Power0928", team: "Seishin Skyblade", pos: "Outside" },
     { id: "p_078", name: "hjfdfhudfvgfhj", team: "Seishin Skyblade", pos: "Outside" },
@@ -280,7 +280,7 @@ function fileToDataUrl(file, max = 420) {
     { id: "p_091", name: "Creeperbean10", team: "Orchid", pos: "Opposite" },
     { id: "p_092", name: "Yaretzi_2976", team: "Orchid", pos: "Middle" },
     { id: "p_093", name: "UOUUZ2", team: "Orchid", pos: "Outside/Middle" },
-    { id: "p_094", name: "cvrmichxl", team: "Orchid", pos: "All-Rounder" },
+    { id: "p_094", name: "cvrmichxl", team: "Orchid", pos: "All-Rounder", cap: true },
     { id: "p_095", name: "bad_gorl532", team: "Orchid", pos: "Libero" },
     { id: "p_096", name: "71K14", team: "Orchid", pos: "Setter" },
     { id: "p_097", name: "Asunaa247", team: "Orchid", pos: "Setter/Outside" },
@@ -292,7 +292,7 @@ function fileToDataUrl(file, max = 420) {
     { id: "p_103", name: "Lazybirdzz", team: "Orchid", pos: "Outside/Middle" },
     { id: "p_104", name: "SirCoolGuy1015", team: "Orchid", pos: "All-Rounder" },
     { id: "p_105", name: "XxkenkanekixX123765", team: "Orchid", pos: "All-Rounder" },
-    { id: "p_106", name: "Ke7Lz", team: "The Order", pos: "All-Rounder" },
+    { id: "p_106", name: "Ke7Lz", team: "The Order", pos: "All-Rounder", cap: true },
     { id: "p_107", name: "Elemenstreem", team: "The Order", pos: "Outside" },
     { id: "p_108", name: "xxHaPpYxx40", team: "The Order", pos: "Outside" },
     { id: "p_109", name: "oneonlyy", team: "The Order", pos: "Middle" },
@@ -306,7 +306,7 @@ function fileToDataUrl(file, max = 420) {
     { id: "p_117", name: "reneealexander", team: "The Order", pos: "All-Rounder" },
     { id: "p_118", name: "Eggyheadnooby", team: "The Order", pos: "All-Rounder" },
     { id: "p_119", name: "howdits", team: "The Order", pos: "Libero" },
-    { id: "p_120", name: "D4C_KQ", team: "Kittyoo", pos: "All-Rounder" },
+    { id: "p_120", name: "D4C_KQ", team: "Kittyoo", pos: "All-Rounder", cap: true },
     { id: "p_121", name: "SOUL_NIGHT10", team: "Kittyoo", pos: "Outside/Middle" },
     { id: "p_122", name: "GONGKAK", team: "Kittyoo", pos: "Opposite" },
     { id: "p_123", name: "marvellling", team: "Kittyoo", pos: "Outside" },
@@ -325,7 +325,7 @@ function fileToDataUrl(file, max = 420) {
     { id: "p_136", name: "LB_Tempted", team: "Teiko", pos: "Setter" },
     { id: "p_137", name: "zimon25", team: "Teiko", pos: "Middle" },
     { id: "p_138", name: "Choiixzn", team: "Teiko", pos: "Middle" },
-    { id: "p_139", name: "RisingBlades", team: "Teiko", pos: "All-Rounder" },
+    { id: "p_139", name: "RisingBlades", team: "Teiko", pos: "All-Rounder", cap: true },
     { id: "p_140", name: "rehaniv12", team: "Teiko", pos: "Outside" },
     { id: "p_141", name: "Ace_Ish1kawa", team: "Teiko", pos: "Opposite" },
     { id: "p_142", name: "DarkEclips_e", team: "Teiko", pos: "All-Rounder" },
@@ -333,7 +333,7 @@ function fileToDataUrl(file, max = 420) {
     { id: "p_144", name: "gwagwacattroll", team: "Teiko", pos: "Libero" },
     { id: "p_145", name: "TW_Jupiter", team: "Teiko", pos: "Outside" },
     { id: "p_146", name: "DominuzGrey", team: "Teiko", pos: "Setter" },
-    { id: "p_147", name: "RoyaleMice6", team: "Equinox", pos: "Setter/All-Rounder" },
+    { id: "p_147", name: "RoyaleMice6", team: "Equinox", pos: "Setter/All-Rounder", cap: true },
     { id: "p_148", name: "memenoob345", team: "Equinox", pos: "Outside/All-Rounder" },
     { id: "p_149", name: "sulhipip", team: "Equinox", pos: "Outside/Opposite" },
     { id: "p_150", name: "kouuuuuuw", team: "Equinox", pos: "Middle" },
@@ -355,7 +355,7 @@ function fileToDataUrl(file, max = 420) {
     for (const k in BLANK_STATS) { const v = +((s || {})[k]); out[k] = isFinite(v) && v >= 0 ? Math.round(v * 10) / 10 : 0; }
     return out;
   }
-  function seedPlayers() { return DEFAULT_PLAYERS.map(p => ({ id: p.id, name: p.name, team: p.team, pos: p.pos, stats: { ...BLANK_STATS } })); }
+  function seedPlayers() { return DEFAULT_PLAYERS.map(p => ({ id: p.id, name: p.name, team: p.team, pos: p.pos, cap: !!p.cap, stats: { ...BLANK_STATS } })); }
   /* Season 2 team list — the 12 teams registered in the team-registration forum */
   const DEFAULT_S2_TEAMS = ["Vanguard", "The Order", "Equinox", "Miku", "Umino", "Stinger", "Teiko", "Orchid", "Kittyoo", "Seishin Skyblade", "Sendai Crows", "Yakamoz"];
   const DEFAULT_SCRIM_TEAMS = ["Green Giants", "Equinox", "Senzai", "Seishin Skyblade", "The Order", "Canopus", "Miku", "Vanguard", "Volare", "Teiko", "Zenith", "Nekopara", "Ground Zero", "Invictus", "Stinger", "Ho-Kago Kawaii Larps", "Yakamoz", "Kittyoo"];
@@ -795,7 +795,14 @@ function fileToDataUrl(file, max = 420) {
     if (p === "/players" && method === "GET") {
       const raw = kvGet("players");
       if (raw == null) { const d = seedPlayers(); kvPut("players", JSON.stringify(d)); return ok(d); }
-      return ok(JSON.parse(raw));
+      const d = JSON.parse(raw);
+      // lists stored before the captain flag existed: merge it in once
+      if (Array.isArray(d) && !d.some(x => x && x.cap)) {
+        const capBy = {}; DEFAULT_PLAYERS.forEach(x => { if (x.cap) capBy[x.team + "|" + x.name] = true; });
+        d.forEach(x => { if (capBy[x.team + "|" + x.name]) x.cap = true; });
+        kvPut("players", JSON.stringify(d));
+      }
+      return ok(d);
     }
     if (p === "/admin/players/add" && method === "POST") {
       if (!isAdmin(adminHdr)) return err("unauthorized", 401);

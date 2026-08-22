@@ -11,6 +11,7 @@
 const PSTAT_WEIGHTS = { kills: 2, aces: 2, blocks: 2, digs: 1, assists: 1, mvps: 10 };
 const PSTAT_GROUPS = ["Hitters", "Setters", "Liberos"];
 
+function capBadge(p) { return p && p.cap ? ' <span class="capb" title="Team captain">C</span>' : ""; }
 function pEsc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
 /* Position group from the first listed position. */
@@ -55,7 +56,7 @@ async function renderPlayerStats() {
             <tbody>${rows.map((p, i) => `
               <tr>
                 <td class="rk">${played && p.pts > 0 ? (medal[i] || i + 1) : i + 1}</td>
-                <td><b>${pEsc(p.name)}</b></td>
+                <td><b>${pEsc(p.name)}</b>${capBadge(p)}</td>
                 <td>${pEsc(p.team)}</td>
                 <td class="num"><b>${p.pts}</b></td>
               </tr>`).join("") || `<tr><td colspan="4" class="empty">No players yet.</td></tr>`}</tbody>
@@ -75,11 +76,15 @@ async function renderPlayerStats() {
       const top = players.filter(p => (+((p.stats || {})[k]) || 0) > 0)
         .sort((a, b) => (+b.stats[k] || 0) - (+a.stats[k] || 0)).slice(0, 3);
       if (!top.length) return "";
+      const lead = top[0];
       return `
-        <div class="lp-tile">
-          <span class="lp-ic">🏅</span>
-          <h3>${label.replace(/^[^ ]+ /, "")}</h3>
-          <p>${top.map((p, i) => `${medal[i]} <b>${pEsc(p.name)}</b> <span style="color:var(--muted)">(${pEsc(p.team)})</span> — ${p.stats[k]}`).join("<br>")}</p>
+        <div class="lp-tile lead-card">
+          <h3>${label}</h3>
+          <div class="lead-top">
+            <div class="lead-who"><b>${pEsc(lead.name)}</b>${capBadge(lead)}<span>${pEsc(lead.team)}</span></div>
+            <div class="lead-num">${lead.stats[k]}</div>
+          </div>
+          ${top.slice(1).map((p, i) => `<div class="lead-row"><span>${medal[i + 1]} ${pEsc(p.name)} <span style="color:var(--muted)">· ${pEsc(p.team)}</span></span><b>${p.stats[k]}</b></div>`).join("")}
         </div>`;
     }).filter(Boolean);
     const sec = leadHost.closest("section");
@@ -105,7 +110,7 @@ async function renderPlayerStats() {
             <th class="num">D</th><th class="num">As</th><th class="num">MVP</th><th class="num">Pts</th></tr></thead>
           <tbody>${rows.map(p => `
             <tr>
-              <td><b>${pEsc(p.name)}</b></td>
+              <td><b>${pEsc(p.name)}</b>${capBadge(p)}</td>
               <td>${pEsc(p.team)}</td>
               <td>${pEsc(p.pos || "—")}</td>
               <td class="num">${p.stats.games || 0}</td><td class="num">${p.stats.kills || 0}</td>
