@@ -614,6 +614,25 @@ function fileToDataUrl(file, max = 420) {
       kvPut("s2", JSON.stringify(cur)); return ok({ ok: true });
     }
 
+    /* ---- honors: tournament placements driving the all-time rankings ---- */
+    if (p === "/honors" && method === "GET") {
+      const raw = kvGet("honors"); return ok(raw ? JSON.parse(raw) : []);
+    }
+    if (p === "/admin/honors/add" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      const team = cleanStr(body.team, 40), event = cleanStr(body.event, 80), season = cleanStr(body.season, 30);
+      const place = [1, 2, 3].includes(+body.place) ? +body.place : 0;
+      if (!team || !event || !place) return err("team, event and placement (1-3) are required", 400);
+      const raw = kvGet("honors"); const list = raw ? JSON.parse(raw) : [];
+      list.unshift({ id: uid("h_"), team, event, place, season, createdAt: Date.now() });
+      kvPut("honors", JSON.stringify(list)); return ok({ ok: true });
+    }
+    if (p === "/admin/honors/delete" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      const raw = kvGet("honors"); const list = (raw ? JSON.parse(raw) : []).filter(x => x.id !== body.id);
+      kvPut("honors", JSON.stringify(list)); return ok({ ok: true });
+    }
+
     /* ---- pick'em: fan predictions per fixture ---- */
     if (p === "/pickem" && method === "GET") {
       const raw = kvGet("pickem"); const map = raw ? JSON.parse(raw) : {};

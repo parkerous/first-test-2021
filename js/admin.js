@@ -37,8 +37,46 @@ async function loadAll() {
   loadSite();
   loadProfiles();
   loadRules();
-  loadScrims();
-  loadS2();
+  await loadScrims();
+  await loadS2();
+  loadHonors();   // after scrims + S2 so the team-name suggestions are filled
+}
+
+/* ---------- honors (tournament placements -> all-time rankings) ---------- */
+let HONORS = [];
+async function loadHonors() {
+  try { HONORS = await apiGet("/honors"); } catch (e) { HONORS = []; }
+  // team suggestions from the S2 list + preseason pool
+  const dl = document.getElementById("hoTeamList");
+  if (dl) {
+    const names = new Set((S2DATA.teams || []).concat((SCRIMS.teams || []).map(t => (t && t.name) || "")));
+    dl.innerHTML = [...names].filter(Boolean).sort().map(n => `<option value="${esc(n)}"></option>`).join("");
+  }
+  const el = document.getElementById("honorAdmin");
+  if (!el) return;
+  if (!HONORS.length) { el.innerHTML = `<p class="empty">Nothing recorded yet — log the first tournament placement above.</p>`; return; }
+  const medals = { 1: "🥇", 2: "🥈", 3: "🥉" };
+  el.innerHTML = HONORS.map(h => `
+    <div class="card" style="background:var(--bg);margin-bottom:8px"><div class="row" style="align-items:center">
+      <span style="font-size:13.5px">${medals[h.place]} <b>${esc(h.team)}</b> — ${esc(h.event)}${h.season ? ` <span style="color:var(--muted)">· ${esc(h.season)}</span>` : ""}</span>
+      <span class="spacer"></span>
+      <button class="btn warn ho-del" data-id="${esc(h.id)}">🗑</button>
+    </div></div>`).join("");
+  el.querySelectorAll(".ho-del").forEach(b => b.addEventListener("click", async () => {
+    await apiPost("/admin/honors/delete", { id: b.dataset.id }, true); await loadHonors();
+  }));
+}
+async function addHonor() {
+  const m = document.getElementById("hoMsg");
+  const team = document.getElementById("hoTeam").value.trim();
+  const event = document.getElementById("hoEvent").value.trim();
+  const season = document.getElementById("hoSeason").value.trim();
+  const place = +document.getElementById("hoPlace").value;
+  if (!team || !event) { m.textContent = "Team and tournament are required."; return; }
+  m.textContent = "Saving…";
+  const r = await apiPost("/admin/honors/add", { team, event, place, season }, true);
+  if (r && r.ok) { m.textContent = "✅ Recorded — the all-time board is updated."; document.getElementById("hoTeam").value = ""; document.getElementById("hoEvent").value = ""; await loadHonors(); }
+  else m.textContent = "⚠️ " + ((r && r.error) || "failed");
 }
 
 /* ---------- Season 2 fixtures admin ---------- */
@@ -569,7 +607,7 @@ function renderReqAdmin() {
 async function deleteReq(id) { await apiPost("/admin/coaching/requests/delete", { id }, true); REQS = REQS.filter(x => x.id !== id); renderReqAdmin(); }
 
 /* ---------- tabs (history-aware: back = undo, forward = redo) ---------- */
-const TABS = ["teams", "ann", "players", "s2", "scrims", "rules"];
+const TABS = ["teams", "ann", "players", "s2", "scrims", "honors", "rules"];
 function tabFromHash() { const h = (location.hash || "").replace(/^#/, ""); return TABS.includes(h) ? h : "teams"; }
 /* update just the UI (which tab + pane is shown) */
 function showTab(name) {
@@ -592,6 +630,8 @@ function init() {
   document.getElementById("rulesSave").addEventListener("click", saveRules);
   document.getElementById("rulesReset").addEventListener("click", loadDefaultRules);
   document.getElementById("refreshSuggestBtn").addEventListener("click", loadRules);
+  document.getElementById("hoAdd").addEventListener("click", addHonor);
+  document.getElementById("refreshHonorsBtn").addEventListener("click", loadHonors);
   document.getElementById("fxAdd").addEventListener("click", addFixture);
   document.getElementById("refreshS2Btn").addEventListener("click", loadS2);
   document.getElementById("s2TeamsSave").addEventListener("click", saveS2Teams);
