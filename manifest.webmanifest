@@ -1,0 +1,13 @@
+{
+  "name": "Binsu Star — Roblox Volleyball League",
+  "short_name": "Binsu Star",
+  "description": "Standings, schedules, pick'em and player stats for the Binsu Star Roblox volleyball league.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#171310",
+  "theme_color": "#1c160e",
+  "icons": [
+    { "src": "img/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "img/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
