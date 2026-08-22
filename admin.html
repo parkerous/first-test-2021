@@ -16,10 +16,10 @@
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=25" rel="stylesheet" />
-  <link href="css/home.css?v=25" rel="stylesheet" />
-  <link href="css/teams.css?v=25" rel="stylesheet" />
-  <script src="js/theme.js?v=25"></script>
+  <link href="css/voll-e.css?v=26" rel="stylesheet" />
+  <link href="css/home.css?v=26" rel="stylesheet" />
+  <link href="css/teams.css?v=26" rel="stylesheet" />
+  <script src="js/theme.js?v=26"></script>
 </head>
 <body>
 
@@ -59,6 +59,7 @@
         <button class="atab on" data-tab="teams">⚙️ Site</button>
         <button class="atab" data-tab="ann">📢 Announcements</button>
         <button class="atab" data-tab="s2">🏆 Season 2</button>
+        <button class="atab" data-tab="players">👤 Players</button>
         <button class="atab" data-tab="scrims">🏐 Preseason</button>
         <button class="atab" data-tab="honors">🏅 Honors</button>
         <button class="atab" data-tab="rules">📖 Rules</button>
@@ -117,6 +118,35 @@
         </div>
       </div>
 
+      <div class="tabpane" id="pane-players" style="display:none">
+        <div class="card">
+          <h2>👤 Add a player</h2>
+          <p class="mini-note" style="margin-top:0">All 161 registered players are already loaded. Add new signings here — the position's first entry decides which leaderboard they race on (Setter → Setters, Libero → Liberos, everything else → Hitters).</p>
+          <div class="row">
+            <input id="plName" type="text" placeholder="Roblox username" style="flex:1;min-width:170px" />
+            <select id="plTeam" style="min-width:160px"><option value="">Team…</option></select>
+            <select id="plPos" style="min-width:150px">
+              <option value="Outside">Outside</option><option value="Opposite">Opposite</option>
+              <option value="Middle">Middle</option><option value="Setter">Setter</option>
+              <option value="Libero">Libero</option><option value="All-Rounder">All-Rounder</option>
+            </select>
+            <button class="btn" id="plAdd">＋ Add player</button>
+            <span class="msg" id="plMsg" style="color:var(--muted);font-size:12.5px"></span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="row" style="align-items:center;margin-bottom:4px">
+            <h2 style="margin:0">📊 Log stats</h2>
+            <span class="spacer"></span>
+            <select id="plFilter" style="min-width:170px"><option value="">Pick a team…</option></select>
+            <button class="btn ghost" id="refreshPlayersBtn">↻ Refresh</button>
+          </div>
+          <p class="mini-note" style="margin-top:0">Pick a team, update the numbers after each game (season totals) and hit 💾 per player. Columns: <b>G</b> games · <b>K</b> kills · <b>A</b> aces · <b>B</b> blocks · <b>D</b> digs · <b>As</b> assists · <b>MVP</b>.</p>
+          <div id="playerAdmin"></div>
+          <div class="row" style="margin-top:10px"><button class="btn warn" id="plResetBtn">↺ Reset all players to the registered rosters</button></div>
+        </div>
+      </div>
+
       <div class="tabpane" id="pane-scrims" style="display:none">
         <div class="card">
           <h2>🏐 Post a game result</h2>
@@ -141,13 +171,6 @@
           <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0">Posted scrims</h2><span class="spacer"></span><button class="btn ghost" id="scResetBtn">↺ Reset to posted results</button><button class="btn ghost" id="refreshScrimBtn">↻ Refresh</button></div>
           <p class="mini-note" style="margin-top:0">Reset restores the built-in preseason results and team pool — use it if the scrim data ever looks off.</p>
           <div id="scrimAdmin"></div>
-        </div>
-        <div class="card">
-          <h2>📋 Live stat sheet</h2>
-          <p class="mini-note" style="margin-top:0">Connect a <b>Google Sheet</b> and the <a href="stats.html" target="_blank">Stats page</a> shows it live — every stat you log in the sheet appears on the site automatically. Start from the official template (it has an Instructions tab): <a href="files/binsu-stat-sheet.xlsx" download><b>⬇️ Download the stat sheet template</b></a>. Import it at sheets.google.com (File → Import), set <b>Share → Anyone with the link → Viewer</b>, then paste the sheet's link here. (Any direct CSV link works too.) Row 1 of the sheet becomes the column headers, and every number column becomes a leaderboard category.</p>
-          <div class="row"><input id="sheetUrl" type="text" placeholder="https://docs.google.com/spreadsheets/d/…" style="flex:1;min-width:220px" /><button class="btn ghost" id="sheetTest">👁 Preview</button><button class="btn" id="sheetSave">💾 Connect</button></div>
-          <p class="msg" id="sheetMsg" style="color:var(--muted);font-size:12.5px;margin:6px 0 0"></p>
-          <div id="sheetPreview" style="margin-top:10px"></div>
         </div>
         <div class="card">
           <h2>Teams in the preseason pool</h2>
@@ -213,9 +236,8 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Admin</p>
 
-  <script src="js/api.js?v=25"></script>
-  <script src="js/scrims.js?v=25"></script>
-  <script src="js/statsheet.js?v=25"></script>
-  <script src="js/admin.js?v=25"></script>
+  <script src="js/api.js?v=26"></script>
+  <script src="js/scrims.js?v=26"></script>
+  <script src="js/admin.js?v=26"></script>
 </body>
 </html>

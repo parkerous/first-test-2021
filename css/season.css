@@ -114,3 +114,6 @@ span.pk-team.won { border-color: #22b866; color: var(--ink); }
 .pk-status { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
 .pk-res.good { color: #22b866; font-weight: 700; }
 .pk-res.bad { color: #e5484d; font-weight: 700; }
+
+/* ---- position-split player leaderboards ---- */
+.pos-boards { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 18px; }

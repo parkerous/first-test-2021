@@ -184,6 +184,178 @@ function fileToDataUrl(file, max = 420) {
   const ROLES = ["Setter", "Outside Hitter", "Middle Blocker", "Opposite", "Libero", "All Rounder", "Sub"];
 
   // Preseason scrims — seeded on first access (17 teams + posted results).
+  /* Season 2 registered players (from the team-registration forum) — the
+     seed roster for the admin-managed player stats. */
+  const DEFAULT_PLAYERS = [
+    { id: "p_001", name: "NewAccountZX194", team: "Miku", pos: "Libero" },
+    { id: "p_002", name: "PowerHext", team: "Miku", pos: "Middle" },
+    { id: "p_003", name: "4Quantum_Mechanic", team: "Miku", pos: "Outside/Setter" },
+    { id: "p_004", name: "adeeblox", team: "Miku", pos: "Opposite" },
+    { id: "p_005", name: "kiwiikaleb", team: "Miku", pos: "Middle/Setter" },
+    { id: "p_006", name: "gileshong1", team: "Miku", pos: "Outside/Opposite" },
+    { id: "p_007", name: "Minir2k", team: "Miku", pos: "All-Rounder" },
+    { id: "p_008", name: "TeemoABC", team: "Miku", pos: "All-Rounder" },
+    { id: "p_009", name: "EVOSgar150848", team: "Miku", pos: "Outside" },
+    { id: "p_010", name: "YoshiroKoiske", team: "Miku", pos: "Opposite/Middle" },
+    { id: "p_011", name: "Bloop906", team: "Miku", pos: "Opposite/Middle" },
+    { id: "p_012", name: "BlockBusta5", team: "Miku", pos: "Libero" },
+    { id: "p_013", name: "Trixiine_glitcher", team: "Miku", pos: "Setter" },
+    { id: "p_014", name: "codyjay_5", team: "Miku", pos: "Outside/Opposite" },
+    { id: "p_015", name: "seanbahopo", team: "Miku", pos: "Outside" },
+    { id: "p_016", name: "Razu", team: "Miku", pos: "Middle" },
+    { id: "p_017", name: "Darkenesuo", team: "Yakamoz", pos: "Middle" },
+    { id: "p_018", name: "lodsan1122", team: "Yakamoz", pos: "Outside" },
+    { id: "p_019", name: "wojnwfjn", team: "Yakamoz", pos: "Setter" },
+    { id: "p_020", name: "pawpaWAOS", team: "Yakamoz", pos: "Outside" },
+    { id: "p_021", name: "DeadPhysic", team: "Yakamoz", pos: "Opposite" },
+    { id: "p_022", name: "ItsGrof", team: "Yakamoz", pos: "Middle" },
+    { id: "p_023", name: "TheDOtheSO", team: "Yakamoz", pos: "All-Rounder" },
+    { id: "p_024", name: "Dee7055", team: "Yakamoz", pos: "All-Rounder" },
+    { id: "p_025", name: "Mirto", team: "Stinger", pos: "All-Rounder" },
+    { id: "p_026", name: "Vazelin", team: "Stinger", pos: "Outside" },
+    { id: "p_027", name: "Sloth", team: "Stinger", pos: "All-Rounder" },
+    { id: "p_028", name: "Kukuruzni", team: "Stinger", pos: "Middle" },
+    { id: "p_029", name: "Forget", team: "Stinger", pos: "Outside" },
+    { id: "p_030", name: "AMX", team: "Stinger", pos: "Opposite" },
+    { id: "p_031", name: "Nomo", team: "Stinger", pos: "All-Rounder" },
+    { id: "p_032", name: "Special", team: "Stinger", pos: "Opposite" },
+    { id: "p_033", name: "Oblachko", team: "Stinger", pos: "Opposite" },
+    { id: "p_034", name: "hiori", team: "Stinger", pos: "Setter" },
+    { id: "p_035", name: "s0nr4ku", team: "Sendai Crows", pos: "Outside" },
+    { id: "p_036", name: "delta_kendo", team: "Sendai Crows", pos: "Middle" },
+    { id: "p_037", name: "TFX310", team: "Sendai Crows", pos: "Opposite" },
+    { id: "p_038", name: "kyle292800", team: "Sendai Crows", pos: "All-Rounder" },
+    { id: "p_039", name: "WanderWithAmi", team: "Sendai Crows", pos: "Setter" },
+    { id: "p_040", name: "mec5md", team: "Sendai Crows", pos: "Outside/Middle" },
+    { id: "p_041", name: "danielpogiramos", team: "Sendai Crows", pos: "All-Rounder" },
+    { id: "p_042", name: "loudaFAEKGAMER", team: "Sendai Crows", pos: "Middle" },
+    { id: "p_043", name: "KrunchyA", team: "Sendai Crows", pos: "Outside" },
+    { id: "p_044", name: "Quadriono", team: "Sendai Crows", pos: "Middle" },
+    { id: "p_045", name: "LJAL1414", team: "Sendai Crows", pos: "Middle" },
+    { id: "p_046", name: "buddysing466", team: "Sendai Crows", pos: "Outside/Opposite" },
+    { id: "p_047", name: "iAspxctt", team: "Sendai Crows", pos: "Outside/Opposite" },
+    { id: "p_048", name: "Takigawa24", team: "Umino", pos: "All-Rounder" },
+    { id: "p_049", name: "ImYourBackpack", team: "Umino", pos: "Opposite/Outside" },
+    { id: "p_050", name: "edanacain3", team: "Umino", pos: "Middle" },
+    { id: "p_051", name: "UchihaJpmark", team: "Umino", pos: "Setter" },
+    { id: "p_052", name: "memenoob345", team: "Umino", pos: "Outside" },
+    { id: "p_053", name: "Beta_XY", team: "Umino", pos: "Middle/Outside" },
+    { id: "p_054", name: "choi_miri0", team: "Umino", pos: "Libero" },
+    { id: "p_055", name: "zxnqt6", team: "Umino", pos: "Outside" },
+    { id: "p_056", name: "memaybe_hungry", team: "Umino", pos: "Outside" },
+    { id: "p_057", name: "haaeung", team: "Umino", pos: "Opposite" },
+    { id: "p_058", name: "ygolpogi", team: "Umino", pos: "Middle/Outside" },
+    { id: "p_059", name: "Dazza6111", team: "Vanguard", pos: "Setter" },
+    { id: "p_060", name: "xpr_orxprap", team: "Vanguard", pos: "Opposite" },
+    { id: "p_061", name: "it0ylilk1ds", team: "Vanguard", pos: "Libero" },
+    { id: "p_062", name: "Monkeybsj", team: "Vanguard", pos: "All-Rounder" },
+    { id: "p_063", name: "Aryentei", team: "Vanguard", pos: "Outside" },
+    { id: "p_064", name: "Vanity_io", team: "Vanguard", pos: "Outside" },
+    { id: "p_065", name: "neonoppaein", team: "Vanguard", pos: "Opposite" },
+    { id: "p_066", name: "Action_penguin20", team: "Vanguard", pos: "Libero" },
+    { id: "p_067", name: "vexvex_skittles", team: "Vanguard", pos: "Outside" },
+    { id: "p_068", name: "daremardulce", team: "Vanguard", pos: "Setter" },
+    { id: "p_069", name: "CoasMeyd", team: "Vanguard", pos: "All-Rounder" },
+    { id: "p_070", name: "GodEdgeLordz", team: "Vanguard", pos: "All-Rounder" },
+    { id: "p_071", name: "Grahlx", team: "Vanguard", pos: "Middle" },
+    { id: "p_072", name: "apoleonicAvy", team: "Vanguard", pos: "Outside" },
+    { id: "p_073", name: "tarutane", team: "Vanguard", pos: "Middle" },
+    { id: "p_074", name: "The_ToxicCreeper", team: "Vanguard", pos: "Middle" },
+    { id: "p_075", name: "TTBPCCCA65437", team: "Seishin Skyblade", pos: "All-Rounder" },
+    { id: "p_076", name: "thekillerreyven", team: "Seishin Skyblade", pos: "Setter" },
+    { id: "p_077", name: "Green_Power0928", team: "Seishin Skyblade", pos: "Outside" },
+    { id: "p_078", name: "hjfdfhudfvgfhj", team: "Seishin Skyblade", pos: "Outside" },
+    { id: "p_079", name: "ybanez", team: "Seishin Skyblade", pos: "Libero" },
+    { id: "p_080", name: "AvengersWanda", team: "Seishin Skyblade", pos: "Opposite/Setter" },
+    { id: "p_081", name: "prestomentom", team: "Seishin Skyblade", pos: "Opposite/Setter" },
+    { id: "p_082", name: "Phantom_Spark214", team: "Seishin Skyblade", pos: "Middle/Libero" },
+    { id: "p_083", name: "fddhvffg", team: "Seishin Skyblade", pos: "Opposite" },
+    { id: "p_084", name: "coolfire32134", team: "Seishin Skyblade", pos: "Setter/Opposite" },
+    { id: "p_085", name: "Arsenalimuchgood", team: "Seishin Skyblade", pos: "Opposite" },
+    { id: "p_086", name: "Yuuko_yuuji", team: "Seishin Skyblade", pos: "Middle/Libero" },
+    { id: "p_087", name: "iker123tr", team: "Seishin Skyblade", pos: "Outside" },
+    { id: "p_088", name: "fljjn1920", team: "Seishin Skyblade", pos: "Outside" },
+    { id: "p_089", name: "periodoftimeandspace", team: "Seishin Skyblade", pos: "Libero" },
+    { id: "p_090", name: "5h4r1ngan", team: "Orchid", pos: "Setter" },
+    { id: "p_091", name: "Creeperbean10", team: "Orchid", pos: "Opposite" },
+    { id: "p_092", name: "Yaretzi_2976", team: "Orchid", pos: "Middle" },
+    { id: "p_093", name: "UOUUZ2", team: "Orchid", pos: "Outside/Middle" },
+    { id: "p_094", name: "cvrmichxl", team: "Orchid", pos: "All-Rounder" },
+    { id: "p_095", name: "bad_gorl532", team: "Orchid", pos: "Libero" },
+    { id: "p_096", name: "71K14", team: "Orchid", pos: "Setter" },
+    { id: "p_097", name: "Asunaa247", team: "Orchid", pos: "Setter/Outside" },
+    { id: "p_098", name: "qwertfddddddd", team: "Orchid", pos: "Outside/Opposite" },
+    { id: "p_099", name: "syntheno", team: "Orchid", pos: "Middle" },
+    { id: "p_100", name: "justinbeab", team: "Orchid", pos: "Outside" },
+    { id: "p_101", name: "6PotatoStash9", team: "Orchid", pos: "Outside" },
+    { id: "p_102", name: "AkoLangToh08912", team: "Orchid", pos: "Outside/Opposite" },
+    { id: "p_103", name: "Lazybirdzz", team: "Orchid", pos: "Outside/Middle" },
+    { id: "p_104", name: "SirCoolGuy1015", team: "Orchid", pos: "All-Rounder" },
+    { id: "p_105", name: "XxkenkanekixX123765", team: "Orchid", pos: "All-Rounder" },
+    { id: "p_106", name: "Ke7Lz", team: "The Order", pos: "All-Rounder" },
+    { id: "p_107", name: "Elemenstreem", team: "The Order", pos: "Outside" },
+    { id: "p_108", name: "xxHaPpYxx40", team: "The Order", pos: "Outside" },
+    { id: "p_109", name: "oneonlyy", team: "The Order", pos: "Middle" },
+    { id: "p_110", name: "Zanogrid", team: "The Order", pos: "Libero/Setter" },
+    { id: "p_111", name: "Notinnapropieta", team: "The Order", pos: "Opposite" },
+    { id: "p_112", name: "rgnaltaccount", team: "The Order", pos: "Setter/Libero" },
+    { id: "p_113", name: "Crzycyko", team: "The Order", pos: "Outside" },
+    { id: "p_114", name: "wawxenbow", team: "The Order", pos: "Libero" },
+    { id: "p_115", name: "jzxicy", team: "The Order", pos: "Opposite" },
+    { id: "p_116", name: "Elite_Ranks", team: "The Order", pos: "Middle" },
+    { id: "p_117", name: "reneealexander", team: "The Order", pos: "All-Rounder" },
+    { id: "p_118", name: "Eggyheadnooby", team: "The Order", pos: "All-Rounder" },
+    { id: "p_119", name: "howdits", team: "The Order", pos: "Libero" },
+    { id: "p_120", name: "D4C_KQ", team: "Kittyoo", pos: "All-Rounder" },
+    { id: "p_121", name: "SOUL_NIGHT10", team: "Kittyoo", pos: "Outside/Middle" },
+    { id: "p_122", name: "GONGKAK", team: "Kittyoo", pos: "Opposite" },
+    { id: "p_123", name: "marvellling", team: "Kittyoo", pos: "Outside" },
+    { id: "p_124", name: "Ivanlooi25", team: "Kittyoo", pos: "Outside/Libero" },
+    { id: "p_125", name: "Lilithxia2712", team: "Kittyoo", pos: "Outside" },
+    { id: "p_126", name: "noob_oguriSucks", team: "Kittyoo", pos: "Opposite/Outside" },
+    { id: "p_127", name: "ofjezjezs", team: "Kittyoo", pos: "Middle/Libero" },
+    { id: "p_128", name: "Lordcalypso", team: "Kittyoo", pos: "Libero" },
+    { id: "p_129", name: "despavitar", team: "Kittyoo", pos: "Setter" },
+    { id: "p_130", name: "TheLejendsQueen", team: "Kittyoo", pos: "Outside" },
+    { id: "p_131", name: "N4_47", team: "Kittyoo", pos: "Middle" },
+    { id: "p_132", name: "jorace20", team: "Kittyoo", pos: "Outside/Setter" },
+    { id: "p_133", name: "chaous1000", team: "Kittyoo", pos: "Opposite/Middle" },
+    { id: "p_134", name: "iam_north69699", team: "Kittyoo", pos: "Middle" },
+    { id: "p_135", name: "jo_odmardeni", team: "Kittyoo", pos: "Middle" },
+    { id: "p_136", name: "LB_Tempted", team: "Teiko", pos: "Setter" },
+    { id: "p_137", name: "zimon25", team: "Teiko", pos: "Middle" },
+    { id: "p_138", name: "Choiixzn", team: "Teiko", pos: "Middle" },
+    { id: "p_139", name: "RisingBlades", team: "Teiko", pos: "All-Rounder" },
+    { id: "p_140", name: "rehaniv12", team: "Teiko", pos: "Outside" },
+    { id: "p_141", name: "Ace_Ish1kawa", team: "Teiko", pos: "Opposite" },
+    { id: "p_142", name: "DarkEclips_e", team: "Teiko", pos: "All-Rounder" },
+    { id: "p_143", name: "AnkaaMGL0804", team: "Teiko", pos: "Outside" },
+    { id: "p_144", name: "gwagwacattroll", team: "Teiko", pos: "Libero" },
+    { id: "p_145", name: "TW_Jupiter", team: "Teiko", pos: "Outside" },
+    { id: "p_146", name: "DominuzGrey", team: "Teiko", pos: "Setter" },
+    { id: "p_147", name: "RoyaleMice6", team: "Equinox", pos: "Setter/All-Rounder" },
+    { id: "p_148", name: "memenoob345", team: "Equinox", pos: "Outside/All-Rounder" },
+    { id: "p_149", name: "sulhipip", team: "Equinox", pos: "Outside/Opposite" },
+    { id: "p_150", name: "kouuuuuuw", team: "Equinox", pos: "Middle" },
+    { id: "p_151", name: "KungKangg", team: "Equinox", pos: "Middle/Libero" },
+    { id: "p_152", name: "Gelatinousious", team: "Equinox", pos: "Opposite/All-Rounder" },
+    { id: "p_153", name: "GGgrazyGG", team: "Equinox", pos: "Libero/Middle" },
+    { id: "p_154", name: "NABILGOTMELIKE", team: "Equinox", pos: "Setter/Libero" },
+    { id: "p_155", name: "Pazzel", team: "Equinox", pos: "Outside/Setter" },
+    { id: "p_156", name: "vex", team: "Equinox", pos: "Opposite/Middle" },
+    { id: "p_157", name: "lwkeyfinn", team: "Equinox", pos: "Middle/Outside" },
+    { id: "p_158", name: "DarkJackxx12", team: "Equinox", pos: "Opposite/Outside" },
+    { id: "p_159", name: "tadatsuneshinkai", team: "Equinox", pos: "Opposite/Middle" },
+    { id: "p_160", name: "kenderdragoonca74", team: "Equinox", pos: "Outside" },
+    { id: "p_161", name: "llewor1234", team: "Equinox", pos: "Opposite/Middle" },
+  ];
+  const BLANK_STATS = { games: 0, kills: 0, aces: 0, blocks: 0, digs: 0, assists: 0, mvps: 0 };
+  function cleanPStats(s) {
+    const out = {};
+    for (const k in BLANK_STATS) { const v = +((s || {})[k]); out[k] = isFinite(v) && v >= 0 ? Math.round(v * 10) / 10 : 0; }
+    return out;
+  }
+  function seedPlayers() { return DEFAULT_PLAYERS.map(p => ({ id: p.id, name: p.name, team: p.team, pos: p.pos, stats: { ...BLANK_STATS } })); }
   /* Season 2 team list — the 12 teams registered in the team-registration forum */
   const DEFAULT_S2_TEAMS = ["Vanguard", "The Order", "Equinox", "Miku", "Umino", "Stinger", "Teiko", "Orchid", "Kittyoo", "Seishin Skyblade", "Sendai Crows", "Yakamoz"];
   const DEFAULT_SCRIM_TEAMS = ["Green Giants", "Equinox", "Senzai", "Seishin Skyblade", "The Order", "Canopus", "Miku", "Vanguard", "Volare", "Teiko", "Zenith", "Nekopara", "Ground Zero", "Invictus", "Stinger", "Ho-Kago Kawaii Larps", "Yakamoz", "Kittyoo"];
@@ -617,6 +789,41 @@ function fileToDataUrl(file, max = 420) {
       const sets = cleanSets(body.sets);
       fx.sets = sets.length ? sets : null;   // empty → clear the result
       kvPut("s2", JSON.stringify(cur)); return ok({ ok: true });
+    }
+
+    /* ---- player roster + stats (admin-managed) ---- */
+    if (p === "/players" && method === "GET") {
+      const raw = kvGet("players");
+      if (raw == null) { const d = seedPlayers(); kvPut("players", JSON.stringify(d)); return ok(d); }
+      return ok(JSON.parse(raw));
+    }
+    if (p === "/admin/players/add" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      const name = cleanStr(body.name, 40), team = cleanStr(body.team, 40), pos2 = cleanStr(body.pos, 40);
+      if (!name || !team) return err("name and team are required", 400);
+      const raw = kvGet("players"); const list = raw ? JSON.parse(raw) : seedPlayers();
+      list.push({ id: uid("p_"), name, team, pos: pos2, stats: cleanPStats(body.stats) });
+      kvPut("players", JSON.stringify(list)); return ok({ ok: true });
+    }
+    if (p === "/admin/players/update" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      const raw = kvGet("players"); const list = raw ? JSON.parse(raw) : seedPlayers();
+      const pl = list.find(x => x.id === body.id);
+      if (!pl) return err("player not found", 404);
+      if (typeof body.name === "string" && body.name.trim()) pl.name = cleanStr(body.name, 40);
+      if (typeof body.team === "string" && body.team.trim()) pl.team = cleanStr(body.team, 40);
+      if (typeof body.pos === "string") pl.pos = cleanStr(body.pos, 40);
+      if (body.stats) pl.stats = cleanPStats({ ...pl.stats, ...body.stats });
+      kvPut("players", JSON.stringify(list)); return ok({ ok: true });
+    }
+    if (p === "/admin/players/delete" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      const raw = kvGet("players"); const list = (raw ? JSON.parse(raw) : seedPlayers()).filter(x => x.id !== body.id);
+      kvPut("players", JSON.stringify(list)); return ok({ ok: true });
+    }
+    if (p === "/admin/players/reset" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      kvPut("players", JSON.stringify(seedPlayers())); return ok({ ok: true });
     }
 
     /* ---- honors: tournament placements driving the all-time rankings ---- */
