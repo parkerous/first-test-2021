@@ -253,7 +253,7 @@ async function renderPreseasonLeaders() {
     <div class="psl-top3">
       ${top.map((t, i) => `<div class="psl-item"><span class="psl-rank">${i + 1}</span>${crest(t.name, i)}<span class="psl-name">${scrimEsc(t.name)}${moveArrow(mv[t.name])}</span><span class="psl-pts">${fmt(t.record)} pts</span></div>`).join("")}
     </div>
-    <a class="psl-link" href="standings.html">Full standings →</a>`;
+    <a class="psl-link" href="scrims.html">Full scrim records →</a>`;
 }
 
 /* ---- homepage "Latest Matches" widget (#psMatches) ----
@@ -299,7 +299,7 @@ async function renderLatestMatches() {
     <div class="psm-list">
       ${ms.map(m => `<div class="psm-row"><span class="psm-day">Day ${matchDay(m)}</span>${scrimMatchLine(m).text}</div>`).join("")}
     </div>
-    <a class="psl-link" href="standings.html">All results &amp; standings →</a>`;
+    <a class="psl-link" href="scrims.html">All results &amp; records →</a>`;
 }
 
 document.addEventListener("DOMContentLoaded", function () { renderScrimStandings(); renderPreseasonLeaders(); renderLatestMatches(); });

@@ -6,10 +6,10 @@
   <title>Admin — Soai</title>
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=17" rel="stylesheet" />
-  <link href="css/home.css?v=17" rel="stylesheet" />
-  <link href="css/teams.css?v=17" rel="stylesheet" />
-  <script src="js/theme.js?v=17"></script>
+  <link href="css/voll-e.css?v=18" rel="stylesheet" />
+  <link href="css/home.css?v=18" rel="stylesheet" />
+  <link href="css/teams.css?v=18" rel="stylesheet" />
+  <script src="js/theme.js?v=18"></script>
 </head>
 <body>
 
@@ -18,7 +18,6 @@
       <a class="brand" href="index.html"><img class="brand-logo" src="img/binsu-pfp.jpg" alt="Binsu Star logo" /><span class="word">Binsu Star</span></a>
       <div class="links menubar">
         <a href="index.html">Home</a>
-        <a href="teams.html">Teams</a>
         <a href="admin.html" class="on">Admin</a>
       </div>
     </div>
@@ -31,7 +30,7 @@
     <div class="card admin-login" id="loginCard">
       <div class="login-emoji">🔒</div>
       <h2 style="margin:0 0 4px">Admin sign in</h2>
-      <p class="mini-note" style="margin-top:0">Only the admin can post announcements, approve teams, and edit rosters.</p>
+      <p class="mini-note" style="margin-top:0">Only the admin can post announcements, manage the preseason, and edit player profiles.</p>
       <div class="row"><input id="adminKeyIn" type="password" placeholder="Admin password" style="flex:1;min-width:200px" /><button class="btn" id="loginBtn">Log in →</button></div>
       <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--muted);font-size:12.5px">Advanced: connect a shared backend (optional — data saves in this browser by default)</summary>
         <div class="row" style="margin-top:8px"><input id="apiUrl" type="text" placeholder="Backend URL (e.g. https://first-test-2021.binsustar.workers.dev)" style="flex:1" /></div>
@@ -44,14 +43,12 @@
       <!-- dashboard banner + at-a-glance stats -->
       <div class="admin-hero">
         <div class="admin-hero-top"><span class="ah-badge">🏐 Binsu Star</span><span class="ah-title">League control panel</span></div>
-        <div class="stat-row" id="statRow"></div>
       </div>
 
       <div class="admin-tabs">
-        <button class="atab on" data-tab="teams">👥 Teams</button>
+        <button class="atab on" data-tab="teams">⚙️ Site</button>
         <button class="atab" data-tab="ann">📢 Announcements</button>
         <button class="atab" data-tab="players">👤 Players</button>
-        <button class="atab" data-tab="coaching">🎓 Coaching</button>
         <button class="atab" data-tab="scrims">🏐 Preseason</button>
         <button class="atab" data-tab="rules">📖 Rules</button>
       </div>
@@ -67,14 +64,6 @@
             <span class="msg" id="brandMsg" style="color:var(--muted);font-size:12.5px"></span>
           </div>
         </div>
-        <div class="card">
-          <div class="row" style="align-items:center;margin-bottom:4px">
-            <h2 style="margin:0">Team management</h2>
-            <span class="spacer"></span>
-            <button class="btn ghost" id="refreshBtn">↻ Refresh</button>
-          </div>
-          <div id="teamAdmin"></div>
-        </div>
       </div>
 
       <div class="tabpane" id="pane-players" style="display:none">
@@ -86,34 +75,6 @@
           </div>
           <p class="mini-note" style="margin-top:0">Award titles, a verified badge and a tagline — or remove a profile.</p>
           <div id="profileAdmin"></div>
-        </div>
-      </div>
-
-      <div class="tabpane" id="pane-coaching" style="display:none">
-        <div class="card">
-          <h2>🎓 Add a coach</h2>
-          <p class="mini-note" style="margin-top:0">Coaches appear grouped by position on the Coaching page. Add their Discord so players can reach them.</p>
-          <div class="row">
-            <input id="coName" type="text" placeholder="Coach name" style="flex:1;min-width:150px" />
-            <select id="coPos" style="min-width:160px"><option value="">Position…</option></select>
-          </div>
-          <div class="row"><input id="coDiscord" type="text" placeholder="💬 Discord handle or invite link" style="flex:1;min-width:180px" /></div>
-          <div class="row" style="flex-direction:column;align-items:stretch;gap:6px"><textarea id="coBlurb" rows="2" placeholder="Short blurb (what they coach, rank, etc.)"></textarea></div>
-          <div class="row" style="align-items:center">
-            <label class="btn ghost" style="cursor:pointer">🖼️ Banner pic<input type="file" accept="image/*" hidden id="coBanner" /></label>
-            <label class="btn ghost" style="cursor:pointer">📸 Photo<input type="file" accept="image/*" hidden id="coPhoto" /></label>
-            <button class="btn" id="coAddBtn">＋ Add coach</button>
-            <span class="msg" id="coMsg" style="color:var(--muted);font-size:12.5px"></span>
-          </div>
-        </div>
-        <div class="card">
-          <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0">Coaches</h2><span class="spacer"></span><button class="btn ghost" id="refreshCoachBtn">↻ Refresh</button></div>
-          <div id="coachAdmin"></div>
-        </div>
-        <div class="card">
-          <h2>📨 Coaching requests</h2>
-          <p class="mini-note" style="margin-top:0">Requests players sent from the website.</p>
-          <div id="reqAdmin"></div>
         </div>
       </div>
 
@@ -188,9 +149,9 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · admin</p>
 
-  <script src="js/api.js?v=17"></script>
-  <script src="js/scrims.js?v=17"></script>
-  <script src="js/statsheet.js?v=17"></script>
-  <script src="js/admin.js?v=17"></script>
+  <script src="js/api.js?v=18"></script>
+  <script src="js/scrims.js?v=18"></script>
+  <script src="js/statsheet.js?v=18"></script>
+  <script src="js/admin.js?v=18"></script>
 </body>
 </html>

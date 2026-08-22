@@ -86,6 +86,37 @@ function renderSheetTable(host, data) {
     </div>`;
 }
 
+/* Per-category leaders from the sheet: for every numeric column, the top 3
+   rows by value. The first non-numeric column is treated as the player name,
+   the second (if any) as their team. */
+function renderSheetLeaders(host, data) {
+  if (!host) return;
+  const val = c => parseFloat(String(c == null ? "" : c).replace(/[%+,]/g, ""));
+  const numeric = i => data.rows.some(r => !isNaN(val(r[i]))) &&
+    data.rows.every(r => (r[i] == null || String(r[i]).trim() === "") || !isNaN(val(r[i])));
+  const textCols = data.headers.map((_, i) => i).filter(i => !numeric(i));
+  const nameCol = textCols[0] != null ? textCols[0] : 0;
+  const teamCol = textCols[1];
+  const medal = ["🥇", "🥈", "🥉"];
+  const cards = data.headers.map((h, i) => {
+    if (!numeric(i) || i === nameCol) return "";
+    const top = data.rows
+      .filter(r => !isNaN(val(r[i])))
+      .slice().sort((a, b) => val(b[i]) - val(a[i]))
+      .slice(0, 3);
+    if (!top.length) return "";
+    return `
+      <div class="lp-tile">
+        <span class="lp-ic">🏅</span>
+        <h3>${sheetEsc(h)}</h3>
+        <p>${top.map((r, k) => `${medal[k]} <b>${sheetEsc(r[nameCol])}</b>${teamCol != null && r[teamCol] ? ` <span style="color:var(--muted)">(${sheetEsc(r[teamCol])})</span>` : ""} — ${sheetEsc(r[i])}`).join("<br>")}</p>
+      </div>`;
+  }).filter(Boolean);
+  host.innerHTML = cards.length ? cards.join("") : "";
+  const sec = host.closest("section");
+  if (sec) sec.style.display = cards.length ? "" : "none";
+}
+
 /* ---- public stat-sheet section (#sheetHost on the stats page) ----
    Fetches on load and re-fetches every 60s while the page is open. */
 async function initStatSheet() {
@@ -95,7 +126,9 @@ async function initStatSheet() {
   let site = {};
   try { site = await apiGet("/site"); } catch (e) { /* leave empty */ }
   const url = site && site.statSheet;
+  const leaders = document.getElementById("sheetLeaders");
   if (!url) {
+    if (leaders && leaders.closest("section")) leaders.closest("section").style.display = "none";
     host.innerHTML = `
       <div class="card" style="text-align:center;padding:26px">
         <div style="font-size:30px">📋</div>
@@ -108,6 +141,7 @@ async function initStatSheet() {
     try {
       const data = await fetchSheet(url);
       renderSheetTable(host, data);
+      renderSheetLeaders(leaders, data);
       if (status) status.textContent = "Auto-updates from the connected sheet · refreshed " + new Date().toLocaleTimeString();
     } catch (e) {
       if (!host.querySelector("table")) host.innerHTML = `<p class="empty">⚠️ Couldn't load the stat sheet — ${sheetEsc(e.message)}.</p>`;

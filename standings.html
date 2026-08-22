@@ -7,10 +7,10 @@
   <meta name="description" content="Binsu Star Season 2 league standings — coming soon." />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=17" rel="stylesheet" />
-  <link href="css/home.css?v=17" rel="stylesheet" />
-  <link href="css/season.css?v=17" rel="stylesheet" />
-  <script src="js/theme.js?v=17"></script>
+  <link href="css/voll-e.css?v=18" rel="stylesheet" />
+  <link href="css/home.css?v=18" rel="stylesheet" />
+  <link href="css/season.css?v=18" rel="stylesheet" />
+  <script src="js/theme.js?v=18"></script>
 </head>
 <body>
 
@@ -28,19 +28,10 @@
             <a href="rules.html">League Rules</a>
             <a href="schedule.html">📅 S2 Schedule</a>
             <a href="standings.html" class="on">📊 S2 Standings</a>
+            <a href="scrims.html">🏐 Preseason Scrims</a>
           </div>
         </details>
-        <details class="menu-dd">
-          <summary>Teams ▾</summary>
-          <div class="dd-panel">
-            <span class="dd-label">Teams</span>
-            <a href="teams.html?cat=Binsu">Teams in Binsu</a>
-            <a href="teams.html?cat=League">Teams in League</a>
-            <a href="teams.html">All teams</a>
-            <a href="players.html">👤 Player Profiles</a>
-          </div>
-        </details>
-        <a href="coaching.html">Coaching</a>
+        <a href="players.html">👤 Players</a>
         <a href="stats.html">📊 Stats</a>
       </div>
     </div>
@@ -53,28 +44,6 @@
       <p>The Season 2 round-robin table — played, won, lost, points, set &amp; point ratio, updated as matches happen.</p>
     </div>
   </header>
-
-  <!-- Preseason scrims — live now -->
-  <section class="section" style="max-width:1000px">
-    <div class="section-head"><h2><span class="bar"></span>🏐 Preseason Scrims — Final</h2><span class="spacer"></span><span class="pending-pill">🏁 End of Preseason Scrims</span></div>
-    <p class="mini-note" style="margin:-6px 0 14px;color:var(--muted);font-size:13.5px">
-      The preseason scrim window is over — these are the <b>official final records</b>, checked and posted by the league. Ranked by <b>Pts</b> (win +1 / loss −1), then win-rate.
-    </p>
-    <div class="table-scroll s2-fade">
-      <table class="standings">
-        <thead><tr>
-          <th>Rank</th><th>Team</th>
-          <th class="num" title="Wins">W</th>
-          <th class="num" title="Losses">L</th>
-          <th class="num" title="Points: win +1 / loss −1">Pts</th>
-          <th class="num" title="Win rate">Win %</th>
-        </tr></thead>
-        <tbody id="scrimBody"></tbody>
-      </table>
-    </div>
-    <h3 class="grp" style="margin:22px 0 10px">Recorded scrim results</h3>
-    <div id="scrimResults" class="ps-results"></div>
-  </section>
 
   <section class="section" style="max-width:1000px">
     <div class="coming-wrap s2-fade d2">
@@ -93,15 +62,15 @@
         <div class="cs-ball">🏐</div>
         <span class="cs-badge">Coming Soon</span>
         <h2>Season 2 standings aren't live yet</h2>
-        <p>Once S2 begins, the full league table appears right here — ranked by points, with set and point ratios.</p>
+        <p>Once S2 begins, the full league table appears right here — ranked by points, with set and point ratios. Until then, check the <a href="scrims.html">official preseason scrim records</a>.</p>
       </div>
     </div>
   </section>
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Season 2</p>
 
-  <script src="js/api.js?v=17"></script>
-  <script src="js/scrims.js?v=17"></script>
+  <script src="js/api.js?v=18"></script>
+  <script src="js/scrims.js?v=18"></script>
   <script>
     // build 8 shimmer rows behind the "coming soon" card
     var b = document.getElementById("ghostBody");
