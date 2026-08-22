@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Preseason Scrims — Binsu Star</title>
+  <meta name="description" content="Binsu Star preseason scrims — the official final records, every recorded result, and the preseason team stat leaders." />
+  <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
+  <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
+  <link href="css/voll-e.css?v=18" rel="stylesheet" />
+  <link href="css/home.css?v=18" rel="stylesheet" />
+  <link href="css/landing.css?v=18" rel="stylesheet" />
+  <link href="css/season.css?v=18" rel="stylesheet" />
+  <script src="js/theme.js?v=18"></script>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="wrap">
+      <a class="brand" href="index.html"><img class="brand-logo" src="img/binsu-pfp.jpg" alt="Binsu Star logo" /><span class="word">Binsu Star</span></a>
+      <div class="links menubar">
+        <a href="index.html">Home</a>
+        <a href="guide.html">Guide</a>
+        <details class="menu-dd">
+          <summary>League ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">League</span>
+            <a href="rankings.html">S1 League Rankings</a>
+            <a href="rules.html">League Rules</a>
+            <a href="schedule.html">📅 S2 Schedule</a>
+            <a href="standings.html">📊 S2 Standings</a>
+            <a href="scrims.html" class="on">🏐 Preseason Scrims</a>
+          </div>
+        </details>
+        <a href="players.html">👤 Players</a>
+        <a href="stats.html">📊 Stats</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="s2-hero s2-fade">
+    <div class="s2-hero-inner">
+      <span class="s2-pill">Binsu Star · Preseason</span>
+      <h1>Preseason Scrims</h1>
+      <p>The official final scrim records for every team, all recorded results, and the preseason stat leaders.</p>
+    </div>
+  </header>
+
+  <!-- official final records -->
+  <section class="section" style="max-width:1000px">
+    <div class="section-head"><h2><span class="bar"></span>🏐 Official Final Records</h2><span class="spacer"></span><span class="pending-pill">🏁 End of Preseason Scrims</span></div>
+    <p class="mini-note" style="margin:-6px 0 14px;color:var(--muted);font-size:13.5px">
+      The preseason scrim window is over — these are the <b>official final records</b>, checked and posted by the league. Ranked by <b>Pts</b> (win +1 / loss −1), then win-rate.
+    </p>
+    <div class="table-scroll s2-fade">
+      <table class="standings">
+        <thead><tr>
+          <th>Rank</th><th>Team</th>
+          <th class="num" title="Wins">W</th>
+          <th class="num" title="Losses">L</th>
+          <th class="num" title="Points: win +1 / loss −1">Pts</th>
+          <th class="num" title="Win rate">Win %</th>
+        </tr></thead>
+        <tbody id="scrimBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- preseason team stat leaders -->
+  <section class="section" style="max-width:1000px">
+    <div class="section-head"><h2><span class="bar"></span>📈 Preseason Stat Leaders</h2></div>
+    <p class="mini-note" style="margin:-6px 0 14px;color:var(--muted);font-size:13.5px">
+      Computed from every scrim recorded on Binsu Star.
+    </p>
+    <div class="lp-features" id="binsuStats" style="padding:0"></div>
+  </section>
+
+  <!-- recorded results -->
+  <section class="section" style="max-width:1000px">
+    <div class="section-head"><h2><span class="bar"></span>📜 Recorded Scrim Results</h2></div>
+    <div id="scrimResults" class="ps-results"></div>
+  </section>
+
+  <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Preseason</p>
+
+  <script src="js/api.js?v=18"></script>
+  <script src="js/scrims.js?v=18"></script>
+  <script>
+    /* Preseason team stat leaders — computed from the recorded scrim data. */
+    (async function () {
+      const host = document.getElementById("binsuStats");
+      if (!host) return;
+      let data = { teams: [], matches: [] };
+      try { data = await apiGet("/scrims"); } catch (e) { /* leave empty */ }
+      const rows = computeScrimStandings(data.teams, data.matches).filter(t => t.played > 0);
+      if (!rows.length) { host.innerHTML = '<p class="empty">No scrim data recorded.</p>'; return; }
+
+      const byDiff = rows.filter(t => t.diff != null).slice().sort((a, b) => b.diff - a.diff)[0];
+      const bySet = rows.filter(t => t.setsPlayed >= 6).slice().sort((a, b) => b.setWinrate - a.setWinrate)[0];
+      const byWins = rows.slice().sort((a, b) => b.sw - a.sw)[0];
+      let hiSet = null;
+      (data.matches || []).forEach(m => (m.sets || []).forEach(s => {
+        if (typeof s.a === "number" && typeof s.b === "number") {
+          const tot = s.a + s.b;
+          if (!hiSet || tot > hiSet.tot) hiSet = { tot, a: s.a, b: s.b, m };
+        }
+      }));
+
+      const card = (ic, title, team, val, sub) => `
+        <div class="lp-tile">
+          <span class="lp-ic">${ic}</span>
+          <h3>${title}</h3>
+          <p><b>${scrimEsc(team)}</b> — ${val}<br><span style="color:var(--muted)">${sub}</span></p>
+        </div>`;
+      const parts = [];
+      if (byDiff) parts.push(card("📈", "Best Point Differential", byDiff.name, (byDiff.diff > 0 ? "+" : "") + byDiff.diff, "outscored opponents across all recorded sets"));
+      if (bySet) parts.push(card("🔥", "Best Set Win-Rate", bySet.name, Math.round(bySet.setWinrate * 100) + "%", bySet.sw + "–" + bySet.sl + " in sets (min. 6 played)"));
+      if (byWins) parts.push(card("💪", "Most Sets Won", byWins.name, byWins.sw + " sets", "across " + byWins.played + " recorded scrims"));
+      if (hiSet) parts.push(card("⚔️", "Highest-Scoring Set", hiSet.m.teamA + " vs " + hiSet.m.teamB, hiSet.a + "–" + hiSet.b, hiSet.tot + " total points in one set"));
+      host.innerHTML = parts.join("");
+    })();
+  </script>
+</body>
+</html>

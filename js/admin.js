@@ -34,12 +34,8 @@ async function login() {
 async function loadAll() {
   anns = await apiGet("/announcements").catch(() => []);
   renderAnns();
-  TEAMS = await adminGet("/admin/teams").catch(() => []);
-  renderStats();
-  renderTeamAdmin();
   loadSite();
   loadProfiles();
-  loadCoaching();
   loadRules();
   loadScrims();
 }
@@ -486,7 +482,7 @@ function renderReqAdmin() {
 async function deleteReq(id) { await apiPost("/admin/coaching/requests/delete", { id }, true); REQS = REQS.filter(x => x.id !== id); renderReqAdmin(); }
 
 /* ---------- tabs (history-aware: back = undo, forward = redo) ---------- */
-const TABS = ["teams", "ann", "players", "coaching", "scrims", "rules"];
+const TABS = ["teams", "ann", "players", "scrims", "rules"];
 function tabFromHash() { const h = (location.hash || "").replace(/^#/, ""); return TABS.includes(h) ? h : "teams"; }
 /* update just the UI (which tab + pane is shown) */
 function showTab(name) {
@@ -505,13 +501,7 @@ function init() {
   document.getElementById("adminKeyIn").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
   document.getElementById("addAnnBtn").addEventListener("click", addAnn);
   document.getElementById("saveAnnBtn").addEventListener("click", saveAnns);
-  document.getElementById("refreshBtn").addEventListener("click", refresh);
   document.getElementById("refreshProfilesBtn").addEventListener("click", loadProfiles);
-  (typeof PLAYER_ROLES !== "undefined" ? PLAYER_ROLES : []).forEach(r => { const o = document.createElement("option"); o.value = r; o.textContent = r; document.getElementById("coPos").appendChild(o); });
-  document.getElementById("coAddBtn").addEventListener("click", addCoach);
-  document.getElementById("coPhoto").addEventListener("change", e => pickCoachPhoto(e.target));
-  document.getElementById("coBanner").addEventListener("change", e => pickCoachBanner(e.target));
-  document.getElementById("refreshCoachBtn").addEventListener("click", loadCoaching);
   document.getElementById("rulesSave").addEventListener("click", saveRules);
   document.getElementById("rulesReset").addEventListener("click", loadDefaultRules);
   document.getElementById("refreshSuggestBtn").addEventListener("click", loadRules);
