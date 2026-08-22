@@ -5,11 +5,11 @@
    instantly. Leaderboard formula:
    Kills ×2 · Aces ×2 · Blocks ×2 · Digs ×1 · Assists ×1.
    Players are grouped by their FIRST listed position:
-   Setter → Setters · Libero → Liberos · everything else → Hitters.
+   Setter → Setters · Libero → Liberos · everything else → Spikers.
    ============================================================ */
 
 const PSTAT_WEIGHTS = { kills: 2, aces: 2, blocks: 2, digs: 1, assists: 1 };
-const PSTAT_GROUPS = ["Hitters", "Setters", "Liberos"];
+const PSTAT_GROUPS = ["Spikers", "Setters", "Liberos"];
 
 function capBadge(p) { return p && p.cap ? ' <span class="capb" title="Team captain">C</span>' : ""; }
 function pEsc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
@@ -19,7 +19,7 @@ function posGroup(pos) {
   const first = String(pos || "").split("/")[0].trim().toLowerCase();
   if (first.indexOf("set") === 0) return "Setters";
   if (first.indexOf("lib") === 0) return "Liberos";
-  return "Hitters";
+  return "Spikers";
 }
 function playerPts(p) {
   const s = p.stats || {};
@@ -39,9 +39,9 @@ async function renderPlayerStats() {
   const players = await fetchPlayers();
   const medal = ["🥇", "🥈", "🥉"];
 
-  // --- position-split leaderboards (Hitters / Setters / Liberos) ---
-  const groupIcon = { Hitters: "💥", Setters: "🤝", Liberos: "🛡️" };
-  host.innerHTML = PSTAT_GROUPS.map(g => {
+  // --- position-split leaderboards with a pull-down (Spikers / Setters / Liberos) ---
+  const groupIcon = { Spikers: "💥", Setters: "🤝", Liberos: "🛡️" };
+  const boardHtml = g => {
     const rows = players.filter(p => posGroup(p.pos) === g)
       .map(p => ({ ...p, pts: playerPts(p) }))
       .sort((a, b) => b.pts - a.pts || a.name.localeCompare(b.name))
@@ -63,7 +63,22 @@ async function renderPlayerStats() {
           </table>
         </div>
       </div>`;
-  }).join("");
+  };
+  const drawBoards = pick => {
+    document.getElementById("posBoardsGrid").innerHTML =
+      (pick === "All" ? PSTAT_GROUPS : [pick]).map(boardHtml).join("");
+  };
+  host.innerHTML = `
+    <div class="row" style="gap:8px;align-items:center;margin-bottom:14px">
+      <label style="color:var(--muted);font-size:13px;font-weight:700">Position:</label>
+      <select id="posPick" style="min-width:170px">
+        <option value="All">All positions</option>
+        ${PSTAT_GROUPS.map(g => `<option value="${g}">${groupIcon[g]} ${g}</option>`).join("")}
+      </select>
+    </div>
+    <div class="pos-boards" id="posBoardsGrid"></div>`;
+  document.getElementById("posPick").addEventListener("change", e => drawBoards(e.target.value));
+  drawBoards("All");
 
   // --- category leaders (top 3 per stat, all positions) ---
   const cats = [
@@ -96,10 +111,13 @@ async function renderPlayerStats() {
   const tblHost = document.getElementById("rosterTable");
   if (!tblHost) return;
   const teams = [...new Set(players.map(p => p.team))].sort();
-  let fGroup = "All", fTeam = "";
+  let fGroup = "All", fTeam = "", fName = "";
   const draw = () => {
+    const q = fName.trim().toLowerCase();
     const rows = players
-      .filter(p => (fGroup === "All" || posGroup(p.pos) === fGroup) && (!fTeam || p.team === fTeam))
+      .filter(p => (fGroup === "All" || posGroup(p.pos) === fGroup)
+        && (!fTeam || p.team === fTeam)
+        && (!q || p.name.toLowerCase().indexOf(q) !== -1))
       .map(p => ({ ...p, pts: playerPts(p) }))
       .sort((a, b) => b.pts - a.pts || a.team.localeCompare(b.team) || a.name.localeCompare(b.name));
     document.getElementById("rosterGrid").innerHTML = `
@@ -123,16 +141,17 @@ async function renderPlayerStats() {
   };
   tblHost.innerHTML = `
     <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px">
-      ${["All"].concat(PSTAT_GROUPS).map(g => `<button class="btn ${g === "All" ? "" : "ghost"}" data-g="${g}">${g}</button>`).join("")}
-      <select id="rosterTeam" style="min-width:170px"><option value="">All teams</option>${teams.map(t => `<option>${pEsc(t)}</option>`).join("")}</select>
+      <input id="rosterSearch" type="search" placeholder="🔍 Search a player…" style="flex:1;min-width:180px" />
+      <select id="rosterGroup" style="min-width:150px">
+        <option value="All">All positions</option>
+        ${PSTAT_GROUPS.map(g => `<option value="${g}">${g}</option>`).join("")}
+      </select>
+      <select id="rosterTeam" style="min-width:160px"><option value="">All teams</option>${teams.map(t => `<option>${pEsc(t)}</option>`).join("")}</select>
       <span class="mini-note" style="margin:0;align-self:center;color:var(--muted)">${players.length} registered players</span>
     </div>
     <div id="rosterGrid"></div>`;
-  tblHost.querySelectorAll("button[data-g]").forEach(b => b.addEventListener("click", () => {
-    fGroup = b.dataset.g;
-    tblHost.querySelectorAll("button[data-g]").forEach(x => x.classList.toggle("ghost", x !== b));
-    draw();
-  }));
+  document.getElementById("rosterSearch").addEventListener("input", e => { fName = e.target.value; draw(); });
+  document.getElementById("rosterGroup").addEventListener("change", e => { fGroup = e.target.value; draw(); });
   document.getElementById("rosterTeam").addEventListener("change", e => { fTeam = e.target.value; draw(); });
   draw();
 }
