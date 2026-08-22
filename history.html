@@ -7,11 +7,11 @@
   <meta name="description" content="Binsu Star league history — Elo power ratings, the preseason archive, and Season 1 records." />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=20" rel="stylesheet" />
-  <link href="css/home.css?v=20" rel="stylesheet" />
-  <link href="css/landing.css?v=20" rel="stylesheet" />
-  <link href="css/season.css?v=20" rel="stylesheet" />
-  <script src="js/theme.js?v=20"></script>
+  <link href="css/voll-e.css?v=21" rel="stylesheet" />
+  <link href="css/home.css?v=21" rel="stylesheet" />
+  <link href="css/landing.css?v=21" rel="stylesheet" />
+  <link href="css/season.css?v=21" rel="stylesheet" />
+  <script src="js/theme.js?v=21"></script>
 </head>
 <body>
 
@@ -44,9 +44,30 @@
     <div class="s2-hero-inner">
       <span class="s2-pill">Binsu Star · History</span>
       <h1>League History</h1>
-      <p>Elo power ratings across every recorded match, the preseason archive, and where it all started.</p>
+      <p>The all-time team rankings, Elo power ratings across every recorded match, the preseason archive, and where it all started.</p>
     </div>
   </header>
+
+  <!-- all-time team rankings (tournament placements) -->
+  <section class="section" style="max-width:1000px">
+    <div class="section-head"><h2><span class="bar"></span>🏆 All-Time Team Rankings</h2></div>
+    <p class="mini-note" style="margin:-6px 0 14px;color:var(--muted);font-size:13.5px">
+      The trophy table. Teams earn points for how they finish every tournament: <b>🥇 champion 10 pts · 🥈 runner-up 6 pts · 🥉 third 3 pts</b>. Every placement ever recorded counts — this board never resets.
+    </p>
+    <div class="table-scroll s2-fade">
+      <table class="standings">
+        <thead><tr>
+          <th>Rank</th><th>Team</th>
+          <th class="num" title="Championships">🥇</th>
+          <th class="num" title="Runner-up finishes">🥈</th>
+          <th class="num" title="Third-place finishes">🥉</th>
+          <th class="num" title="All-time points">Points</th>
+        </tr></thead>
+        <tbody id="honorBody"></tbody>
+      </table>
+    </div>
+    <div id="trophyCase" style="margin-top:14px"></div>
+  </section>
 
   <!-- Elo power ratings -->
   <section class="section" style="max-width:1000px">
@@ -99,10 +120,39 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · History</p>
 
-  <script src="js/api.js?v=20"></script>
-  <script src="js/scrims.js?v=20"></script>
+  <script src="js/api.js?v=21"></script>
+  <script src="js/scrims.js?v=21"></script>
   <script>
     (async function () {
+      // all-time team rankings from recorded tournament placements
+      const HONOR_PTS = { 1: 10, 2: 6, 3: 3 };
+      let honors = [];
+      try { honors = await apiGet("/honors"); } catch (e) { /* leave empty */ }
+      const hb = document.getElementById("honorBody");
+      if (honors.length) {
+        const by = {};
+        honors.forEach(h => {
+          const t = by[h.team] || (by[h.team] = { name: h.team, g: 0, s: 0, b: 0, pts: 0 });
+          if (h.place === 1) t.g++; else if (h.place === 2) t.s++; else t.b++;
+          t.pts += HONOR_PTS[h.place] || 0;
+        });
+        const rows = Object.values(by).sort((a, b) => b.pts - a.pts || b.g - a.g || b.s - a.s || a.name.localeCompare(b.name));
+        hb.innerHTML = rows.map((t, i) => `<tr>
+          <td class="rk">${i + 1}</td>
+          <td><span class="team"><span class="dot"></span>${scrimEsc(t.name)}</span></td>
+          <td class="num">${t.g || "—"}</td>
+          <td class="num">${t.s || "—"}</td>
+          <td class="num">${t.b || "—"}</td>
+          <td class="num"><b>${t.pts}</b></td>
+        </tr>`).join("");
+        const medals = { 1: "🥇", 2: "🥈", 3: "🥉" };
+        document.getElementById("trophyCase").innerHTML =
+          `<h3 class="grp" style="margin:8px 0 10px">Trophy case</h3>` +
+          honors.map(h => `<div class="ps-result">${medals[h.place]} <b>${scrimEsc(h.team)}</b> — ${h.place === 1 ? "champions of" : h.place === 2 ? "runners-up at" : "3rd at"} <b>${scrimEsc(h.event)}</b>${h.season ? ` <span class="ps-sets">· ${scrimEsc(h.season)}</span>` : ""}</div>`).join("");
+      } else {
+        hb.innerHTML = `<tr><td colspan="6" class="empty">No tournament placements recorded yet — admins add them in the admin panel (🏅 Honors tab). The first tourney win starts the board.</td></tr>`;
+      }
+
       // Elo over all recorded matches: scrims + played S2 fixtures
       let scr = { matches: [] }, s2 = { fixtures: [] };
       try { scr = await apiGet("/scrims"); } catch (e) { /* leave empty */ }

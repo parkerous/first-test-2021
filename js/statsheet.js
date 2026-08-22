@@ -119,9 +119,9 @@ function renderSheetLeaders(host, data) {
 
 /* ---- official player leaderboard ----
    Weighted points over the sheet's stat columns (matched by header name):
-   Kills ×2 · Aces ×3 · Blocks ×2 · Digs ×1 · Assists ×1 · MVPs ×10.
+   Kills ×2 · Aces ×2 · Blocks ×2 · Digs ×1 · Assists ×1 · MVPs ×10.
    Columns not in the table below don't score (e.g. Games, Position). */
-const LB_WEIGHTS = { kill: 2, ace: 3, block: 2, dig: 1, assist: 1, mvp: 10 };
+const LB_WEIGHTS = { kill: 2, ace: 2, block: 2, dig: 1, assist: 1, mvp: 10 };
 
 function computeSheetBoard(data) {
   const val = c => parseFloat(String(c == null ? "" : c).replace(/[%+,]/g, ""));
@@ -162,7 +162,7 @@ function renderSheetBoard(host, data) {
       </table>
     </div>
     <p class="mini-note" style="margin-top:10px;color:var(--muted);font-size:12.5px">
-      Formula: Kills ×2 · Aces ×3 · Blocks ×2 · Digs ×1 · Assists ×1 · MVPs ×10 — computed live from the logged stat sheet.
+      Formula: Kills ×2 · Aces ×2 · Blocks ×2 · Digs ×1 · Assists ×1 · MVPs ×10 — computed live from the logged stat sheet.
     </p>`;
 }
 

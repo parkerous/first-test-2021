@@ -6,10 +6,10 @@
   <title>Admin — Soai</title>
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=20" rel="stylesheet" />
-  <link href="css/home.css?v=20" rel="stylesheet" />
-  <link href="css/teams.css?v=20" rel="stylesheet" />
-  <script src="js/theme.js?v=20"></script>
+  <link href="css/voll-e.css?v=21" rel="stylesheet" />
+  <link href="css/home.css?v=21" rel="stylesheet" />
+  <link href="css/teams.css?v=21" rel="stylesheet" />
+  <script src="js/theme.js?v=21"></script>
 </head>
 <body>
 
@@ -51,6 +51,7 @@
         <button class="atab" data-tab="players">👤 Players</button>
         <button class="atab" data-tab="s2">🏆 Season 2</button>
         <button class="atab" data-tab="scrims">🏐 Preseason</button>
+        <button class="atab" data-tab="honors">🏅 Honors</button>
         <button class="atab" data-tab="rules">📖 Rules</button>
       </div>
 
@@ -154,6 +155,31 @@
         </div>
       </div>
 
+      <div class="tabpane" id="pane-honors" style="display:none">
+        <div class="card">
+          <h2>🏅 Record a tournament placement</h2>
+          <p class="mini-note" style="margin-top:0">Log how a tournament ended and the <a href="history.html" target="_blank">All-Time Team Rankings</a> update instantly: <b>🥇 champion 10 pts · 🥈 runner-up 6 pts · 🥉 third 3 pts</b>. Works for past events too (e.g. Season 1) — the board is all-time and never resets.</p>
+          <div class="row">
+            <input id="hoTeam" type="text" list="hoTeamList" placeholder="Team" style="flex:1;min-width:150px" />
+            <datalist id="hoTeamList"></datalist>
+            <select id="hoPlace" style="min-width:170px">
+              <option value="1" selected>🥇 Champion (10 pts)</option>
+              <option value="2">🥈 Runner-up (6 pts)</option>
+              <option value="3">🥉 Third (3 pts)</option>
+            </select>
+          </div>
+          <div class="row">
+            <input id="hoEvent" type="text" placeholder="Tournament (e.g. Season 2 Playoffs)" style="flex:2;min-width:200px" />
+            <input id="hoSeason" type="text" placeholder="Season / year (optional)" style="flex:1;min-width:130px" />
+          </div>
+          <div class="row"><button class="btn" id="hoAdd">＋ Record placement</button><span class="msg" id="hoMsg" style="color:var(--muted);font-size:12.5px"></span></div>
+        </div>
+        <div class="card">
+          <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0">Recorded placements</h2><span class="spacer"></span><button class="btn ghost" id="refreshHonorsBtn">↻ Refresh</button></div>
+          <div id="honorAdmin"></div>
+        </div>
+      </div>
+
       <div class="tabpane" id="pane-rules" style="display:none">
         <div class="card">
           <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0">📖 Official rule book</h2><span class="spacer"></span><button class="btn ghost" id="rulesReset">↺ Clear (use default)</button></div>
@@ -185,9 +211,9 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · admin</p>
 
-  <script src="js/api.js?v=20"></script>
-  <script src="js/scrims.js?v=20"></script>
-  <script src="js/statsheet.js?v=20"></script>
-  <script src="js/admin.js?v=20"></script>
+  <script src="js/api.js?v=21"></script>
+  <script src="js/scrims.js?v=21"></script>
+  <script src="js/statsheet.js?v=21"></script>
+  <script src="js/admin.js?v=21"></script>
 </body>
 </html>

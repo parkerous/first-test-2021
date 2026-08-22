@@ -567,6 +567,28 @@ async function handleApi(req, env, url) {
     await KV.put("s2", JSON.stringify(cur)); return json({ ok: true });
   }
 
+  /* ---- honors: tournament placements driving the all-time rankings ---- */
+  if (p === "/honors" && req.method === "GET") {
+    const raw = await KV.get("honors"); return json(raw ? JSON.parse(raw) : []);
+  }
+  if (p === "/admin/honors/add" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const b = await req.json();
+    const team = cleanStr(b.team, 40), event = cleanStr(b.event, 80), season = cleanStr(b.season, 30);
+    const place = [1, 2, 3].includes(+b.place) ? +b.place : 0;
+    if (!team || !event || !place) return json({ error: "team, event and placement (1-3) are required" }, 400);
+    const raw = await KV.get("honors"); const list = raw ? JSON.parse(raw) : [];
+    const id = "h_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    list.unshift({ id, team, event, place, season, createdAt: Date.now() });
+    await KV.put("honors", JSON.stringify(list)); return json({ ok: true });
+  }
+  if (p === "/admin/honors/delete" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const b = await req.json();
+    const raw = await KV.get("honors"); const list = (raw ? JSON.parse(raw) : []).filter(x => x.id !== b.id);
+    await KV.put("honors", JSON.stringify(list)); return json({ ok: true });
+  }
+
   /* ---- pick'em: fan predictions per fixture ---- */
   if (p === "/pickem" && req.method === "GET") {
     const raw = await KV.get("pickem"); const map = raw ? JSON.parse(raw) : {};
