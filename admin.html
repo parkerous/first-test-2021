@@ -6,10 +6,10 @@
   <title>Admin — Soai</title>
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=19" rel="stylesheet" />
-  <link href="css/home.css?v=19" rel="stylesheet" />
-  <link href="css/teams.css?v=19" rel="stylesheet" />
-  <script src="js/theme.js?v=19"></script>
+  <link href="css/voll-e.css?v=20" rel="stylesheet" />
+  <link href="css/home.css?v=20" rel="stylesheet" />
+  <link href="css/teams.css?v=20" rel="stylesheet" />
+  <script src="js/theme.js?v=20"></script>
 </head>
 <body>
 
@@ -49,6 +49,7 @@
         <button class="atab on" data-tab="teams">⚙️ Site</button>
         <button class="atab" data-tab="ann">📢 Announcements</button>
         <button class="atab" data-tab="players">👤 Players</button>
+        <button class="atab" data-tab="s2">🏆 Season 2</button>
         <button class="atab" data-tab="scrims">🏐 Preseason</button>
         <button class="atab" data-tab="rules">📖 Rules</button>
       </div>
@@ -75,6 +76,41 @@
           </div>
           <p class="mini-note" style="margin-top:0">Award titles, a verified badge and a tagline — or remove a profile.</p>
           <div id="profileAdmin"></div>
+        </div>
+      </div>
+
+      <div class="tabpane" id="pane-s2" style="display:none">
+        <div class="card">
+          <h2>📅 Add a fixture</h2>
+          <p class="mini-note" style="margin-top:0">Post upcoming Season 2 matches. They appear on the Schedule page (and in Pick'em) immediately; enter the result after the game and the S2 standings, bracket and Pick'em scores all update automatically.</p>
+          <div class="row">
+            <select id="fxA" style="flex:1;min-width:150px"><option value="">Team A…</option></select>
+            <span style="align-self:center;color:var(--muted);font-weight:900">vs</span>
+            <select id="fxB" style="flex:1;min-width:150px"><option value="">Team B…</option></select>
+          </div>
+          <div class="row" style="align-items:center">
+            <select id="fxStage" style="min-width:160px">
+              <option value="regular" selected>Regular season</option>
+              <option value="qf">Quarterfinal</option>
+              <option value="sf">Semifinal</option>
+              <option value="3rd">3rd place match</option>
+              <option value="f">Grand Final</option>
+            </select>
+            <input id="fxWhen" type="datetime-local" style="min-width:190px" />
+            <button class="btn" id="fxAdd">＋ Add fixture</button>
+            <span class="msg" id="fxMsg" style="color:var(--muted);font-size:12.5px"></span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0">Fixtures &amp; results</h2><span class="spacer"></span><button class="btn ghost" id="refreshS2Btn">↻ Refresh</button></div>
+          <p class="mini-note" style="margin-top:0">Type set scores as <b>25-20, 23-25, 15-10</b> and save — or <b>A 2-0</b> / <b>B 2-0</b> for a result with no point scores (e.g. a forfeit). Save an empty box to clear a result.</p>
+          <div id="fxAdmin"></div>
+        </div>
+        <div class="card">
+          <h2>Season 2 teams</h2>
+          <p class="mini-note" style="margin-top:0">One team per line. These fill the fixture dropdowns and the S2 standings.</p>
+          <textarea id="s2Teams" rows="8" style="width:100%;font-family:ui-monospace,monospace;font-size:13px"></textarea>
+          <div class="row" style="margin-top:8px"><button class="btn" id="s2TeamsSave">💾 Save teams</button><span class="msg" id="s2TeamsMsg" style="color:var(--muted);font-size:12.5px"></span></div>
         </div>
       </div>
 
@@ -149,9 +185,9 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · admin</p>
 
-  <script src="js/api.js?v=19"></script>
-  <script src="js/scrims.js?v=19"></script>
-  <script src="js/statsheet.js?v=19"></script>
-  <script src="js/admin.js?v=19"></script>
+  <script src="js/api.js?v=20"></script>
+  <script src="js/scrims.js?v=20"></script>
+  <script src="js/statsheet.js?v=20"></script>
+  <script src="js/admin.js?v=20"></script>
 </body>
 </html>

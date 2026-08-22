@@ -7,10 +7,10 @@
   <meta name="description" content="Binsu Star Season 2 league standings — coming soon." />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=19" rel="stylesheet" />
-  <link href="css/home.css?v=19" rel="stylesheet" />
-  <link href="css/season.css?v=19" rel="stylesheet" />
-  <script src="js/theme.js?v=19"></script>
+  <link href="css/voll-e.css?v=20" rel="stylesheet" />
+  <link href="css/home.css?v=20" rel="stylesheet" />
+  <link href="css/season.css?v=20" rel="stylesheet" />
+  <script src="js/theme.js?v=20"></script>
 </head>
 <body>
 
@@ -29,9 +29,11 @@
             <a href="schedule.html">📅 S2 Schedule</a>
             <a href="standings.html" class="on">📊 S2 Standings</a>
             <a href="scrims.html">🏐 Preseason Scrims</a>
+            <a href="history.html">🏛️ History</a>
           </div>
         </details>
         <a href="players.html">👤 Players</a>
+        <a href="pickem.html">🔮 Pick'em</a>
         <a href="stats.html">📊 Stats</a>
       </div>
     </div>
@@ -45,7 +47,30 @@
     </div>
   </header>
 
-  <section class="section" style="max-width:1000px">
+  <!-- live S2 table (shown once results are posted) -->
+  <section class="section" style="max-width:1000px;display:none" id="s2Section">
+    <div class="section-head"><h2><span class="bar"></span>📊 Season 2 Table</h2><span class="spacer"></span><span class="pending-pill">🔴 Live</span></div>
+    <p class="mini-note" style="margin:-6px 0 14px;color:var(--muted);font-size:13.5px">
+      Updated automatically as results are posted — ranked by <b>Pts</b> (win +1 / loss −1), then point differential, then set win-rate.
+    </p>
+    <div class="table-scroll">
+      <table class="standings">
+        <thead><tr>
+          <th>Rank</th><th>Team</th>
+          <th class="num" title="Played">P</th>
+          <th class="num" title="Wins">W</th>
+          <th class="num" title="Losses">L</th>
+          <th class="num" title="Points: win +1 / loss −1">Pts</th>
+          <th class="num" title="Sets won–lost">Sets</th>
+          <th class="num" title="Set win-rate">Set %</th>
+          <th class="num" title="Point differential">Diff</th>
+        </tr></thead>
+        <tbody id="s2Body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section" style="max-width:1000px" id="s2Coming">
     <div class="coming-wrap s2-fade d2">
       <!-- ghost preview of the real table -->
       <div class="table-scroll ghost">
@@ -69,8 +94,9 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Season 2</p>
 
-  <script src="js/api.js?v=19"></script>
-  <script src="js/scrims.js?v=19"></script>
+  <script src="js/api.js?v=20"></script>
+  <script src="js/scrims.js?v=20"></script>
+  <script src="js/s2.js?v=20"></script>
   <script>
     // build 8 shimmer rows behind the "coming soon" card
     var b = document.getElementById("ghostBody");

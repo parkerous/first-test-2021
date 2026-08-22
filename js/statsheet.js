@@ -117,6 +117,78 @@ function renderSheetLeaders(host, data) {
   if (sec) sec.style.display = cards.length ? "" : "none";
 }
 
+/* ---- official player leaderboard ----
+   Weighted points over the sheet's stat columns (matched by header name):
+   Kills ×2 · Aces ×3 · Blocks ×2 · Digs ×1 · Assists ×1 · MVPs ×10.
+   Columns not in the table below don't score (e.g. Games, Position). */
+const LB_WEIGHTS = { kill: 2, ace: 3, block: 2, dig: 1, assist: 1, mvp: 10 };
+
+function computeSheetBoard(data) {
+  const val = c => parseFloat(String(c == null ? "" : c).replace(/[%+,]/g, ""));
+  const weightFor = h => {
+    const k = String(h || "").toLowerCase();
+    for (const w in LB_WEIGHTS) if (k.indexOf(w) !== -1) return LB_WEIGHTS[w];
+    return 0;
+  };
+  const weights = data.headers.map(weightFor);
+  const numeric = i => data.rows.some(r => !isNaN(val(r[i])));
+  const textCols = data.headers.map((_, i) => i).filter(i => !numeric(i) || i === 0);
+  const nameCol = 0, teamCol = textCols[1];
+  return data.rows.map(r => {
+    let pts = 0;
+    weights.forEach((w, i) => { if (w) { const v = val(r[i]); if (!isNaN(v)) pts += w * v; } });
+    return { name: r[nameCol] || "", team: teamCol != null ? (r[teamCol] || "") : "", pts: Math.round(pts * 10) / 10 };
+  }).filter(p => p.name && p.pts > 0).sort((a, b) => b.pts - a.pts);
+}
+
+function renderSheetBoard(host, data) {
+  if (!host) return;
+  const rows = computeSheetBoard(data).slice(0, 10);
+  const sec = host.closest("section");
+  if (!rows.length) { if (sec) sec.style.display = "none"; return; }
+  if (sec) sec.style.display = "";
+  const medal = ["🥇", "🥈", "🥉"];
+  host.innerHTML = `
+    <div class="table-scroll">
+      <table class="standings">
+        <thead><tr><th>Rank</th><th>Player</th><th>Team</th><th class="num">Points</th></tr></thead>
+        <tbody>${rows.map((p, i) => `
+          <tr>
+            <td class="rk">${medal[i] || i + 1}</td>
+            <td><b>${sheetEsc(p.name)}</b></td>
+            <td>${sheetEsc(p.team)}</td>
+            <td class="num"><b>${p.pts}</b></td>
+          </tr>`).join("")}</tbody>
+      </table>
+    </div>
+    <p class="mini-note" style="margin-top:10px;color:var(--muted);font-size:12.5px">
+      Formula: Kills ×2 · Aces ×3 · Blocks ×2 · Digs ×1 · Assists ×1 · MVPs ×10 — computed live from the logged stat sheet.
+    </p>`;
+}
+
+/* ---- homepage MVP race widget (#mvpRace) ---- */
+async function initMvpRace() {
+  const host = document.getElementById("mvpRace");
+  if (!host) return;
+  let site = {};
+  try { site = await apiGet("/site"); } catch (e) { /* leave empty */ }
+  if (!site || !site.statSheet) { host.style.display = "none"; return; }
+  let data;
+  try { data = await fetchSheet(site.statSheet); } catch (e) { host.style.display = "none"; return; }
+  const rows = computeSheetBoard(data).slice(0, 3);
+  if (!rows.length) { host.style.display = "none"; return; }
+  const medal = ["🥇", "🥈", "🥉"];
+  host.innerHTML = `
+    <div class="psl-head">
+      <span class="psl-eyebrow">⭐ MVP Race · Official Player Leaderboard</span>
+      <span class="psl-date">Live from the stat sheet</span>
+    </div>
+    <div class="psl-top3">
+      ${rows.map((p, i) => `<div class="psl-item"><span class="psl-rank">${i + 1}</span><span class="psl-medal">${medal[i]}</span><span class="psl-name">${sheetEsc(p.name)}${p.team ? ` <span style="color:var(--muted);font-weight:600">· ${sheetEsc(p.team)}</span>` : ""}</span><span class="psl-pts">${p.pts} pts</span></div>`).join("")}
+    </div>
+    <a class="psl-link" href="stats.html">Full stats &amp; leaderboard →</a>`;
+}
+
 /* ---- public stat-sheet section (#sheetHost on the stats page) ----
    Fetches on load and re-fetches every 60s while the page is open. */
 async function initStatSheet() {
@@ -129,6 +201,8 @@ async function initStatSheet() {
   const leaders = document.getElementById("sheetLeaders");
   if (!url) {
     if (leaders && leaders.closest("section")) leaders.closest("section").style.display = "none";
+    const board = document.getElementById("sheetBoard");
+    if (board && board.closest("section")) board.closest("section").style.display = "none";
     host.innerHTML = `
       <div class="card" style="text-align:center;padding:26px">
         <div style="font-size:30px">📋</div>
@@ -147,6 +221,7 @@ async function initStatSheet() {
       const data = await fetchSheet(url);
       renderSheetTable(host, data);
       renderSheetLeaders(leaders, data);
+      renderSheetBoard(document.getElementById("sheetBoard"), data);
       if (status) status.textContent = "Auto-updates from the connected sheet · refreshed " + new Date().toLocaleTimeString();
     } catch (e) {
       if (!host.querySelector("table")) host.innerHTML = `<p class="empty">⚠️ Couldn't load the stat sheet — ${sheetEsc(e.message)}.</p>`;
@@ -159,4 +234,4 @@ async function initStatSheet() {
   if (btn) btn.addEventListener("click", load);
 }
 
-document.addEventListener("DOMContentLoaded", initStatSheet);
+document.addEventListener("DOMContentLoaded", function () { initStatSheet(); initMvpRace(); });

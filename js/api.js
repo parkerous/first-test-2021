@@ -184,6 +184,8 @@ function fileToDataUrl(file, max = 420) {
   const ROLES = ["Setter", "Outside Hitter", "Middle Blocker", "Opposite", "Libero", "All Rounder", "Sub"];
 
   // Preseason scrims — seeded on first access (17 teams + posted results).
+  /* Season 2 team list (the 13 teams from the official preseason final records) */
+  const DEFAULT_S2_TEAMS = ["Vanguard", "The Order", "Invictus", "Equinox", "Miku", "Volare", "Umino", "Stinger", "Teiko", "Orchid", "Kittyoo", "Seishin Skyblade", "Valencia Spike"];
   const DEFAULT_SCRIM_TEAMS = ["Green Giants", "Equinox", "Senzai", "Seishin Skyblade", "The Order", "Canopus", "Miku", "Vanguard", "Volare", "Teiko", "Zenith", "Nekopara", "Ground Zero", "Invictus", "Stinger", "Ho-Kago Kawaii Larps", "Yakamoz", "Kittyoo"];
   const DEFAULT_SCRIMS = [
     { id: "seed_gg_neko", teamA: "Green Giants", teamB: "Nekopara", sets: [{ a: 25, b: 23 }, { a: 25, b: 15 }], createdAt: 1 },
@@ -572,6 +574,65 @@ function fileToDataUrl(file, max = 420) {
       kvPut("scrimteams", JSON.stringify(teams));
       kvPut("scrims", JSON.stringify(DEFAULT_SCRIMS));
       return ok({ ok: true });
+    }
+
+    /* ---- Season 2: fixtures, results, playoff bracket ---- */
+    if (p === "/s2" && method === "GET") {
+      const raw = kvGet("s2");
+      if (raw == null) { const d = { teams: DEFAULT_S2_TEAMS.slice(), fixtures: [] }; kvPut("s2", JSON.stringify(d)); return ok(d); }
+      return ok(JSON.parse(raw));
+    }
+    if (p === "/admin/s2/teams" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      const cur = JSON.parse(kvGet("s2") || `{"teams":[],"fixtures":[]}`);
+      cur.teams = (Array.isArray(body.teams) ? body.teams : []).map(n => cleanStr(n, 40)).filter(Boolean).slice(0, 40);
+      kvPut("s2", JSON.stringify(cur)); return ok({ ok: true });
+    }
+    if (p === "/admin/s2/fixture/add" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      const teamA = cleanStr(body.teamA, 40), teamB = cleanStr(body.teamB, 40);
+      if (!teamA || !teamB) return err("both teams are required", 400);
+      if (teamA === teamB) return err("a team can't play itself", 400);
+      const stage = ["regular", "qf", "sf", "3rd", "f"].includes(body.stage) ? body.stage : "regular";
+      const cur = JSON.parse(kvGet("s2") || `{"teams":[],"fixtures":[]}`);
+      cur.fixtures.push({ id: uid("f_"), teamA, teamB, stage, when: typeof body.when === "number" ? body.when : 0, sets: null, createdAt: Date.now() });
+      kvPut("s2", JSON.stringify(cur)); return ok({ ok: true });
+    }
+    if (p === "/admin/s2/fixture/delete" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      const cur = JSON.parse(kvGet("s2") || `{"teams":[],"fixtures":[]}`);
+      cur.fixtures = cur.fixtures.filter(f => f.id !== body.id);
+      kvPut("s2", JSON.stringify(cur)); return ok({ ok: true });
+    }
+    if (p === "/admin/s2/result" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      const cur = JSON.parse(kvGet("s2") || `{"teams":[],"fixtures":[]}`);
+      const fx = cur.fixtures.find(f => f.id === body.id);
+      if (!fx) return err("fixture not found", 404);
+      const sets = cleanSets(body.sets);
+      fx.sets = sets.length ? sets : null;   // empty → clear the result
+      kvPut("s2", JSON.stringify(cur)); return ok({ ok: true });
+    }
+
+    /* ---- pick'em: fan predictions per fixture ---- */
+    if (p === "/pickem" && method === "GET") {
+      const raw = kvGet("pickem"); const map = raw ? JSON.parse(raw) : {};
+      const out = {};
+      Object.keys(map).forEach(fid => { out[fid] = { A: map[fid].A || 0, B: map[fid].B || 0 }; });
+      return ok(out);
+    }
+    if (p === "/pickem/vote" && method === "POST") {
+      const fid = cleanStr(body.fixtureId, 40), pick = body.pick === "A" ? "A" : body.pick === "B" ? "B" : "";
+      const voter = cleanStr(body.voter, 60);
+      if (!fid || !pick || !voter) return err("fixtureId, pick and voter are required", 400);
+      const raw = kvGet("pickem"); const map = raw ? JSON.parse(raw) : {};
+      const e = map[fid] || (map[fid] = { A: 0, B: 0, voters: {} });
+      const prev = e.voters[voter];
+      if (prev === pick) return ok({ ok: true });
+      if (prev) e[prev] = Math.max(0, (e[prev] || 0) - 1);
+      e[pick] = (e[pick] || 0) + 1;
+      e.voters[voter] = pick;
+      kvPut("pickem", JSON.stringify(map)); return ok({ ok: true });
     }
 
     /* ---- site logo + admin login ---- */

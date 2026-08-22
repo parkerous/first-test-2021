@@ -38,6 +38,93 @@ async function loadAll() {
   loadProfiles();
   loadRules();
   loadScrims();
+  loadS2();
+}
+
+/* ---------- Season 2 fixtures admin ---------- */
+let S2DATA = { teams: [], fixtures: [] };
+async function loadS2() {
+  try { S2DATA = await apiGet("/s2"); } catch (e) { S2DATA = { teams: [], fixtures: [] }; }
+  const opts = `<option value="">Team…</option>` + (S2DATA.teams || []).map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  const a = document.getElementById("fxA"), b = document.getElementById("fxB");
+  if (a && b) { const av = a.value, bv = b.value; a.innerHTML = opts; b.innerHTML = opts; a.value = av; b.value = bv; }
+  const ta = document.getElementById("s2Teams");
+  if (ta) ta.value = (S2DATA.teams || []).join("\n");
+  renderS2Admin();
+}
+function renderS2Admin() {
+  const el = document.getElementById("fxAdmin");
+  if (!el) return;
+  const fx = (S2DATA.fixtures || []).slice().sort((x, y) => (x.when || Infinity) - (y.when || Infinity) || (x.createdAt || 0) - (y.createdAt || 0));
+  if (!fx.length) { el.innerHTML = `<p class="empty">No fixtures yet — add the first one above.</p>`; return; }
+  const stageName = { regular: "Regular", qf: "QF", sf: "SF", "3rd": "3rd", f: "Final" };
+  const setsToText = sets => {
+    sets = sets || [];
+    if (sets.every(s => s.w === "A" || s.w === "B")) {
+      // winner-only result → the same "A 2-0" shorthand the parser accepts
+      const a = sets.filter(s => s.w === "A").length, b = sets.length - a;
+      return a >= b ? `A ${a}-${b}` : `B ${b}-${a}`;
+    }
+    return sets.map(s => (typeof s.a === "number" && typeof s.b === "number") ? `${s.a}-${s.b}` : (s.w === "A" ? "A 1-0" : "B 1-0")).join(", ");
+  };
+  el.innerHTML = fx.map(f => `
+    <div class="card" style="background:var(--bg);margin-bottom:8px">
+      <div class="row" style="align-items:center;gap:8px">
+        <span style="font-size:13.5px"><b>${esc(f.teamA)}</b> vs <b>${esc(f.teamB)}</b> <span style="color:var(--muted)">· ${stageName[f.stage] || f.stage}${f.when ? " · " + new Date(f.when).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}</span></span>
+        <span class="spacer"></span>
+        <input type="text" class="fx-sets" data-id="${esc(f.id)}" placeholder="25-20, 23-25, 15-10" value="${esc(f.sets ? setsToText(f.sets) : "")}" style="width:200px;font-size:12.5px" />
+        <button class="btn ghost fx-save" data-id="${esc(f.id)}">💾</button>
+        <button class="btn warn fx-del" data-id="${esc(f.id)}">🗑</button>
+      </div>
+    </div>`).join("");
+  el.querySelectorAll(".fx-save").forEach(b => b.addEventListener("click", () => saveFxResult(b.dataset.id)));
+  el.querySelectorAll(".fx-del").forEach(b => b.addEventListener("click", async () => {
+    await apiPost("/admin/s2/fixture/delete", { id: b.dataset.id }, true); await loadS2();
+  }));
+}
+/* "25-20, 23-25" → point sets; "A 2-0" / "B 2-1" → winner-only sets; "" → clear */
+function parseFxSets(text) {
+  const t = (text || "").trim();
+  if (!t) return [];
+  const ff = t.match(/^([ab])\s*(\d+)\s*-\s*(\d+)$/i);
+  if (ff) {
+    // "A 2-0" = team A won 2 sets to 0, no point scores recorded
+    const win = ff[1].toUpperCase(), lose = win === "A" ? "B" : "A";
+    const sets = [];
+    for (let i = 0; i < +ff[2]; i++) sets.push({ w: win });
+    for (let i = 0; i < +ff[3]; i++) sets.push({ w: lose });
+    return sets;
+  }
+  return t.split(",").map(p => {
+    const m = p.trim().match(/^(\d+)\s*-\s*(\d+)$/);
+    return m ? { a: +m[1], b: +m[2] } : null;
+  }).filter(Boolean);
+}
+async function saveFxResult(id) {
+  const inp = document.querySelector(`.fx-sets[data-id="${id}"]`);
+  const sets = parseFxSets(inp ? inp.value : "");
+  const r = await apiPost("/admin/s2/result", { id, sets }, true);
+  if (r && r.ok) await loadS2();
+}
+async function addFixture() {
+  const m = document.getElementById("fxMsg");
+  const teamA = document.getElementById("fxA").value, teamB = document.getElementById("fxB").value;
+  if (!teamA || !teamB) { m.textContent = "Pick both teams."; return; }
+  if (teamA === teamB) { m.textContent = "A team can't play itself."; return; }
+  const whenStr = document.getElementById("fxWhen").value;
+  const when = whenStr ? new Date(whenStr).getTime() : 0;
+  const stage = document.getElementById("fxStage").value;
+  m.textContent = "Adding…";
+  const r = await apiPost("/admin/s2/fixture/add", { teamA, teamB, stage, when }, true);
+  if (r && r.ok) { m.textContent = "✅ Fixture added"; document.getElementById("fxA").value = ""; document.getElementById("fxB").value = ""; await loadS2(); }
+  else m.textContent = "⚠️ " + ((r && r.error) || "failed");
+}
+async function saveS2Teams() {
+  const m = document.getElementById("s2TeamsMsg");
+  const teams = document.getElementById("s2Teams").value.split("\n").map(x => x.trim()).filter(Boolean);
+  const r = await apiPost("/admin/s2/teams", { teams }, true);
+  m.textContent = (r && r.ok) ? "✅ Saved" : "⚠️ " + ((r && r.error) || "failed");
+  if (r && r.ok) await loadS2();
 }
 
 /* ---------- preseason scrims admin ---------- */
@@ -482,7 +569,7 @@ function renderReqAdmin() {
 async function deleteReq(id) { await apiPost("/admin/coaching/requests/delete", { id }, true); REQS = REQS.filter(x => x.id !== id); renderReqAdmin(); }
 
 /* ---------- tabs (history-aware: back = undo, forward = redo) ---------- */
-const TABS = ["teams", "ann", "players", "scrims", "rules"];
+const TABS = ["teams", "ann", "players", "s2", "scrims", "rules"];
 function tabFromHash() { const h = (location.hash || "").replace(/^#/, ""); return TABS.includes(h) ? h : "teams"; }
 /* update just the UI (which tab + pane is shown) */
 function showTab(name) {
@@ -505,6 +592,9 @@ function init() {
   document.getElementById("rulesSave").addEventListener("click", saveRules);
   document.getElementById("rulesReset").addEventListener("click", loadDefaultRules);
   document.getElementById("refreshSuggestBtn").addEventListener("click", loadRules);
+  document.getElementById("fxAdd").addEventListener("click", addFixture);
+  document.getElementById("refreshS2Btn").addEventListener("click", loadS2);
+  document.getElementById("s2TeamsSave").addEventListener("click", saveS2Teams);
   document.getElementById("scAdd").addEventListener("click", addScrim);
   document.getElementById("scNoScore").addEventListener("change", toggleScrimNoScore);
   document.getElementById("scAddSet").addEventListener("click", () => { if (scrimSetCount < 5) { scrimSetCount++; renderScrimSets(); } });

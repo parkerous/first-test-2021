@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>League History — Binsu Star</title>
+  <meta name="description" content="Binsu Star league history — Elo power ratings, the preseason archive, and Season 1 records." />
+  <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
+  <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
+  <link href="css/voll-e.css?v=20" rel="stylesheet" />
+  <link href="css/home.css?v=20" rel="stylesheet" />
+  <link href="css/landing.css?v=20" rel="stylesheet" />
+  <link href="css/season.css?v=20" rel="stylesheet" />
+  <script src="js/theme.js?v=20"></script>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="wrap">
+      <a class="brand" href="index.html"><img class="brand-logo" src="img/binsu-pfp.jpg" alt="Binsu Star logo" /><span class="word">Binsu Star</span></a>
+      <div class="links menubar">
+        <a href="index.html">Home</a>
+        <a href="guide.html">Guide</a>
+        <details class="menu-dd">
+          <summary>League ▾</summary>
+          <div class="dd-panel">
+            <span class="dd-label">League</span>
+            <a href="rankings.html">S1 League Rankings</a>
+            <a href="rules.html">League Rules</a>
+            <a href="schedule.html">📅 S2 Schedule</a>
+            <a href="standings.html">📊 S2 Standings</a>
+            <a href="scrims.html">🏐 Preseason Scrims</a>
+            <a href="history.html" class="on">🏛️ History</a>
+          </div>
+        </details>
+        <a href="players.html">👤 Players</a>
+        <a href="pickem.html">🔮 Pick'em</a>
+        <a href="stats.html">📊 Stats</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="s2-hero s2-fade">
+    <div class="s2-hero-inner">
+      <span class="s2-pill">Binsu Star · History</span>
+      <h1>League History</h1>
+      <p>Elo power ratings across every recorded match, the preseason archive, and where it all started.</p>
+    </div>
+  </header>
+
+  <!-- Elo power ratings -->
+  <section class="section" style="max-width:1000px">
+    <div class="section-head"><h2><span class="bar"></span>⚡ Power Ratings</h2></div>
+    <p class="mini-note" style="margin:-6px 0 14px;color:var(--muted);font-size:13.5px">
+      Elo ratings replayed over <b>every recorded match</b> — all preseason scrims plus Season 2 results as they're posted. Everyone starts at 1000; beating a stronger team moves you more than beating a weaker one (K = 32).
+    </p>
+    <div class="table-scroll s2-fade">
+      <table class="standings">
+        <thead><tr>
+          <th>Rank</th><th>Team</th>
+          <th class="num" title="Elo rating">Rating</th>
+          <th class="num" title="Recorded matches">Games</th>
+          <th>Tier</th>
+        </tr></thead>
+        <tbody id="eloBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- preseason archive -->
+  <section class="section" style="max-width:1000px">
+    <div class="section-head"><h2><span class="bar"></span>🏐 Preseason Archive</h2><span class="spacer"></span><span class="pending-pill">🏁 Final</span></div>
+    <p class="mini-note" style="margin:-6px 0 14px;color:var(--muted);font-size:13.5px">
+      The official final records of the Season 2 preseason scrims. Full results on the <a href="scrims.html">scrims page</a>.
+    </p>
+    <div class="table-scroll">
+      <table class="standings">
+        <thead><tr>
+          <th>Rank</th><th>Team</th>
+          <th class="num">W</th><th class="num">L</th><th class="num">Pts</th><th class="num">Win %</th>
+        </tr></thead>
+        <tbody id="archBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- season 1 -->
+  <section class="section" style="max-width:1000px">
+    <div class="section-head"><h2><span class="bar"></span>🏆 Season 1</h2></div>
+    <div class="lp-features" style="padding:0">
+      <a class="lp-tile hot" href="rankings.html">
+        <span class="lp-ic">🏆</span>
+        <h3>Season 1 Rankings</h3>
+        <p>The Top 10 for every position from Season 1 — scores, tier grades, the players who defined the first season.</p>
+        <span class="go">Open the S1 rankings →</span>
+      </a>
+    </div>
+  </section>
+
+  <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · History</p>
+
+  <script src="js/api.js?v=20"></script>
+  <script src="js/scrims.js?v=20"></script>
+  <script>
+    (async function () {
+      // Elo over all recorded matches: scrims + played S2 fixtures
+      let scr = { matches: [] }, s2 = { fixtures: [] };
+      try { scr = await apiGet("/scrims"); } catch (e) { /* leave empty */ }
+      try { s2 = await apiGet("/s2"); } catch (e) { /* leave empty */ }
+      const s2Matches = (s2.fixtures || []).filter(f => Array.isArray(f.sets) && f.sets.length);
+      const rows = eloRatings((scr.matches || []).concat(s2Matches)).filter(r => r.played > 0);
+      const eb = document.getElementById("eloBody");
+      eb.innerHTML = rows.length ? rows.map((r, i) => {
+        const t = eloTier(r.rating);
+        return `<tr>
+          <td class="rk">${i + 1}</td>
+          <td><span class="team"><span class="dot"></span>${scrimEsc(r.name)}</span></td>
+          <td class="num"><b>${r.rating}</b></td>
+          <td class="num">${r.played}</td>
+          <td><span class="ps-rec ${t.cls}">${t.label}</span></td>
+        </tr>`;
+      }).join("") : `<tr><td colspan="5" class="empty">No recorded matches yet.</td></tr>`;
+
+      // preseason final records archive
+      const ab = document.getElementById("archBody");
+      const fin = computeFinalStandings();
+      ab.innerHTML = fin.map((t, i) => `<tr>
+        <td class="rk">${i + 1}</td>
+        <td><span class="team"><span class="dot"></span>${scrimEsc(t.name)}</span></td>
+        <td class="num">${t.mw}</td>
+        <td class="num">${t.ml}</td>
+        <td class="num"><span class="ps-rec ${t.record > 0 ? "ps-pos" : t.record < 0 ? "ps-neg" : "ps-zero"}">${t.record > 0 ? "+" + t.record : t.record}</span></td>
+        <td class="num">${Math.round(t.winrate * 100)}%</td>
+      </tr>`).join("");
+    })();
+  </script>
+</body>
+</html>
