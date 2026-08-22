@@ -41,6 +41,24 @@ async function loadAll() {
   loadHonors();   // after scrims + S2 so the team-name suggestions are filled
 }
 
+/* ---------- full data backup (one JSON file) ---------- */
+async function downloadBackup() {
+  const m = document.getElementById("backupMsg");
+  m.textContent = "Collecting data…";
+  const grab = p => apiGet(p).catch(() => null);
+  const [site, announcements, scrims, s2, honors, rules, pickem] = await Promise.all([
+    grab("/site"), grab("/announcements"), grab("/scrims"), grab("/s2"), grab("/honors"), grab("/rules"), grab("/pickem"),
+  ]);
+  const backup = { site: "Binsu Star", exportedAt: new Date().toISOString(), data: { site, announcements, scrims, s2, honors, rules, pickem } };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "binsu-star-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+  m.textContent = "✅ Backup downloaded.";
+}
+
 /* ---------- honors (tournament placements -> all-time rankings) ---------- */
 let HONORS = [];
 async function loadHonors() {
@@ -628,6 +646,7 @@ function init() {
   document.getElementById("rulesSave").addEventListener("click", saveRules);
   document.getElementById("rulesReset").addEventListener("click", loadDefaultRules);
   document.getElementById("refreshSuggestBtn").addEventListener("click", loadRules);
+  document.getElementById("backupBtn").addEventListener("click", downloadBackup);
   document.getElementById("hoAdd").addEventListener("click", addHonor);
   document.getElementById("refreshHonorsBtn").addEventListener("click", loadHonors);
   document.getElementById("fxAdd").addEventListener("click", addFixture);

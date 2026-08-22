@@ -4,12 +4,22 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin — Binsu Star</title>
+  <meta property="og:site_name" content="Binsu Star" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Admin — Binsu Star" />
+  <meta property="og:description" content="Binsu Star — the Roblox volleyball league." />
+  <meta property="og:url" content="https://binsuasia.netlify.app/admin.html" />
+  <meta property="og:image" content="https://binsuasia.netlify.app/img/og-banner.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="theme-color" content="#1c160e" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=23" rel="stylesheet" />
-  <link href="css/home.css?v=23" rel="stylesheet" />
-  <link href="css/teams.css?v=23" rel="stylesheet" />
-  <script src="js/theme.js?v=23"></script>
+  <link href="css/voll-e.css?v=24" rel="stylesheet" />
+  <link href="css/home.css?v=24" rel="stylesheet" />
+  <link href="css/teams.css?v=24" rel="stylesheet" />
+  <script src="js/theme.js?v=24"></script>
 </head>
 <body>
 
@@ -55,6 +65,11 @@
       </div>
 
       <div class="tabpane" id="pane-teams">
+        <div class="card">
+          <h2>💾 League data backup</h2>
+          <p class="mini-note" style="margin-top:0">Downloads everything the site stores — announcements, scrims, Season 2 fixtures &amp; results, honors, rules, pick'em totals and site settings — as one JSON file. Keep a copy somewhere safe after big updates.</p>
+          <div class="row"><button class="btn" id="backupBtn">⬇️ Download backup (JSON)</button><span class="msg" id="backupMsg" style="color:var(--muted);font-size:12.5px"></span></div>
+        </div>
         <div class="card" id="brandCard">
           <h2>🏐 Site logo</h2>
           <p class="mini-note" style="margin-top:0">The logo shown in the top bar across the whole site. Upload a new image to replace the volleyball placeholder — it updates everywhere.</p>
@@ -198,9 +213,9 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Admin</p>
 
-  <script src="js/api.js?v=23"></script>
-  <script src="js/scrims.js?v=23"></script>
-  <script src="js/statsheet.js?v=23"></script>
-  <script src="js/admin.js?v=23"></script>
+  <script src="js/api.js?v=24"></script>
+  <script src="js/scrims.js?v=24"></script>
+  <script src="js/statsheet.js?v=24"></script>
+  <script src="js/admin.js?v=24"></script>
 </body>
 </html>
