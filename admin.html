@@ -6,10 +6,10 @@
   <title>Admin — Soai</title>
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=21" rel="stylesheet" />
-  <link href="css/home.css?v=21" rel="stylesheet" />
-  <link href="css/teams.css?v=21" rel="stylesheet" />
-  <script src="js/theme.js?v=21"></script>
+  <link href="css/voll-e.css?v=22" rel="stylesheet" />
+  <link href="css/home.css?v=22" rel="stylesheet" />
+  <link href="css/teams.css?v=22" rel="stylesheet" />
+  <script src="js/theme.js?v=22"></script>
 </head>
 <body>
 
@@ -30,7 +30,7 @@
     <div class="card admin-login" id="loginCard">
       <div class="login-emoji">🔒</div>
       <h2 style="margin:0 0 4px">Admin sign in</h2>
-      <p class="mini-note" style="margin-top:0">Only the admin can post announcements, manage the preseason, and edit player profiles.</p>
+      <p class="mini-note" style="margin-top:0">Only the admin can post announcements, manage fixtures and record results.</p>
       <div class="row"><input id="adminKeyIn" type="password" placeholder="Admin password" style="flex:1;min-width:200px" /><button class="btn" id="loginBtn">Log in →</button></div>
       <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--muted);font-size:12.5px">Advanced: connect a shared backend (optional — data saves in this browser by default)</summary>
         <div class="row" style="margin-top:8px"><input id="apiUrl" type="text" placeholder="Backend URL (e.g. https://first-test-2021.binsustar.workers.dev)" style="flex:1" /></div>
@@ -48,7 +48,6 @@
       <div class="admin-tabs">
         <button class="atab on" data-tab="teams">⚙️ Site</button>
         <button class="atab" data-tab="ann">📢 Announcements</button>
-        <button class="atab" data-tab="players">👤 Players</button>
         <button class="atab" data-tab="s2">🏆 Season 2</button>
         <button class="atab" data-tab="scrims">🏐 Preseason</button>
         <button class="atab" data-tab="honors">🏅 Honors</button>
@@ -65,18 +64,6 @@
             <button class="btn" id="brandSave">💾 Save logo</button>
             <span class="msg" id="brandMsg" style="color:var(--muted);font-size:12.5px"></span>
           </div>
-        </div>
-      </div>
-
-      <div class="tabpane" id="pane-players" style="display:none">
-        <div class="card">
-          <div class="row" style="align-items:center;margin-bottom:4px">
-            <h2 style="margin:0">👤 Player Profiles</h2>
-            <span class="spacer"></span>
-            <button class="btn ghost" id="refreshProfilesBtn">↻ Refresh</button>
-          </div>
-          <p class="mini-note" style="margin-top:0">Award titles, a verified badge and a tagline — or remove a profile.</p>
-          <div id="profileAdmin"></div>
         </div>
       </div>
 
@@ -211,9 +198,9 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · admin</p>
 
-  <script src="js/api.js?v=21"></script>
-  <script src="js/scrims.js?v=21"></script>
-  <script src="js/statsheet.js?v=21"></script>
-  <script src="js/admin.js?v=21"></script>
+  <script src="js/api.js?v=22"></script>
+  <script src="js/scrims.js?v=22"></script>
+  <script src="js/statsheet.js?v=22"></script>
+  <script src="js/admin.js?v=22"></script>
 </body>
 </html>

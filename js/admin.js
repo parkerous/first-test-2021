@@ -35,7 +35,6 @@ async function loadAll() {
   anns = await apiGet("/announcements").catch(() => []);
   renderAnns();
   loadSite();
-  loadProfiles();
   loadRules();
   await loadScrims();
   await loadS2();
@@ -607,7 +606,7 @@ function renderReqAdmin() {
 async function deleteReq(id) { await apiPost("/admin/coaching/requests/delete", { id }, true); REQS = REQS.filter(x => x.id !== id); renderReqAdmin(); }
 
 /* ---------- tabs (history-aware: back = undo, forward = redo) ---------- */
-const TABS = ["teams", "ann", "players", "s2", "scrims", "honors", "rules"];
+const TABS = ["teams", "ann", "s2", "scrims", "honors", "rules"];
 function tabFromHash() { const h = (location.hash || "").replace(/^#/, ""); return TABS.includes(h) ? h : "teams"; }
 /* update just the UI (which tab + pane is shown) */
 function showTab(name) {
@@ -626,7 +625,6 @@ function init() {
   document.getElementById("adminKeyIn").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
   document.getElementById("addAnnBtn").addEventListener("click", addAnn);
   document.getElementById("saveAnnBtn").addEventListener("click", saveAnns);
-  document.getElementById("refreshProfilesBtn").addEventListener("click", loadProfiles);
   document.getElementById("rulesSave").addEventListener("click", saveRules);
   document.getElementById("rulesReset").addEventListener("click", loadDefaultRules);
   document.getElementById("refreshSuggestBtn").addEventListener("click", loadRules);
