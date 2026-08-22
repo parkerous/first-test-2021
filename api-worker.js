@@ -44,6 +44,8 @@ function cleanPlayers(arr) {
 }
 function cleanStr(s, n) { return String(s == null ? "" : s).trim().slice(0, n); }
 /* preseason scrims: seed data + set-score sanitiser */
+/* Season 2 team list (the 13 teams from the official preseason final records) */
+const DEFAULT_S2_TEAMS = ["Vanguard", "The Order", "Invictus", "Equinox", "Miku", "Volare", "Umino", "Stinger", "Teiko", "Orchid", "Kittyoo", "Seishin Skyblade", "Valencia Spike"];
 const DEFAULT_SCRIM_TEAMS = ["Green Giants", "Equinox", "Senzai", "Seishin Skyblade", "The Order", "Canopus", "Miku", "Vanguard", "Volare", "Teiko", "Zenith", "Nekopara", "Ground Zero", "Invictus", "Stinger", "Ho-Kago Kawaii Larps", "Yakamoz", "Kittyoo"];
 const DEFAULT_SCRIMS = [
   { id: "seed_gg_neko", teamA: "Green Giants", teamB: "Nekopara", sets: [{ a: 25, b: 23 }, { a: 25, b: 15 }], createdAt: 1 },
@@ -519,6 +521,73 @@ async function handleApi(req, env, url) {
     existing.forEach(t => { if (!DEFAULT_SCRIM_TEAMS.includes(t.name)) teams.push(t); });
     await KV.put("scrimteams", JSON.stringify(teams));
     await KV.put("scrims", JSON.stringify(DEFAULT_SCRIMS));
+    return json({ ok: true });
+  }
+
+  /* ---- Season 2: fixtures, results, playoff bracket ---- */
+  if (p === "/s2" && req.method === "GET") {
+    const raw = await KV.get("s2");
+    if (raw == null) { const d = { teams: DEFAULT_S2_TEAMS.slice(), fixtures: [] }; await KV.put("s2", JSON.stringify(d)); return json(d); }
+    return json(JSON.parse(raw));
+  }
+  if (p === "/admin/s2/teams" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const b = await req.json();
+    const cur = JSON.parse((await KV.get("s2")) || `{"teams":[],"fixtures":[]}`);
+    cur.teams = (Array.isArray(b.teams) ? b.teams : []).map(n => cleanStr(n, 40)).filter(Boolean).slice(0, 40);
+    await KV.put("s2", JSON.stringify(cur)); return json({ ok: true });
+  }
+  if (p === "/admin/s2/fixture/add" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const b = await req.json();
+    const teamA = cleanStr(b.teamA, 40), teamB = cleanStr(b.teamB, 40);
+    if (!teamA || !teamB) return json({ error: "both teams are required" }, 400);
+    if (teamA === teamB) return json({ error: "a team can't play itself" }, 400);
+    const stage = ["regular", "qf", "sf", "3rd", "f"].includes(b.stage) ? b.stage : "regular";
+    const cur = JSON.parse((await KV.get("s2")) || `{"teams":[],"fixtures":[]}`);
+    const id = "f_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    cur.fixtures.push({ id, teamA, teamB, stage, when: typeof b.when === "number" ? b.when : 0, sets: null, createdAt: Date.now() });
+    await KV.put("s2", JSON.stringify(cur)); return json({ ok: true });
+  }
+  if (p === "/admin/s2/fixture/delete" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const b = await req.json();
+    const cur = JSON.parse((await KV.get("s2")) || `{"teams":[],"fixtures":[]}`);
+    cur.fixtures = cur.fixtures.filter(f => f.id !== b.id);
+    await KV.put("s2", JSON.stringify(cur)); return json({ ok: true });
+  }
+  if (p === "/admin/s2/result" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const b = await req.json();
+    const cur = JSON.parse((await KV.get("s2")) || `{"teams":[],"fixtures":[]}`);
+    const fx = cur.fixtures.find(f => f.id === b.id);
+    if (!fx) return json({ error: "fixture not found" }, 404);
+    const sets = cleanSets(b.sets);
+    fx.sets = sets.length ? sets : null;   // empty → clear the result
+    await KV.put("s2", JSON.stringify(cur)); return json({ ok: true });
+  }
+
+  /* ---- pick'em: fan predictions per fixture ---- */
+  if (p === "/pickem" && req.method === "GET") {
+    const raw = await KV.get("pickem"); const map = raw ? JSON.parse(raw) : {};
+    const out = {};
+    Object.keys(map).forEach(fid => { out[fid] = { A: map[fid].A || 0, B: map[fid].B || 0 }; });
+    return json(out);
+  }
+  if (p === "/pickem/vote" && req.method === "POST") {
+    const b = await req.json();
+    const fid = cleanStr(b.fixtureId, 40), pick = b.pick === "A" ? "A" : b.pick === "B" ? "B" : "";
+    const voter = cleanStr(b.voter, 60);
+    if (!fid || !pick || !voter) return json({ error: "fixtureId, pick and voter are required" }, 400);
+    const raw = await KV.get("pickem"); const map = raw ? JSON.parse(raw) : {};
+    const e = map[fid] || (map[fid] = { A: 0, B: 0, voters: {} });
+    const prev = e.voters[voter];
+    if (prev !== pick) {
+      if (prev) e[prev] = Math.max(0, (e[prev] || 0) - 1);
+      e[pick] = (e[pick] || 0) + 1;
+      e.voters[voter] = pick;
+      await KV.put("pickem", JSON.stringify(map));
+    }
     return json({ ok: true });
   }
 

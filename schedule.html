@@ -7,10 +7,10 @@
   <meta name="description" content="Binsu Star Season 2 schedule & results — coming soon." />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=19" rel="stylesheet" />
-  <link href="css/home.css?v=19" rel="stylesheet" />
-  <link href="css/season.css?v=19" rel="stylesheet" />
-  <script src="js/theme.js?v=19"></script>
+  <link href="css/voll-e.css?v=20" rel="stylesheet" />
+  <link href="css/home.css?v=20" rel="stylesheet" />
+  <link href="css/season.css?v=20" rel="stylesheet" />
+  <script src="js/theme.js?v=20"></script>
 </head>
 <body>
 
@@ -29,9 +29,11 @@
             <a href="schedule.html" class="on">📅 S2 Schedule</a>
             <a href="standings.html">📊 S2 Standings</a>
             <a href="scrims.html">🏐 Preseason Scrims</a>
+            <a href="history.html">🏛️ History</a>
           </div>
         </details>
         <a href="players.html">👤 Players</a>
+        <a href="pickem.html">🔮 Pick'em</a>
         <a href="stats.html">📊 Stats</a>
       </div>
     </div>
@@ -45,7 +47,19 @@
     </div>
   </header>
 
-  <section class="section" style="max-width:900px">
+  <!-- live fixtures & results (shown once the admin posts fixtures) -->
+  <section class="section" style="max-width:900px;display:none" id="schedReal">
+    <div class="section-head"><h2><span class="bar"></span>📅 Fixtures &amp; Results</h2></div>
+    <div id="schedList" class="ps-results"></div>
+  </section>
+
+  <!-- playoff bracket (shown once playoff fixtures exist) -->
+  <section class="section" style="max-width:1000px;display:none" id="bracketWrap">
+    <div class="section-head"><h2><span class="bar"></span>🏆 Playoff Bracket</h2></div>
+    <div class="bracket" id="bracketHost"></div>
+  </section>
+
+  <section class="section" style="max-width:900px" id="schedComing">
     <div class="coming-wrap s2-fade d2">
       <!-- ghost preview of the fixtures -->
       <div class="sched-list ghost" id="ghostSched"></div>
@@ -61,6 +75,9 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Season 2</p>
 
+  <script src="js/api.js?v=20"></script>
+  <script src="js/scrims.js?v=20"></script>
+  <script src="js/s2.js?v=20"></script>
   <script>
     // build shimmer fixture rows behind the "coming soon" card
     var s = document.getElementById("ghostSched");

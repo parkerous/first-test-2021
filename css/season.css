@@ -41,7 +41,7 @@ table.standings .team .dot { width: 26px; height: 26px; border-radius: 50%; back
 
 /* coming-soon overlay over a blurred preview */
 .coming-wrap { position: relative; margin-top: 8px; }
-.ghost { filter: blur(2px); opacity: .5; pointer-events: none; user-select: none; }
+.coming-wrap .ghost { filter: blur(2px); opacity: .5; pointer-events: none; user-select: none; }
 .coming-card {
   position: absolute; inset: 0; z-index: 2; display: grid; place-content: center; justify-items: center;
   text-align: center; gap: 10px; padding: 24px;
@@ -83,3 +83,34 @@ table.standings .team .dot { width: 26px; height: 26px; border-radius: 50%; back
   .coming-card h2 { font-size: 19px; }
   .cs-ball { font-size: 48px; }
 }
+
+/* ---- Season 2 playoff bracket ---- */
+.bracket { display: flex; gap: 18px; overflow-x: auto; padding: 6px 2px 14px; align-items: center; }
+.bk-col { display: flex; flex-direction: column; gap: 14px; min-width: 210px; }
+.bk-stage { font-weight: 900; font-size: 12.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.bk-match { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+.bk-side { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; font-size: 14.5px; color: var(--muted); }
+.bk-side.win { color: var(--ink); font-weight: 800; }
+.bk-side.win b { color: #22b866; }
+.bk-when { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.bk-champ { font-size: 16px; display: flex; align-items: center; gap: 8px; border-color: var(--gold); }
+
+/* ---- Pick'em ---- */
+.pk-card { margin-bottom: 12px; }
+.pk-head { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.pk-stage { font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.pk-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pk-row .pk-team { flex: 1 1 130px; text-align: center; }
+button.pk-btn { padding: 10px 12px; border-radius: 10px; background: var(--bg); border: 1.5px solid var(--line); font-weight: 800; color: var(--ink); cursor: pointer; font-size: 14px; }
+button.pk-btn:hover { border-color: var(--gold); }
+button.pk-btn.picked { background: linear-gradient(135deg, var(--yellow), var(--gold)); border-color: var(--gold); color: #1a1a1a; }
+span.pk-team { padding: 9px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); font-weight: 700; color: var(--muted); }
+span.pk-team.picked { border-color: var(--gold); color: var(--ink); }
+span.pk-team.won { border-color: #22b866; color: var(--ink); }
+.pk-vs { font-weight: 900; color: var(--muted); font-size: 12.5px; }
+.pk-agg { height: 6px; border-radius: 4px; background: var(--line); margin-top: 10px; overflow: hidden; }
+.pk-agg span { display: block; height: 100%; background: linear-gradient(90deg, var(--yellow), var(--gold)); }
+.pk-aggtxt { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+.pk-status { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+.pk-res.good { color: #22b866; font-weight: 700; }
+.pk-res.bad { color: #e5484d; font-weight: 700; }

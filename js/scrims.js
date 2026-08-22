@@ -130,6 +130,45 @@ function moveArrow(m) {
     : `<span class="mv down" title="Down ${n}">▼${n > 1 ? n : ""}</span>`;
 }
 
+/* ---- Elo power ratings ----
+   Standard Elo (start 1000, K=32) over a list of matches in the scrim
+   match model, replayed in createdAt order. Winner-only (forfeit) sets
+   count like any other win. Returns rows sorted by rating. */
+function eloRatings(matches) {
+  const R = {};
+  const get = n => (R[n] == null ? (R[n] = 1000) : R[n]);
+  const played = {};
+  (matches || []).slice()
+    .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
+    .forEach(m => {
+      if (!m || !m.teamA || !m.teamB || !Array.isArray(m.sets) || !m.sets.length) return;
+      let a = 0, b = 0;
+      m.sets.forEach(s => {
+        const hasPts = typeof s.a === "number" && typeof s.b === "number";
+        if (hasPts) { s.a >= s.b ? a++ : b++; }
+        else if (s.w === "A") a++; else if (s.w === "B") b++;
+      });
+      if (a === b) return;
+      const ra = get(m.teamA), rb = get(m.teamB);
+      const ea = 1 / (1 + Math.pow(10, (rb - ra) / 400));
+      const sa = a > b ? 1 : 0;
+      R[m.teamA] = ra + 32 * (sa - ea);
+      R[m.teamB] = rb + 32 * ((1 - sa) - (1 - ea));
+      played[m.teamA] = (played[m.teamA] || 0) + 1;
+      played[m.teamB] = (played[m.teamB] || 0) + 1;
+    });
+  return Object.keys(R)
+    .map(n => ({ name: n, rating: Math.round(R[n]), played: played[n] || 0 }))
+    .sort((a, b) => b.rating - a.rating);
+}
+function eloTier(r) {
+  if (r >= 1120) return { label: "S · Title contender", cls: "ps-pos" };
+  if (r >= 1060) return { label: "A · Playoff threat", cls: "ps-pos" };
+  if (r >= 1000) return { label: "B · Mid table", cls: "ps-zero" };
+  if (r >= 950) return { label: "C · Rebuilding", cls: "ps-neg" };
+  return { label: "D · Struggling", cls: "ps-neg" };
+}
+
 /* ---- public standings page (#scrimBody / #scrimResults) ---- */
 async function renderScrimStandings() {
   const body = document.getElementById("scrimBody");

@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Binsu League Rankings — Soai</title>
-  <meta name="description" content="Every-position tier list rankings for the league." />
+  <title>Pick'em — Binsu Star</title>
+  <meta name="description" content="Binsu Star Pick'em — predict every Season 2 match winner, earn points for correct calls, and prove you know the league." />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
   <link href="css/voll-e.css?v=20" rel="stylesheet" />
   <link href="css/home.css?v=20" rel="stylesheet" />
-  <link href="css/rankings.css?v=20" rel="stylesheet" />
+  <link href="css/season.css?v=20" rel="stylesheet" />
   <script src="js/theme.js?v=20"></script>
 </head>
 <body>
@@ -24,7 +24,7 @@
           <summary>League ▾</summary>
           <div class="dd-panel">
             <span class="dd-label">League</span>
-            <a href="rankings.html" class="on">S1 League Rankings</a>
+            <a href="rankings.html">S1 League Rankings</a>
             <a href="rules.html">League Rules</a>
             <a href="schedule.html">📅 S2 Schedule</a>
             <a href="standings.html">📊 S2 Standings</a>
@@ -33,29 +33,31 @@
           </div>
         </details>
         <a href="players.html">👤 Players</a>
-        <a href="pickem.html">🔮 Pick'em</a>
+        <a href="pickem.html" class="on">🔮 Pick'em</a>
         <a href="stats.html">📊 Stats</a>
       </div>
     </div>
   </nav>
 
-  <section class="section" style="max-width:820px">
-    <div class="section-head">
-      <h2><span class="bar"></span>🏆 Binsu League Rankings</h2>
-      <div class="spacer"></div>
-      <label style="color:var(--muted);font-size:13px">Season</label>
-      <select id="seasonSel" style="min-width:120px"></select>
+  <header class="s2-hero s2-fade">
+    <div class="s2-hero-inner">
+      <span class="s2-pill">Binsu Star · Pick'em</span>
+      <h1>Pick'em</h1>
+      <p>Call every Season 2 match before it happens. Correct pick = 10 points. Picks lock when the match starts — choose wisely.</p>
     </div>
-    <p class="mini-note" style="color:var(--muted);font-size:13px;margin:-6px 0 16px">
-      Official Binsu Star league rankings — Top 10 per position, with final rating and tier grade (HM = honorable mention).
-    </p>
+  </header>
 
-    <div class="postabs" id="postabs"></div>
-    <div id="board"></div>
+  <section class="section" style="max-width:760px">
+    <div class="section-head"><h2><span class="bar"></span>🔮 Your Picks</h2></div>
+    <p class="mini-note" style="margin:-6px 0 14px;color:var(--muted);font-size:13.5px" id="pickScore"></p>
+    <div id="pickList"></div>
   </section>
 
-  <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · official Season 1 league rankings</p>
+  <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Pick'em</p>
 
-  <script src="js/rankings.js?v=20"></script>
+  <script src="js/api.js?v=20"></script>
+  <script src="js/scrims.js?v=20"></script>
+  <script src="js/s2.js?v=20"></script>
+  <script src="js/pickem.js?v=20"></script>
 </body>
 </html>
