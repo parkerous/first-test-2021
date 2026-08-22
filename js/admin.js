@@ -64,7 +64,7 @@ function renderPlayerAdmin() {
   const LBL = ["G", "K", "A", "B", "D", "As", "MVP"];
   el.innerHTML = rows.map(p => `
     <div class="card" style="background:var(--bg);margin-bottom:8px"><div class="row" style="align-items:center;gap:6px;flex-wrap:wrap">
-      <span style="font-size:13.5px;min-width:180px"><b>${esc(p.name)}</b> <span style="color:var(--muted)">· ${esc(p.pos || "—")}</span></span>
+      <span style="font-size:13.5px;min-width:180px"><b>${esc(p.name)}</b>${p.cap ? ' <span class="capb" title="Team captain">C</span>' : ""} <span style="color:var(--muted)">· ${esc(p.pos || "—")}</span></span>
       <span class="spacer"></span>
       ${KEYS.map((k, i) => `<label style="font-size:10.5px;color:var(--muted);display:flex;flex-direction:column;align-items:center">${LBL[i]}<input type="number" min="0" class="pl-stat" data-id="${esc(p.id)}" data-k="${k}" value="${(p.stats || {})[k] || 0}" style="width:52px;font-size:12.5px" /></label>`).join("")}
       <button class="btn ghost pl-save" data-id="${esc(p.id)}" title="Save stats">💾</button>
