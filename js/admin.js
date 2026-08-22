@@ -39,6 +39,59 @@ async function loadAll() {
   await loadScrims();
   await loadS2();
   loadHonors();   // after scrims + S2 so the team-name suggestions are filled
+  loadPlayers();
+}
+
+/* ---------- player roster + stat logging ---------- */
+let PLAYERS = [];
+async function loadPlayers() {
+  try { PLAYERS = await apiGet("/players"); } catch (e) { PLAYERS = []; }
+  const teams = [...new Set(PLAYERS.map(p => p.team).concat(S2DATA.teams || []))].sort();
+  const opts = teams.map(t => `<option>${esc(t)}</option>`).join("");
+  const sel = document.getElementById("plTeam"), fil = document.getElementById("plFilter");
+  if (sel) { const v = sel.value; sel.innerHTML = `<option value="">Team…</option>` + opts; sel.value = v; }
+  if (fil) { const v = fil.value; fil.innerHTML = `<option value="">Pick a team…</option>` + opts; fil.value = v; }
+  renderPlayerAdmin();
+}
+function renderPlayerAdmin() {
+  const el = document.getElementById("playerAdmin");
+  if (!el) return;
+  const team = document.getElementById("plFilter").value;
+  if (!team) { el.innerHTML = `<p class="empty">Pick a team above to see its players (${PLAYERS.length} loaded).</p>`; return; }
+  const rows = PLAYERS.filter(p => p.team === team).sort((a, b) => a.name.localeCompare(b.name));
+  if (!rows.length) { el.innerHTML = `<p class="empty">No players on ${esc(team)} yet — add one above.</p>`; return; }
+  const KEYS = ["games", "kills", "aces", "blocks", "digs", "assists", "mvps"];
+  const LBL = ["G", "K", "A", "B", "D", "As", "MVP"];
+  el.innerHTML = rows.map(p => `
+    <div class="card" style="background:var(--bg);margin-bottom:8px"><div class="row" style="align-items:center;gap:6px;flex-wrap:wrap">
+      <span style="font-size:13.5px;min-width:180px"><b>${esc(p.name)}</b> <span style="color:var(--muted)">· ${esc(p.pos || "—")}</span></span>
+      <span class="spacer"></span>
+      ${KEYS.map((k, i) => `<label style="font-size:10.5px;color:var(--muted);display:flex;flex-direction:column;align-items:center">${LBL[i]}<input type="number" min="0" class="pl-stat" data-id="${esc(p.id)}" data-k="${k}" value="${(p.stats || {})[k] || 0}" style="width:52px;font-size:12.5px" /></label>`).join("")}
+      <button class="btn ghost pl-save" data-id="${esc(p.id)}" title="Save stats">💾</button>
+      <button class="btn warn pl-del" data-id="${esc(p.id)}" title="Remove player">🗑</button>
+    </div></div>`).join("");
+  el.querySelectorAll(".pl-save").forEach(b => b.addEventListener("click", async () => {
+    const stats = {};
+    el.querySelectorAll(`.pl-stat[data-id="${b.dataset.id}"]`).forEach(inp => { stats[inp.dataset.k] = +inp.value || 0; });
+    const r = await apiPost("/admin/players/update", { id: b.dataset.id, stats }, true);
+    if (r && r.ok) { b.textContent = "✅"; setTimeout(() => { b.textContent = "💾"; }, 1200); await loadPlayers(); }
+  }));
+  el.querySelectorAll(".pl-del").forEach(b => b.addEventListener("click", async () => {
+    await apiPost("/admin/players/delete", { id: b.dataset.id }, true); await loadPlayers();
+  }));
+}
+async function addPlayerAdmin() {
+  const m = document.getElementById("plMsg");
+  const name = document.getElementById("plName").value.trim();
+  const team = document.getElementById("plTeam").value;
+  const pos = document.getElementById("plPos").value;
+  if (!name || !team) { m.textContent = "Name and team are required."; return; }
+  const r = await apiPost("/admin/players/add", { name, team, pos }, true);
+  if (r && r.ok) { m.textContent = "✅ Added"; document.getElementById("plName").value = ""; document.getElementById("plFilter").value = team; await loadPlayers(); }
+  else m.textContent = "⚠️ " + ((r && r.error) || "failed");
+}
+async function resetPlayersAdmin() {
+  await apiPost("/admin/players/reset", {}, true); await loadPlayers();
 }
 
 /* ---------- full data backup (one JSON file) ---------- */
@@ -46,10 +99,10 @@ async function downloadBackup() {
   const m = document.getElementById("backupMsg");
   m.textContent = "Collecting data…";
   const grab = p => apiGet(p).catch(() => null);
-  const [site, announcements, scrims, s2, honors, rules, pickem] = await Promise.all([
-    grab("/site"), grab("/announcements"), grab("/scrims"), grab("/s2"), grab("/honors"), grab("/rules"), grab("/pickem"),
+  const [site, announcements, scrims, s2, honors, rules, pickem, players] = await Promise.all([
+    grab("/site"), grab("/announcements"), grab("/scrims"), grab("/s2"), grab("/honors"), grab("/rules"), grab("/pickem"), grab("/players"),
   ]);
-  const backup = { site: "Binsu Star", exportedAt: new Date().toISOString(), data: { site, announcements, scrims, s2, honors, rules, pickem } };
+  const backup = { site: "Binsu Star", exportedAt: new Date().toISOString(), data: { site, announcements, scrims, s2, honors, rules, pickem, players } };
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -390,34 +443,9 @@ async function loadSite() {
   try {
     const s = await apiGet("/site");
     if (s && s.logo) { brandLogo = s.logo; document.getElementById("brandPreview").src = s.logo; }
-    const su = document.getElementById("sheetUrl");
-    if (su && s && s.statSheet) su.value = s.statSheet;
   } catch (e) {}
 }
 
-/* ---------- live stat sheet (Google Sheet / CSV link) ---------- */
-async function previewSheet() {
-  const m = document.getElementById("sheetMsg"), host = document.getElementById("sheetPreview");
-  const url = document.getElementById("sheetUrl").value.trim();
-  if (!url) { m.textContent = "Paste a sheet link first."; return; }
-  m.textContent = "Fetching the sheet…";
-  try {
-    const data = await fetchSheet(url);
-    renderSheetTable(host, { headers: data.headers, rows: data.rows.slice(0, 8) });
-    m.textContent = `✅ Sheet loads — ${data.rows.length} row${data.rows.length === 1 ? "" : "s"}, ${data.headers.length} columns (showing the first 8). Click Connect to put it live.`;
-  } catch (e) { host.innerHTML = ""; m.textContent = "⚠️ " + e.message; }
-}
-async function saveSheet() {
-  const m = document.getElementById("sheetMsg");
-  const url = document.getElementById("sheetUrl").value.trim();
-  m.textContent = "Saving…";
-  try {
-    const r = await apiPost("/admin/site", { statSheet: url }, true);
-    m.textContent = (r && r.ok)
-      ? (url ? "✅ Connected — the Stats page now shows this sheet live." : "✅ Disconnected — the Stats page shows the setup note again.")
-      : "⚠️ " + ((r && r.error) || "failed");
-  } catch (e) { m.textContent = "⚠️ " + e.message; }
-}
 async function pickBrand(input) {
   const f = input.files[0]; if (!f) return;
   brandLogo = await fileToDataUrl(f, 420);
@@ -624,7 +652,7 @@ function renderReqAdmin() {
 async function deleteReq(id) { await apiPost("/admin/coaching/requests/delete", { id }, true); REQS = REQS.filter(x => x.id !== id); renderReqAdmin(); }
 
 /* ---------- tabs (history-aware: back = undo, forward = redo) ---------- */
-const TABS = ["teams", "ann", "s2", "scrims", "honors", "rules"];
+const TABS = ["teams", "ann", "players", "s2", "scrims", "honors", "rules"];
 function tabFromHash() { const h = (location.hash || "").replace(/^#/, ""); return TABS.includes(h) ? h : "teams"; }
 /* update just the UI (which tab + pane is shown) */
 function showTab(name) {
@@ -647,6 +675,10 @@ function init() {
   document.getElementById("rulesReset").addEventListener("click", loadDefaultRules);
   document.getElementById("refreshSuggestBtn").addEventListener("click", loadRules);
   document.getElementById("backupBtn").addEventListener("click", downloadBackup);
+  document.getElementById("plAdd").addEventListener("click", addPlayerAdmin);
+  document.getElementById("plFilter").addEventListener("change", renderPlayerAdmin);
+  document.getElementById("refreshPlayersBtn").addEventListener("click", loadPlayers);
+  document.getElementById("plResetBtn").addEventListener("click", resetPlayersAdmin);
   document.getElementById("hoAdd").addEventListener("click", addHonor);
   document.getElementById("refreshHonorsBtn").addEventListener("click", loadHonors);
   document.getElementById("fxAdd").addEventListener("click", addFixture);
@@ -660,8 +692,6 @@ function init() {
   document.getElementById("scResetBtn").addEventListener("click", resetScrims);
   document.getElementById("brandFile").addEventListener("change", e => pickBrand(e.target));
   document.getElementById("brandSave").addEventListener("click", saveBrand);
-  document.getElementById("sheetTest").addEventListener("click", previewSheet);
-  document.getElementById("sheetSave").addEventListener("click", saveSheet);
   document.querySelectorAll(".atab").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
   // back/forward (undo/redo) and refresh restore the tab from the URL
   window.addEventListener("hashchange", () => showTab(tabFromHash()));

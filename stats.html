@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Volleyball Stats — Binsu Star</title>
-  <meta name="description" content="Binsu Star player stats — logged live by the league and used to decide the player leaderboards." />
+  <meta name="description" content="Binsu Star player stats — position-split leaderboards for hitters, setters and liberos, logged by the league." />
   <meta property="og:site_name" content="Binsu Star" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Volleyball Stats — Binsu Star" />
@@ -17,11 +17,11 @@
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=25" rel="stylesheet" />
-  <link href="css/home.css?v=25" rel="stylesheet" />
-  <link href="css/landing.css?v=25" rel="stylesheet" />
-  <link href="css/season.css?v=25" rel="stylesheet" />
-  <script src="js/theme.js?v=25"></script>
+  <link href="css/voll-e.css?v=26" rel="stylesheet" />
+  <link href="css/home.css?v=26" rel="stylesheet" />
+  <link href="css/landing.css?v=26" rel="stylesheet" />
+  <link href="css/season.css?v=26" rel="stylesheet" />
+  <script src="js/theme.js?v=26"></script>
 </head>
 <body>
 
@@ -53,41 +53,41 @@
     <div class="s2-hero-inner">
       <span class="s2-pill">Binsu Star · Stats</span>
       <h1>Volleyball Stats</h1>
-      <p>Official Binsu player stats, logged by the league and updated live from the stat sheet. These numbers build the future player leaderboards.</p>
+      <p>Official Season 2 player stats — logged by the league after every game. Hitters, setters and liberos each race on their own leaderboard.</p>
     </div>
   </header>
 
-  <!-- Live stat sheet (Google Sheet / CSV-backed, auto-updating) -->
-  <section class="section" style="max-width:1000px">
-    <div class="section-head"><h2><span class="bar"></span>📋 Player Stat Sheet</h2><span class="spacer"></span><button class="btn" id="sheetRefresh">↻ Refresh</button></div>
-    <p class="mini-note" style="margin:-6px 0 14px;color:var(--muted);font-size:13.5px" id="sheetStatus">
-      Logged live by the league — every stat entered in the official sheet shows up here automatically.
+  <!-- position-split leaderboards -->
+  <section class="section" style="max-width:1100px">
+    <div class="section-head"><h2><span class="bar"></span>👑 Official Player Leaderboards</h2></div>
+    <p class="mini-note" style="margin:-6px 0 14px;color:var(--muted);font-size:13.5px">
+      Top 10 in each position group — <b>Hitters</b> (outside, opposite, middle, all-rounders), <b>Setters</b> and <b>Liberos</b> — ranked by league points:
+      Kills ×2 · Aces ×2 · Blocks ×2 · Digs ×1 · Assists ×1 · MVPs ×10. Stats are logged by admins after each game.
     </p>
-    <div id="sheetHost"></div>
+    <div class="pos-boards" id="posBoards"></div>
   </section>
 
-  <!-- official player leaderboard, computed from the stat sheet -->
+  <!-- category leaders -->
   <section class="section" style="max-width:1000px">
-    <div class="section-head"><h2><span class="bar"></span>👑 Official Player Leaderboard</h2></div>
+    <div class="section-head"><h2><span class="bar"></span>🏅 Category Leaders</h2></div>
     <p class="mini-note" style="margin:-6px 0 14px;color:var(--muted);font-size:13.5px">
-      The official Top 10, computed live from the logged stats with the league formula. This is the board that matters.
+      Top 3 across the whole league in every logged stat.
     </p>
-    <div id="sheetBoard"></div>
+    <div class="lp-features" id="catLeaders" style="padding:0"></div>
   </section>
 
-  <!-- per-category leaders, computed from the stat sheet -->
-  <section class="section" style="max-width:1000px">
-    <div class="section-head"><h2><span class="bar"></span>🏆 Category Leaders</h2></div>
+  <!-- full roster + stats -->
+  <section class="section" style="max-width:1100px">
+    <div class="section-head"><h2><span class="bar"></span>📋 All Players &amp; Stats</h2></div>
     <p class="mini-note" style="margin:-6px 0 14px;color:var(--muted);font-size:13.5px">
-      Top players in each logged stat, computed automatically from the sheet above. These are the numbers that will decide the <b>official player leaderboards</b> — log games, climb the board.
+      Every registered Season 2 player. Filter by position group or team — G games · K kills · A aces · B blocks · D digs · As assists.
     </p>
-    <div class="lp-features" id="sheetLeaders" style="padding:0"></div>
+    <div id="rosterTable"></div>
   </section>
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Stats</p>
 
-  <script src="js/api.js?v=25"></script>
-  <script src="js/scrims.js?v=25"></script>
-  <script src="js/statsheet.js?v=25"></script>
+  <script src="js/api.js?v=26"></script>
+  <script src="js/pstats.js?v=26"></script>
 </body>
 </html>
