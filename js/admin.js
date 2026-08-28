@@ -183,6 +183,7 @@ async function dcPostNight() {
     await dcPost({
       username: "Binsu Star",
       avatar_url: SITE_URL + "/img/icon-192.png",
+      ...dcPing(),
       embeds: [{
         title: "📅 Tonight on Binsu Star",
         description: lines.join("\n") + `\n\n${dcTs(night[0].when, "F")}\n\n🔮 [Make your Pick'em picks](${SITE_URL}/pickem.html) before the first serve!\n📊 [Full schedule & standings](${SITE_URL}/schedule.html)`,
@@ -203,6 +204,7 @@ async function dcPostPickem() {
     await dcPost({
       username: "Binsu Star",
       avatar_url: SITE_URL + "/img/icon-192.png",
+      ...dcPing(),
       embeds: [{
         title: "🔮 Pick'em is open!",
         description: `Call the winners before the matches lock:\n\n${lines.join("\n")}\n\n➡️ **[Make your picks](${SITE_URL}/pickem.html)** — every correct call is 10 pts.`,
@@ -233,6 +235,68 @@ async function dcPostResult(f) {
     }],
   });
 }
+function dcRole() { try { return (localStorage.getItem("soai_dc_role") || "").trim(); } catch (e) { return ""; } }
+function dcPing() {
+  const r = dcRole();
+  return r ? { content: `<@&${r}>`, allowed_mentions: { roles: [r] } } : {};
+}
+/* Current Group A/B tables as a Discord embed. */
+async function dcPostStandings() {
+  const m = document.getElementById("dcMsg");
+  m.textContent = "Posting…";
+  const groups = (typeof S2_GROUPS_CACHE !== "undefined" && S2_GROUPS_CACHE) || { A: [], B: [] };
+  const played = (S2DATA.fixtures || []).filter(f => f.stage === "regular" && f.sets && f.sets.length);
+  const lines = gTeams => computeScrimStandings(gTeams, played.filter(f => gTeams.indexOf(f.teamA) !== -1))
+    .map((t, i) => `\`${String(i + 1).padStart(2)}\` **${t.name}** — ${t.mw}–${t.ml} (${t.record > 0 ? "+" + t.record : t.record} pts)`).join("\n");
+  try {
+    await dcPost({
+      username: "Binsu Star",
+      avatar_url: SITE_URL + "/img/icon-192.png",
+      ...dcPing(),
+      embeds: [{
+        title: "📊 Season 2 — Group Stage Standings",
+        fields: [
+          { name: "🟢 Group A", value: lines(groups.A || []) || "—", inline: true },
+          { name: "🔴 Group B", value: lines(groups.B || []) || "—", inline: true },
+        ],
+        description: `Full tables with sets, point diff and form: [standings](${SITE_URL}/standings.html)`,
+        color: 0xC6971F,
+        footer: { text: "Binsu Star · Season 2 · win +1 / loss −1" },
+      }],
+    });
+    m.textContent = "✅ Standings posted to Discord.";
+  } catch (e) { m.textContent = "⚠️ " + e.message; }
+}
+/* Top players by league points as a Discord embed. */
+async function dcPostLeaders() {
+  const m = document.getElementById("dcMsg");
+  m.textContent = "Posting…";
+  const W = { kills: 2, aces: 2, blocks: 2, digs: 1, assists: 1 };
+  const pts = p => { const st = p.stats || {}; let x = 0; for (const k in W) x += W[k] * (+st[k] || 0); return Math.round(x * 10) / 10; };
+  const top = (PLAYERS || []).map(p => ({ ...p, pts: pts(p) })).filter(p => p.pts > 0)
+    .sort((a, b) => b.pts - a.pts).slice(0, 5);
+  if (!top.length) { m.textContent = "No player stats logged yet — nothing to post."; return; }
+  const medal = ["🥇", "🥈", "🥉", "4.", "5."];
+  const lines = top.map((p, i) => {
+    const st = p.stats || {};
+    return `${medal[i]} **${p.name}** (${p.team}) — **${p.pts} pts** · ${st.kills || 0}K ${st.aces || 0}A ${st.blocks || 0}B ${st.digs || 0}D`;
+  });
+  try {
+    await dcPost({
+      username: "Binsu Star",
+      avatar_url: SITE_URL + "/img/icon-192.png",
+      ...dcPing(),
+      embeds: [{
+        title: "🏅 Player Leaderboard — Top 5",
+        description: lines.join("\n") + `\n\nSpiker / Setter / Libero boards: [stats](${SITE_URL}/stats.html)`,
+        color: 0xC6971F,
+        footer: { text: "Kills ×2 · Aces ×2 · Blocks ×2 · Digs ×1 · Assists ×1" },
+      }],
+    });
+    m.textContent = "✅ Stat leaders posted to Discord.";
+  } catch (e) { m.textContent = "⚠️ " + e.message; }
+}
+
 function initDcCard() {
   const hookIn = document.getElementById("dcHook");
   if (!hookIn) return;
@@ -255,8 +319,15 @@ function initDcCard() {
       m.textContent = "✅ Test message sent — check the channel.";
     } catch (e) { m.textContent = "⚠️ " + e.message; }
   });
+  const roleIn = document.getElementById("dcRole");
+  roleIn.value = dcRole();
+  roleIn.addEventListener("change", () => {
+    try { roleIn.value.trim() ? localStorage.setItem("soai_dc_role", roleIn.value.trim()) : localStorage.removeItem("soai_dc_role"); } catch (e) {}
+  });
   document.getElementById("dcNight").addEventListener("click", dcPostNight);
   document.getElementById("dcPickem").addEventListener("click", dcPostPickem);
+  document.getElementById("dcStandings").addEventListener("click", dcPostStandings);
+  document.getElementById("dcLeaders").addEventListener("click", dcPostLeaders);
 }
 
 /* ---------- Season 2 fixtures admin ---------- */
