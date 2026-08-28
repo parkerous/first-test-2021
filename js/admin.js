@@ -144,7 +144,15 @@ async function addHonor() {
   if (!team || !event) { m.textContent = "Team and tournament are required."; return; }
   m.textContent = "Saving…";
   const r = await apiPost("/admin/honors/add", { team, event, place, season }, true);
-  if (r && r.ok) { m.textContent = "✅ Recorded — the all-time board is updated."; document.getElementById("hoTeam").value = ""; document.getElementById("hoEvent").value = ""; await loadHonors(); }
+  if (r && r.ok) {
+    m.textContent = "✅ Recorded — the all-time board is updated.";
+    document.getElementById("hoTeam").value = ""; document.getElementById("hoEvent").value = "";
+    await loadHonors();
+    if (typeof dcHook === "function" && dcHook()) {
+      try { await dcPostHonor(team, event, place, season); m.textContent += " 📣 Announced on Discord."; }
+      catch (e) { m.textContent += " ⚠️ Discord announce failed: " + e.message; }
+    }
+  }
   else m.textContent = "⚠️ " + ((r && r.error) || "failed");
 }
 
@@ -295,6 +303,28 @@ async function dcPostLeaders() {
     });
     m.textContent = "✅ Stat leaders posted to Discord.";
   } catch (e) { m.textContent = "⚠️ " + e.message; }
+}
+
+/* Honors ceremony post — fires automatically when a placement is
+   recorded and a webhook is saved on this device. */
+async function dcPostHonor(team, event, place, season) {
+  const style = {
+    1: { title: `🏆 ${team.toUpperCase()} ARE CHAMPIONS!`, line: `👑 **${team}** take the gold at **${event}**${season ? ` (${season})` : ""}!`, color: 0xC6971F },
+    2: { title: `🥈 ${team} — runners-up`, line: `**${team}** finish second at **${event}**${season ? ` (${season})` : ""}.`, color: 0xC0C0C0 },
+    3: { title: `🥉 ${team} — third place`, line: `**${team}** take bronze at **${event}**${season ? ` (${season})` : ""}.`, color: 0xCD7F32 },
+  }[place];
+  if (!style) return;
+  await dcPost({
+    username: "Binsu Star",
+    avatar_url: SITE_URL + "/img/icon-192.png",
+    ...dcPing(),
+    embeds: [{
+      title: style.title,
+      description: `${style.line}\n\n🏛️ [All-time team rankings](${SITE_URL}/history.html) — every podium counts forever.`,
+      color: style.color,
+      footer: { text: "Binsu Star · Honors" },
+    }],
+  });
 }
 
 function initDcCard() {
