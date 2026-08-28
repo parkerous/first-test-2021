@@ -885,19 +885,13 @@ function renderReqAdmin() {
 }
 async function deleteReq(id) { await apiPost("/admin/coaching/requests/delete", { id }, true); REQS = REQS.filter(x => x.id !== id); renderReqAdmin(); }
 
-/* ---------- tabs (history-aware: back = undo, forward = redo) ---------- */
+/* ---------- one-page sections (deep links like admin.html#s2 still work) ---------- */
 const TABS = ["teams", "ann", "players", "s2", "scrims", "honors"];
-function tabFromHash() { const h = (location.hash || "").replace(/^#/, ""); return TABS.includes(h) ? h : "teams"; }
-/* update just the UI (which tab + pane is shown) */
-function showTab(name) {
-  document.querySelectorAll(".atab").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
-  TABS.forEach(t => { const el = document.getElementById("pane-" + t); if (el) el.style.display = t === name ? "block" : "none"; });
-}
-/* clicking a tab records a history entry (a new "branch") so the browser's
-   back/forward buttons undo/redo the navigation, and a refresh keeps the tab. */
-function switchTab(name) {
-  if (tabFromHash() === name) { showTab(name); return; }
-  location.hash = name;   // pushes a history entry → fires hashchange → showTab
+function openFromHash() {
+  const h = (location.hash || "").replace(/^#/, "");
+  if (!TABS.includes(h)) return;
+  const el = document.getElementById("pane-" + h);
+  if (el) { el.open = true; el.scrollIntoView({ behavior: "smooth", block: "start" }); }
 }
 
 function init() {
@@ -924,9 +918,8 @@ function init() {
   document.getElementById("scResetBtn").addEventListener("click", resetScrims);
   document.getElementById("brandFile").addEventListener("change", e => pickBrand(e.target));
   document.getElementById("brandSave").addEventListener("click", saveBrand);
-  document.querySelectorAll(".atab").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
-  // back/forward (undo/redo) and refresh restore the tab from the URL
-  window.addEventListener("hashchange", () => showTab(tabFromHash()));
-  showTab(tabFromHash());
+  // a #hash link (e.g. admin.html#s2) opens and scrolls to that section
+  window.addEventListener("hashchange", openFromHash);
+  openFromHash();
 }
 document.addEventListener("DOMContentLoaded", init);

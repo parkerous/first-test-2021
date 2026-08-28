@@ -16,10 +16,10 @@
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=35" rel="stylesheet" />
-  <link href="css/home.css?v=35" rel="stylesheet" />
-  <link href="css/teams.css?v=35" rel="stylesheet" />
-  <script src="js/theme.js?v=35"></script>
+  <link href="css/voll-e.css?v=36" rel="stylesheet" />
+  <link href="css/home.css?v=36" rel="stylesheet" />
+  <link href="css/teams.css?v=36" rel="stylesheet" />
+  <script src="js/theme.js?v=36"></script>
 </head>
 <body>
 
@@ -55,16 +55,9 @@
         <div class="admin-hero-top"><span class="ah-badge">🏐 Binsu Star</span><span class="ah-title">League control panel</span></div>
       </div>
 
-      <div class="admin-tabs">
-        <button class="atab on" data-tab="teams">⚙️ Site</button>
-        <button class="atab" data-tab="ann">📢 Announcements</button>
-        <button class="atab" data-tab="s2">🏆 Season 2</button>
-        <button class="atab" data-tab="players">👤 Players</button>
-        <button class="atab" data-tab="scrims">🏐 Preseason</button>
-        <button class="atab" data-tab="honors">🏅 Honors</button>
-      </div>
-
-      <div class="tabpane" id="pane-teams">
+      <details class="adm-sec" id="pane-teams">
+        <summary>⚙️ Site <span class="as-hint">backup · logo</span><span class="as-arrow">▾</span></summary>
+        <div class="as-body">
         <div class="card">
           <h2>💾 League data backup</h2>
           <p class="mini-note" style="margin-top:0">Downloads everything the site stores — announcements, scrims, Season 2 fixtures &amp; results, honors, rules, pick'em totals and site settings — as one JSON file. Keep a copy somewhere safe after big updates.</p>
@@ -80,9 +73,12 @@
             <span class="msg" id="brandMsg" style="color:var(--muted);font-size:12.5px"></span>
           </div>
         </div>
-      </div>
+        </div>
+      </details>
 
-      <div class="tabpane" id="pane-s2" style="display:none">
+      <details class="adm-sec" id="pane-s2" open>
+        <summary>🏆 Season 2 <span class="as-hint">fixtures · results · Discord</span><span class="as-arrow">▾</span></summary>
+        <div class="as-body">
         <div class="card">
           <h2>📅 Add a fixture</h2>
           <p class="mini-note" style="margin-top:0">Post upcoming Season 2 matches. They appear on the Schedule page (and in Pick'em) immediately; enter the result after the game and the S2 standings, bracket and Pick'em scores all update automatically.</p>
@@ -137,9 +133,12 @@
           <textarea id="s2Teams" rows="8" style="width:100%;font-family:ui-monospace,monospace;font-size:13px"></textarea>
           <div class="row" style="margin-top:8px"><button class="btn" id="s2TeamsSave">💾 Save teams</button><span class="msg" id="s2TeamsMsg" style="color:var(--muted);font-size:12.5px"></span></div>
         </div>
-      </div>
+        </div>
+      </details>
 
-      <div class="tabpane" id="pane-players" style="display:none">
+      <details class="adm-sec" id="pane-players">
+        <summary>👤 Players <span class="as-hint">rosters · stat logging</span><span class="as-arrow">▾</span></summary>
+        <div class="as-body">
         <div class="card">
           <h2>👤 Add a player</h2>
           <p class="mini-note" style="margin-top:0">All 161 registered players are already loaded. Add new signings here — the position's first entry decides which leaderboard they race on (Setter → Setters, Libero → Liberos, everything else → Hitters).</p>
@@ -166,9 +165,12 @@
           <div id="playerAdmin"></div>
           <div class="row" style="margin-top:10px"><button class="btn warn" id="plResetBtn">↺ Reset all players to the registered rosters</button></div>
         </div>
-      </div>
+        </div>
+      </details>
 
-      <div class="tabpane" id="pane-scrims" style="display:none">
+      <details class="adm-sec" id="pane-scrims">
+        <summary>🏐 Preseason <span class="as-hint">scrim results · teams</span><span class="as-arrow">▾</span></summary>
+        <div class="as-body">
         <div class="card">
           <h2>🏐 Post a game result</h2>
           <p class="mini-note" style="margin-top:0">Pick both teams and enter each set's score. Add up to 5 sets — works for BO3 (2–3 sets) and BO5 (up to 5). The winner and all standings (record, set win-rate, point differential) are calculated automatically.</p>
@@ -199,9 +201,12 @@
           <div id="scTeamsEditor" class="roster-editor"></div>
           <div class="row" style="margin-top:8px"><button class="btn" id="scTeamsSave">💾 Save teams</button><span class="msg" id="scTeamsMsg" style="color:var(--muted);font-size:12.5px"></span></div>
         </div>
-      </div>
+        </div>
+      </details>
 
-      <div class="tabpane" id="pane-honors" style="display:none">
+      <details class="adm-sec" id="pane-honors">
+        <summary>🏅 Honors <span class="as-hint">tournament placements</span><span class="as-arrow">▾</span></summary>
+        <div class="as-body">
         <div class="card">
           <h2>🏅 Record a tournament placement</h2>
           <p class="mini-note" style="margin-top:0">Log how a tournament ended and the <a href="history.html" target="_blank">All-Time Team Rankings</a> update instantly — and if a Discord webhook is saved (Season 2 tab), the podium is announced in your channel automatically: <b>🥇 champion 10 pts · 🥈 runner-up 6 pts · 🥉 third 3 pts</b>. Works for past events too (e.g. Season 1) — the board is all-time and never resets.</p>
@@ -224,9 +229,12 @@
           <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0">Recorded placements</h2><span class="spacer"></span><button class="btn ghost" id="refreshHonorsBtn">↻ Refresh</button></div>
           <div id="honorAdmin"></div>
         </div>
-      </div>
+        </div>
+      </details>
 
-      <div class="tabpane" id="pane-ann" style="display:none">
+      <details class="adm-sec" id="pane-ann">
+        <summary>📢 Announcements <span class="as-hint">homepage slideshow</span><span class="as-arrow">▾</span></summary>
+        <div class="as-body">
         <div class="card">
           <h2>📢 Slideshow announcements</h2>
           <p class="mini-note" style="margin-top:0">These appear first on the homepage slideshow — great for league announcements.</p>
@@ -237,15 +245,16 @@
           </div>
           <p class="msg" id="annMsg" style="color:var(--muted);font-size:13.5px;margin:6px 0 0"></p>
         </div>
-      </div>
+        </div>
+      </details>
     </div>
   </section>
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Admin</p>
 
-  <script src="js/api.js?v=35"></script>
-  <script src="js/scrims.js?v=35"></script>
-  <script src="js/s2.js?v=35"></script>
-  <script src="js/admin.js?v=35"></script>
+  <script src="js/api.js?v=36"></script>
+  <script src="js/scrims.js?v=36"></script>
+  <script src="js/s2.js?v=36"></script>
+  <script src="js/admin.js?v=36"></script>
 </body>
 </html>
