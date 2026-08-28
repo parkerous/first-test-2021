@@ -880,6 +880,11 @@ function fileToDataUrl(file, max = 420) {
       kvPut("players", JSON.stringify(seedPlayers())); return ok({ ok: true });
     }
 
+    if (p === "/admin/discord/register" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      return err("slash commands need the shared Cloudflare Worker deployed (it hosts the /interactions endpoint) — see DEPLOY.md", 400);
+    }
+
     /* ---- honors: tournament placements driving the all-time rankings ---- */
     if (p === "/honors" && method === "GET") {
       const raw = kvGet("honors"); return ok(raw ? JSON.parse(raw) : []);

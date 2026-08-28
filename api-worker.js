@@ -837,6 +837,36 @@ async function handleApi(req, env, url) {
     await KV.put("players", JSON.stringify(seedPlayers())); return json({ ok: true });
   }
 
+  if (p === "/admin/discord/register" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const b = await req.json();
+    const appId = cleanStr(b.appId, 30), publicKey = cleanStr(b.publicKey, 80), botToken = String(b.botToken || "").trim();
+    if (!/^\d{15,25}$/.test(appId) || !/^[0-9a-f]{64}$/i.test(publicKey) || !botToken) {
+      return json({ error: "appId (numbers), publicKey (64 hex chars) and botToken are required" }, 400);
+    }
+    const cmd = [{
+      name: "binsustar",
+      description: "Binsu Star league — standings, schedule, pick'em",
+      options: [{
+        type: 3, name: "topic", description: "What to show", required: false,
+        choices: [
+          { name: "overview", value: "overview" },
+          { name: "standings", value: "standings" },
+          { name: "schedule", value: "schedule" },
+          { name: "pickem", value: "pickem" },
+        ],
+      }],
+    }];
+    const r = await fetch(`https://discord.com/api/v10/applications/${appId}/commands`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bot ${botToken}` },
+      body: JSON.stringify(cmd),
+    });
+    if (!r.ok) return json({ error: "Discord rejected the registration (HTTP " + r.status + ") — check the app id and bot token" }, 400);
+    await KV.put("discord", JSON.stringify({ appId, publicKey }));   // token is NOT stored
+    return json({ ok: true, endpoint: url.origin + "/interactions" });
+  }
+
   /* ---- honors: tournament placements driving the all-time rankings ---- */
   if (p === "/honors" && req.method === "GET") {
     const raw = await KV.get("honors"); return json(raw ? JSON.parse(raw) : []);
@@ -902,10 +932,127 @@ async function handleApi(req, env, url) {
   return null;   // not an API route → let a static asset handle it
 }
 
+/* ============ Discord slash command (/binsustar) ============
+   The Worker doubles as the app's Interactions Endpoint:
+   1. Admin registers the command once (POST /admin/discord/register
+      with the app id, public key and bot token - the token is used
+      for the one registration call and never stored).
+   2. In the Discord developer portal, set the app's
+      "Interactions Endpoint URL" to  https://<worker>/interactions
+   3. Members type /binsustar [topic] anywhere in the server. */
+
+function hexToBytes(hex) {
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+  return out;
+}
+async function verifyDiscord(req, body, publicKey) {
+  try {
+    const sig = req.headers.get("x-signature-ed25519");
+    const ts = req.headers.get("x-signature-timestamp");
+    if (!sig || !ts) return false;
+    const key = await crypto.subtle.importKey("raw", hexToBytes(publicKey), { name: "Ed25519" }, false, ["verify"]);
+    return await crypto.subtle.verify("Ed25519", key, hexToBytes(sig), new TextEncoder().encode(ts + body));
+  } catch (e) { return false; }
+}
+async function getS2Data(KV) {
+  const raw = await KV.get("s2");
+  const d = raw ? JSON.parse(raw) : { teams: DEFAULT_S2_TEAMS.slice(), fixtures: DEFAULT_S2_FIXTURES.map(x => ({ ...x })) };
+  if (!d.fixtures || !d.fixtures.length) d.fixtures = DEFAULT_S2_FIXTURES.map(x => ({ ...x }));
+  return d;
+}
+function slashPlayed(f) { return !!(f.sets && f.sets.length); }
+function slashSets(f) {
+  let a = 0, b = 0;
+  (f.sets || []).forEach(st => {
+    const hp = typeof st.a === "number" && typeof st.b === "number";
+    (hp ? st.a >= st.b : st.w === "A") ? a++ : b++;
+  });
+  return [a, b];
+}
+function slashStandingsLines(gTeams, played) {
+  const t = {};
+  gTeams.forEach(n => { t[n] = { n, w: 0, l: 0 }; });
+  played.forEach(f => {
+    if (!(f.teamA in t)) return;
+    const [a, b] = slashSets(f);
+    if (a === b) return;
+    const win = a > b ? f.teamA : f.teamB, lose = a > b ? f.teamB : f.teamA;
+    if (t[win]) t[win].w++;
+    if (t[lose]) t[lose].l++;
+  });
+  return Object.values(t).sort((x, y) => (y.w - y.l) - (x.w - x.l) || y.w - x.w || x.n.localeCompare(y.n))
+    .map((r, i) => `\`${String(i + 1).padStart(2)}\` **${r.n}** — ${r.w}–${r.l}`).join("\n") || "—";
+}
+const SLASH_SITE = "https://binsuasia.netlify.app";
+function slashEmbed(topic, d) {
+  const ts = (when, style) => `<t:${Math.floor(when / 1000)}:${style}>`;
+  const reg = (d.fixtures || []).filter(f => f.stage === "regular");
+  const upcoming = reg.filter(f => !slashPlayed(f) && f.when).sort((a, b) => a.when - b.when);
+  const played = reg.filter(slashPlayed);
+  const g = S2_GROUP_DRAW;
+  const gTag = f => (g.A.indexOf(f.teamA) !== -1 || g.A.indexOf(f.teamB) !== -1) ? "🟢 A" : "🔴 B";
+  if (topic === "standings") {
+    return {
+      title: "📊 Group Stage Standings",
+      fields: [
+        { name: "🟢 Group A", value: slashStandingsLines(g.A, played), inline: true },
+        { name: "🔴 Group B", value: slashStandingsLines(g.B, played), inline: true },
+      ],
+      description: `Full tables: ${SLASH_SITE}/standings.html`,
+      color: 0xC6971F,
+    };
+  }
+  if (topic === "schedule") {
+    const next = upcoming.slice(0, 6).map(f => `${gTag(f)} **${f.teamA}** vs **${f.teamB}** — ${ts(f.when, "f")} (${ts(f.when, "R")})`);
+    return {
+      title: "📅 Upcoming Matches",
+      description: (next.join("\n") || "No upcoming fixtures.") + `\n\nFull schedule: ${SLASH_SITE}/schedule.html`,
+      color: 0xC6971F,
+    };
+  }
+  if (topic === "pickem") {
+    const next = upcoming.slice(0, 2).map(f => `${gTag(f)} **${f.teamA}** vs **${f.teamB}** — locks ${ts(f.when, "R")}`);
+    return {
+      title: "🔮 Pick'em",
+      description: (next.length ? `Next up:\n${next.join("\n")}\n\n` : "") + `Make your picks (10 pts per correct call): ${SLASH_SITE}/pickem.html`,
+      color: 0xC6971F,
+    };
+  }
+  // overview
+  const recent = played.slice(-2).map(f => { const [a, b] = slashSets(f); return `🏁 **${f.teamA}** ${a}–${b} **${f.teamB}**`; });
+  const next = upcoming.slice(0, 2).map(f => `${gTag(f)} **${f.teamA}** vs **${f.teamB}** — ${ts(f.when, "R")}`);
+  return {
+    title: "🏐 Binsu Star — Season 2",
+    description: [
+      next.length ? `**Next matches**\n${next.join("\n")}` : "",
+      recent.length ? `**Latest results**\n${recent.join("\n")}` : "",
+      `📊 ${SLASH_SITE}/standings.html · 🔮 ${SLASH_SITE}/pickem.html · 🏅 ${SLASH_SITE}/stats.html`,
+    ].filter(Boolean).join("\n\n"),
+    color: 0xC6971F,
+  };
+}
+
 export default {
   async fetch(req, env) {
     if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
     const url = new URL(req.url);
+    // Discord interactions need the raw body for signature verification
+    if (url.pathname === "/interactions" && req.method === "POST") {
+      const KV = env.SOAI;
+      const cfg = JSON.parse((await KV.get("discord")) || "{}");
+      if (!cfg.publicKey) return json({ error: "slash command not registered" }, 501);
+      const body = await req.text();
+      if (!(await verifyDiscord(req, body, cfg.publicKey))) return new Response("invalid request signature", { status: 401 });
+      const it = JSON.parse(body);
+      if (it.type === 1) return json({ type: 1 });                     // PING -> PONG
+      if (it.type === 2 && it.data && it.data.name === "binsustar") {  // slash command
+        const opt = (it.data.options || []).find(o => o.name === "topic");
+        const d = await getS2Data(KV);
+        return json({ type: 4, data: { embeds: [slashEmbed(opt ? opt.value : "overview", d)] } });
+      }
+      return json({ type: 4, data: { content: "Unknown command." } });
+    }
     try {
       const res = await handleApi(req, env, url);
       if (res) return res;
