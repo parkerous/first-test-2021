@@ -356,8 +356,50 @@ function fileToDataUrl(file, max = 420) {
     return out;
   }
   function seedPlayers() { return DEFAULT_PLAYERS.map(p => ({ id: p.id, name: p.name, team: p.team, pos: p.pos, cap: !!p.cap, stats: { ...BLANK_STATS } })); }
-  /* Season 2 team list — the 12 teams registered in the team-registration forum */
-  const DEFAULT_S2_TEAMS = ["Vanguard", "The Order", "Equinox", "Miku", "Umino", "Stinger", "Teiko", "Orchid", "Kittyoo", "Seishin Skyblade", "Sendai Crows", "Yakamoz"];
+  /* Season 2 team list — the 13 teams in the official group-stage draw */
+  /* Official Season 2 group-stage plan: 13 teams, Group A of 7 / Group B of 6,
+     single round robin, every match BO3, nights at 7pm/8pm GMT+8. `when` is an
+     absolute epoch so every visitor sees their own local time. */
+  const S2_GROUP_DRAW = { A: ["Equinox", "The Order", "Miku", "Stinger", "Seishin Skyblade", "Kittyoo", "Yakamoz"], B: ["Invictus", "Vanguard", "Sendai Crows", "Umino", "Teiko", "Orchid"] };
+  const DEFAULT_S2_FIXTURES = [
+    { id: "s2n01_19", teamA: "Equinox", teamB: "Kittyoo", stage: "regular", when: 1788001200000, sets: null, createdAt: 1 },
+    { id: "s2n01_20", teamA: "Invictus", teamB: "Orchid", stage: "regular", when: 1788004800000, sets: null, createdAt: 2 },
+    { id: "s2n02_19", teamA: "The Order", teamB: "Seishin Skyblade", stage: "regular", when: 1788087600000, sets: null, createdAt: 3 },
+    { id: "s2n02_20", teamA: "Vanguard", teamB: "Teiko", stage: "regular", when: 1788091200000, sets: null, createdAt: 4 },
+    { id: "s2n03_19", teamA: "Miku", teamB: "Stinger", stage: "regular", when: 1788174000000, sets: null, createdAt: 5 },
+    { id: "s2n03_20", teamA: "Sendai Crows", teamB: "Umino", stage: "regular", when: 1788177600000, sets: null, createdAt: 6 },
+    { id: "s2n04_19", teamA: "Equinox", teamB: "Seishin Skyblade", stage: "regular", when: 1788260400000, sets: null, createdAt: 7 },
+    { id: "s2n04_20", teamA: "Invictus", teamB: "Teiko", stage: "regular", when: 1788264000000, sets: null, createdAt: 8 },
+    { id: "s2n05_19", teamA: "Kittyoo", teamB: "Stinger", stage: "regular", when: 1788346800000, sets: null, createdAt: 9 },
+    { id: "s2n05_20", teamA: "Orchid", teamB: "Umino", stage: "regular", when: 1788350400000, sets: null, createdAt: 10 },
+    { id: "s2n06_19", teamA: "The Order", teamB: "Miku", stage: "regular", when: 1788433200000, sets: null, createdAt: 11 },
+    { id: "s2n06_20", teamA: "Vanguard", teamB: "Sendai Crows", stage: "regular", when: 1788436800000, sets: null, createdAt: 12 },
+    { id: "s2n07_19", teamA: "Equinox", teamB: "Stinger", stage: "regular", when: 1788519600000, sets: null, createdAt: 13 },
+    { id: "s2n07_20", teamA: "Invictus", teamB: "Umino", stage: "regular", when: 1788523200000, sets: null, createdAt: 14 },
+    { id: "s2n08_19", teamA: "Yakamoz", teamB: "The Order", stage: "regular", when: 1788606000000, sets: null, createdAt: 15 },
+    { id: "s2n08_20", teamA: "Teiko", teamB: "Sendai Crows", stage: "regular", when: 1788609600000, sets: null, createdAt: 16 },
+    { id: "s2n09_19", teamA: "Seishin Skyblade", teamB: "Miku", stage: "regular", when: 1788692400000, sets: null, createdAt: 17 },
+    { id: "s2n09_20", teamA: "Orchid", teamB: "Vanguard", stage: "regular", when: 1788696000000, sets: null, createdAt: 18 },
+    { id: "s2n10_19", teamA: "Kittyoo", teamB: "The Order", stage: "regular", when: 1788778800000, sets: null, createdAt: 19 },
+    { id: "s2n10_20", teamA: "Yakamoz", teamB: "Stinger", stage: "regular", when: 1788782400000, sets: null, createdAt: 20 },
+    { id: "s2n11_19", teamA: "Equinox", teamB: "Miku", stage: "regular", when: 1788865200000, sets: null, createdAt: 21 },
+    { id: "s2n11_20", teamA: "Invictus", teamB: "Sendai Crows", stage: "regular", when: 1788868800000, sets: null, createdAt: 22 },
+    { id: "s2n12_19", teamA: "Yakamoz", teamB: "Kittyoo", stage: "regular", when: 1788951600000, sets: null, createdAt: 23 },
+    { id: "s2n12_20", teamA: "Umino", teamB: "Vanguard", stage: "regular", when: 1788955200000, sets: null, createdAt: 24 },
+    { id: "s2n13_19", teamA: "Stinger", teamB: "The Order", stage: "regular", when: 1789038000000, sets: null, createdAt: 25 },
+    { id: "s2n13_20", teamA: "Teiko", teamB: "Orchid", stage: "regular", when: 1789041600000, sets: null, createdAt: 26 },
+    { id: "s2n14_19", teamA: "Yakamoz", teamB: "Miku", stage: "regular", when: 1789124400000, sets: null, createdAt: 27 },
+    { id: "s2n14_20", teamA: "Seishin Skyblade", teamB: "Kittyoo", stage: "regular", when: 1789128000000, sets: null, createdAt: 28 },
+    { id: "s2n15_19", teamA: "Equinox", teamB: "The Order", stage: "regular", when: 1789210800000, sets: null, createdAt: 29 },
+    { id: "s2n15_20", teamA: "Invictus", teamB: "Vanguard", stage: "regular", when: 1789214400000, sets: null, createdAt: 30 },
+    { id: "s2n16_19", teamA: "Yakamoz", teamB: "Seishin Skyblade", stage: "regular", when: 1789297200000, sets: null, createdAt: 31 },
+    { id: "s2n16_20", teamA: "Sendai Crows", teamB: "Orchid", stage: "regular", when: 1789300800000, sets: null, createdAt: 32 },
+    { id: "s2n17_19", teamA: "Miku", teamB: "Kittyoo", stage: "regular", when: 1789383600000, sets: null, createdAt: 33 },
+    { id: "s2n17_20", teamA: "Umino", teamB: "Teiko", stage: "regular", when: 1789387200000, sets: null, createdAt: 34 },
+    { id: "s2n18_19", teamA: "Stinger", teamB: "Seishin Skyblade", stage: "regular", when: 1789470000000, sets: null, createdAt: 35 },
+    { id: "s2n18_20", teamA: "Yakamoz", teamB: "Equinox", stage: "regular", when: 1789473600000, sets: null, createdAt: 36 },
+  ];
+  const DEFAULT_S2_TEAMS = ["Vanguard", "The Order", "Equinox", "Miku", "Umino", "Stinger", "Teiko", "Orchid", "Kittyoo", "Seishin Skyblade", "Sendai Crows", "Yakamoz", "Invictus"];
   const DEFAULT_SCRIM_TEAMS = ["Green Giants", "Equinox", "Senzai", "Seishin Skyblade", "The Order", "Canopus", "Miku", "Vanguard", "Volare", "Teiko", "Zenith", "Nekopara", "Ground Zero", "Invictus", "Stinger", "Ho-Kago Kawaii Larps", "Yakamoz", "Kittyoo"];
   const DEFAULT_SCRIMS = [
     { id: "seed_gg_neko", teamA: "Green Giants", teamB: "Nekopara", sets: [{ a: 25, b: 23 }, { a: 25, b: 15 }], createdAt: 1 },
@@ -751,13 +793,18 @@ function fileToDataUrl(file, max = 420) {
     /* ---- Season 2: fixtures, results, playoff bracket ---- */
     if (p === "/s2" && method === "GET") {
       const raw = kvGet("s2");
-      if (raw == null) { const d = { teams: DEFAULT_S2_TEAMS.slice(), fixtures: [] }; kvPut("s2", JSON.stringify(d)); return ok(d); }
-      const d = JSON.parse(raw);
-      // superseded placeholder list (pre-registration) with nothing built on it → reseed
-      if ((!d.fixtures || !d.fixtures.length) && Array.isArray(d.teams) && d.teams.indexOf("Valencia Spike") !== -1) {
-        d.teams = DEFAULT_S2_TEAMS.slice(); kvPut("s2", JSON.stringify(d));
+      if (raw == null) {
+        const d = { teams: DEFAULT_S2_TEAMS.slice(), fixtures: DEFAULT_S2_FIXTURES.map(x => ({ ...x })) };
+        kvPut("s2", JSON.stringify(d)); return ok({ ...d, groups: S2_GROUP_DRAW });
       }
-      return ok(d);
+      const d = JSON.parse(raw);
+      // data stored before the official 13-team draw, with no fixtures built on it → adopt the draw
+      if ((!d.fixtures || !d.fixtures.length) && Array.isArray(d.teams) && d.teams.indexOf("Invictus") === -1) {
+        d.teams = DEFAULT_S2_TEAMS.slice();
+        d.fixtures = DEFAULT_S2_FIXTURES.map(x => ({ ...x }));
+        kvPut("s2", JSON.stringify(d));
+      }
+      return ok({ ...d, groups: S2_GROUP_DRAW });
     }
     if (p === "/admin/s2/teams" && method === "POST") {
       if (!isAdmin(adminHdr)) return err("unauthorized", 401);
