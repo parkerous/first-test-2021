@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Season 2 Schedule — Binsu Star</title>
-  <meta name="description" content="Binsu Star Season 2 schedule — every fixture, result and the playoff bracket." />
+  <meta name="description" content="Binsu Star Season 2 schedule — 36 group-stage matches with times in your local timezone, plus the playoff bracket." />
   <meta property="og:site_name" content="Binsu Star" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Season 2 Schedule — Binsu Star" />
@@ -17,10 +17,10 @@
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=29" rel="stylesheet" />
-  <link href="css/home.css?v=29" rel="stylesheet" />
-  <link href="css/season.css?v=29" rel="stylesheet" />
-  <script src="js/theme.js?v=29"></script>
+  <link href="css/voll-e.css?v=30" rel="stylesheet" />
+  <link href="css/home.css?v=30" rel="stylesheet" />
+  <link href="css/season.css?v=30" rel="stylesheet" />
+  <script src="js/theme.js?v=30"></script>
 </head>
 <body>
 
@@ -51,13 +51,16 @@
     <div class="s2-hero-inner">
       <span class="s2-pill">Binsu Star · Season 2</span>
       <h1>Schedule &amp; Results</h1>
-      <p>Every Season 2 fixture and result — match days, opponents and scores, all in one place.</p>
+      <p>Every Season 2 fixture and result — two matches a night, all best-of-3. <b>All times shown in your local timezone.</b></p>
     </div>
   </header>
 
   <!-- live fixtures & results (shown once the admin posts fixtures) -->
   <section class="section" style="max-width:900px;display:none" id="schedReal">
-    <div class="section-head"><h2><span class="bar"></span>📅 Fixtures &amp; Results</h2></div>
+    <div class="section-head"><h2><span class="bar"></span>📅 Fixtures &amp; Results</h2><span class="spacer"></span><span class="pending-pill">🕐 Your local time</span></div>
+    <p class="mini-note" style="margin:-6px 0 6px;color:var(--muted);font-size:13.5px">
+      Season opens <b>Saturday 29 August</b> — 13 teams, Group A of 7 and Group B of 6, single round robin, every match BO3. Match times auto-convert from 7&nbsp;PM / 8&nbsp;PM GMT+8 to your timezone.
+    </p>
     <div id="schedList" class="ps-results"></div>
   </section>
 
@@ -83,9 +86,9 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Season 2</p>
 
-  <script src="js/api.js?v=29"></script>
-  <script src="js/scrims.js?v=29"></script>
-  <script src="js/s2.js?v=29"></script>
+  <script src="js/api.js?v=30"></script>
+  <script src="js/scrims.js?v=30"></script>
+  <script src="js/s2.js?v=30"></script>
   <script>
     // build shimmer fixture rows behind the "coming soon" card
     var s = document.getElementById("ghostSched");

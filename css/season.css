@@ -146,3 +146,8 @@ span.pk-team.won { border-color: #22b866; color: var(--ink); }
 
 /* ---- captain badge ---- */
 .capb { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 4px; background: linear-gradient(135deg, var(--yellow), var(--gold)); color: #1a1a1a; font-size: 10px; font-weight: 900; vertical-align: 1px; margin-left: 4px; }
+
+/* ---- draw group chips ---- */
+.grp-chip { display: inline-flex; align-items: center; font-size: 10px; font-weight: 900; letter-spacing: .05em; padding: 2px 7px; border-radius: 999px; margin-right: 6px; vertical-align: 1px; }
+.grp-chip.gA { background: rgba(34,184,102,.14); color: #22b866; border: 1px solid rgba(34,184,102,.5); }
+.grp-chip.gB { background: rgba(229,72,77,.12); color: #e5484d; border: 1px solid rgba(229,72,77,.5); }

@@ -21,12 +21,28 @@ function s2Winner(f) {
   });
   return a > b ? f.teamA : b > a ? f.teamB : null;
 }
+/* Times render in the VISITOR'S timezone — `when` is an absolute epoch,
+   so 7pm GMT+8 automatically shows as e.g. 12pm in London. */
 function s2When(f) {
   if (!f.when) return "Date TBA";
   const d = new Date(f.when);
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const hm = d.getHours() || d.getMinutes() ? " · " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") : "";
-  return months[d.getMonth()] + " " + d.getDate() + hm;
+  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })
+    + " · " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+function s2TimeOnly(f) {
+  return f.when ? new Date(f.when).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "TBA";
+}
+/* Which draw group a team is in ("A" / "B" / ""). */
+let S2_GROUPS_CACHE = null;
+function teamGroup(name) {
+  const g = S2_GROUPS_CACHE || {};
+  if ((g.A || []).indexOf(name) !== -1) return "A";
+  if ((g.B || []).indexOf(name) !== -1) return "B";
+  return "";
+}
+function groupChip(f) {
+  const g = teamGroup(f.teamA) || teamGroup(f.teamB);
+  return g ? `<span class="grp-chip g${g}">Group ${g}</span>` : "";
 }
 
 /* One schedule row: names, time, result (or VS). */
@@ -94,14 +110,27 @@ async function renderS2Schedule() {
   const real = document.getElementById("schedReal");
   if (real) real.style.display = "";
 
+  S2_GROUPS_CACHE = data.groups || S2_GROUPS_CACHE;
   const reg = fx.filter(f => f.stage === "regular").slice()
     .sort((a, b) => (a.when || Infinity) - (b.when || Infinity) || (a.createdAt || 0) - (b.createdAt || 0));
   const upcoming = reg.filter(f => !s2Played(f));
   const played = reg.filter(s2Played).reverse();
+  // group upcoming fixtures by the visitor's local calendar day
+  const byDay = [];
+  upcoming.forEach(f => {
+    const key = f.when ? new Date(f.when).toDateString() : "TBA";
+    const last = byDay[byDay.length - 1];
+    if (last && last.key === key) last.items.push(f);
+    else byDay.push({ key, when: f.when, items: [f] });
+  });
+  const dayHead = d => d.when
+    ? new Date(d.when).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })
+    : "Date TBA";
+  const upRow = f => `<div class="ps-result">📅 ${groupChip(f)} <b>${scrimEsc(f.teamA)}</b> <span class="ps-sets">vs</span> <b>${scrimEsc(f.teamB)}</b> <span class="ps-sets">· ${scrimEsc(s2TimeOnly(f))} · BO3</span></div>`;
   list.innerHTML =
-    (upcoming.length ? `<h3 class="grp" style="margin:0 0 10px">Upcoming</h3>` + upcoming.map(s2RowHtml).join("") : "") +
-    (played.length ? `<h3 class="grp" style="margin:${upcoming.length ? "22px" : "0"} 0 10px">Results</h3>` + played.map(s2RowHtml).join("") : "") +
-    (!upcoming.length && !played.length ? `<p class="empty">No regular-season fixtures yet — playoff bracket below.</p>` : "");
+    (byDay.length ? byDay.map(d => `<h3 class="grp" style="margin:18px 0 8px">${dayHead(d)}</h3>` + d.items.map(upRow).join("")).join("") : "") +
+    (played.length ? `<h3 class="grp" style="margin:24px 0 10px">Results</h3>` + played.map(f => `<div class="ps-result">🏐 ${groupChip(f)} ${scrimMatchLine(f).text} <span class="ps-sets">· ${scrimEsc(s2When(f))}</span></div>`).join("") : "") +
+    (!byDay.length && !played.length ? `<p class="empty">No regular-season fixtures yet — playoff bracket below.</p>` : "");
 
   renderS2Bracket(fx);
 }
@@ -139,21 +168,23 @@ function renderS2Bracket(fixtures) {
     (by["3rd"].length ? `<div class="bk-col"><div class="bk-stage">3rd place</div>${by["3rd"].map(matchCard).join("")}</div>` : "");
 }
 
-/* ---- standings page (#s2Coming / #s2Section / #s2Body) ---- */
+/* ---- standings page (#s2Coming / #s2Section / #s2Tables) ----
+   One table per draw group, Premier-League style, with a form column.
+   Shown as soon as the schedule exists (zeros before results post). */
 async function renderS2Standings() {
-  const body = document.getElementById("s2Body");
-  if (!body) return;
-  let data = { teams: [], fixtures: [] };
+  const host = document.getElementById("s2Tables");
+  if (!host) return;
+  let data = { teams: [], fixtures: [], groups: null };
   try { data = await apiGet("/s2"); } catch (e) { /* leave empty */ }
-  const played = (data.fixtures || []).filter(f => f.stage === "regular" && s2Played(f));
-  if (!played.length) return;                      // keep the "coming soon" card
+  S2_GROUPS_CACHE = data.groups || S2_GROUPS_CACHE;
+  const reg = (data.fixtures || []).filter(f => f.stage === "regular");
+  if (!reg.length) return;                         // keep the "coming soon" card
   const coming = document.getElementById("s2Coming");
   if (coming) coming.style.display = "none";
   const sec = document.getElementById("s2Section");
   if (sec) sec.style.display = "";
 
-  const rows = computeScrimStandings(data.teams || [], played);
-  // Premier-League-style form guide: each team's last 5 results, oldest → newest
+  const played = reg.filter(s2Played);
   const chrono = played.slice().sort((a, b) => (a.when || a.createdAt || 0) - (b.when || b.createdAt || 0));
   const formBy = {};
   chrono.forEach(m => {
@@ -167,19 +198,43 @@ async function renderS2Standings() {
   const diff = v => v == null ? "—" : (v > 0 ? "+" + v : "" + v);
   const rec = v => (v > 0 ? "+" + v : "" + v);
   const recCls = v => v > 0 ? "ps-pos" : v < 0 ? "ps-neg" : "ps-zero";
-  body.innerHTML = rows.map((t, i) => `
-    <tr>
-      <td class="rk">${i + 1}</td>
-      <td><span class="team"><span class="dot"></span>${scrimEsc(t.name)}</span></td>
-      <td class="num">${t.played}</td>
-      <td class="num">${t.mw}</td>
-      <td class="num">${t.ml}</td>
-      <td class="num"><span class="ps-rec ${recCls(t.record)}">${rec(t.record)}</span></td>
-      <td class="num">${t.setsPlayed ? `${t.sw}–${t.sl}` : "—"}</td>
-      <td class="num">${pct(t.setWinrate)}</td>
-      <td class="num">${diff(t.diff)}</td>
-      <td class="fm-cell">${formHtml(t.name)}</td>
-    </tr>`).join("");
+
+  const groups = S2_GROUPS_CACHE || { A: [], B: [] };
+  const tableFor = (gName, gTeams) => {
+    const gPlayed = played.filter(f => teamGroup(f.teamA) === gName);
+    const rows = computeScrimStandings(gTeams, gPlayed);
+    return `
+      <h3 class="grp" style="margin:22px 0 10px">Group ${gName} <span style="color:var(--muted);font-weight:600;font-size:13px">· ${gTeams.length} teams · single round robin</span></h3>
+      <div class="table-scroll">
+        <table class="standings">
+          <thead><tr>
+            <th>Rank</th><th>Team</th>
+            <th class="num" title="Played">P</th>
+            <th class="num" title="Wins">W</th>
+            <th class="num" title="Losses">L</th>
+            <th class="num" title="Points: win +1 / loss −1">Pts</th>
+            <th class="num" title="Sets won–lost">Sets</th>
+            <th class="num" title="Set win-rate">Set %</th>
+            <th class="num" title="Point differential">Diff</th>
+            <th title="Last 5 results">Form</th>
+          </tr></thead>
+          <tbody>${rows.map((t, i) => `
+            <tr>
+              <td class="rk">${i + 1}</td>
+              <td><span class="team"><span class="dot"></span>${scrimEsc(t.name)}</span></td>
+              <td class="num">${t.played}</td>
+              <td class="num">${t.mw}</td>
+              <td class="num">${t.ml}</td>
+              <td class="num"><span class="ps-rec ${recCls(t.record)}">${rec(t.record)}</span></td>
+              <td class="num">${t.setsPlayed ? `${t.sw}–${t.sl}` : "—"}</td>
+              <td class="num">${pct(t.setWinrate)}</td>
+              <td class="num">${diff(t.diff)}</td>
+              <td class="fm-cell">${formHtml(t.name)}</td>
+            </tr>`).join("")}</tbody>
+        </table>
+      </div>`;
+  };
+  host.innerHTML = tableFor("A", groups.A || []) + tableFor("B", groups.B || []);
 }
 
 document.addEventListener("DOMContentLoaded", function () { renderS2Schedule(); renderS2Standings(); renderScoreStrip(); });

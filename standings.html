@@ -17,10 +17,10 @@
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=29" rel="stylesheet" />
-  <link href="css/home.css?v=29" rel="stylesheet" />
-  <link href="css/season.css?v=29" rel="stylesheet" />
-  <script src="js/theme.js?v=29"></script>
+  <link href="css/voll-e.css?v=30" rel="stylesheet" />
+  <link href="css/home.css?v=30" rel="stylesheet" />
+  <link href="css/season.css?v=30" rel="stylesheet" />
+  <script src="js/theme.js?v=30"></script>
 </head>
 <body>
 
@@ -51,32 +51,17 @@
     <div class="s2-hero-inner">
       <span class="s2-pill">Binsu Star · Season 2</span>
       <h1>League Standings</h1>
-      <p>The Season 2 round-robin table — played, won, lost, points, set &amp; point ratio, updated as matches happen.</p>
+      <p>The Season 2 group stage — Group A and Group B round-robin tables, updated as matches happen.</p>
     </div>
   </header>
 
-  <!-- live S2 table (shown once results are posted) -->
+  <!-- live S2 group tables (shown once the schedule exists) -->
   <section class="section" style="max-width:1000px;display:none" id="s2Section">
-    <div class="section-head"><h2><span class="bar"></span>📊 Season 2 Table</h2><span class="spacer"></span><span class="pending-pill">🔴 Live</span></div>
+    <div class="section-head"><h2><span class="bar"></span>📊 Group Stage</h2><span class="spacer"></span><span class="pending-pill">🔴 Live</span></div>
     <p class="mini-note" style="margin:-6px 0 14px;color:var(--muted);font-size:13.5px">
-      Updated automatically as results are posted — ranked by <b>Pts</b> (win +1 / loss −1), then point differential, then set win-rate.
+      13 teams · Group A of 7, Group B of 6 · single round robin, every match BO3. Ranked by <b>Pts</b> (win +1 / loss −1), then point differential, then set win-rate. Updated automatically as results are posted.
     </p>
-    <div class="table-scroll">
-      <table class="standings">
-        <thead><tr>
-          <th>Rank</th><th>Team</th>
-          <th class="num" title="Played">P</th>
-          <th class="num" title="Wins">W</th>
-          <th class="num" title="Losses">L</th>
-          <th class="num" title="Points: win +1 / loss −1">Pts</th>
-          <th class="num" title="Sets won–lost">Sets</th>
-          <th class="num" title="Set win-rate">Set %</th>
-          <th class="num" title="Point differential">Diff</th>
-          <th title="Last 5 results">Form</th>
-        </tr></thead>
-        <tbody id="s2Body"></tbody>
-      </table>
-    </div>
+    <div id="s2Tables"></div>
   </section>
 
   <section class="section" style="max-width:1000px" id="s2Coming">
@@ -103,9 +88,9 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Season 2</p>
 
-  <script src="js/api.js?v=29"></script>
-  <script src="js/scrims.js?v=29"></script>
-  <script src="js/s2.js?v=29"></script>
+  <script src="js/api.js?v=30"></script>
+  <script src="js/scrims.js?v=30"></script>
+  <script src="js/s2.js?v=30"></script>
   <script>
     // build 8 shimmer rows behind the "coming soon" card
     var b = document.getElementById("ghostBody");
