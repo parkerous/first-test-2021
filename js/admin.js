@@ -148,10 +148,122 @@ async function addHonor() {
   else m.textContent = "⚠️ " + ((r && r.error) || "failed");
 }
 
+
+/* ---------- Discord webhook (saved on this device only) ---------- */
+const SITE_URL = "https://binsuasia.netlify.app";
+function dcHook() { try { return localStorage.getItem("soai_dc_hook") || ""; } catch (e) { return ""; } }
+function dcAuto() { try { return localStorage.getItem("soai_dc_auto") === "1"; } catch (e) { return false; } }
+async function dcPost(payload) {
+  const hook = dcHook();
+  if (!hook) throw new Error("no webhook saved");
+  const r = await fetch(hook, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  if (!r.ok && r.status !== 204) throw new Error("Discord returned HTTP " + r.status);
+}
+const dcTs = (when, style) => `<t:${Math.floor(when / 1000)}:${style}>`;   // renders in each member's timezone
+function dcGroupTag(f) {
+  const g = (typeof teamGroup === "function") ? (teamGroup(f.teamA) || teamGroup(f.teamB)) : "";
+  return g ? `Group ${g} · ` : "";
+}
+/* The next match night = all upcoming fixtures sharing the earliest date (GMT+8). */
+function dcNextNight() {
+  const up = (S2DATA.fixtures || []).filter(f => f.stage === "regular" && !(f.sets && f.sets.length) && f.when && f.when > Date.now() - 3 * 3600e3)
+    .sort((a, b) => a.when - b.when);
+  if (!up.length) return [];
+  const dayOf = ms => Math.floor((ms + 8 * 3600e3) / 86400e3);
+  const d0 = dayOf(up[0].when);
+  return up.filter(f => dayOf(f.when) === d0);
+}
+async function dcPostNight() {
+  const m = document.getElementById("dcMsg");
+  const night = dcNextNight();
+  if (!night.length) { m.textContent = "No upcoming fixtures to post."; return; }
+  m.textContent = "Posting…";
+  const lines = night.map(f => `🏐 ${dcGroupTag(f)}**${f.teamA}** vs **${f.teamB}** — ${dcTs(f.when, "t")} (${dcTs(f.when, "R")}) · BO3`);
+  try {
+    await dcPost({
+      username: "Binsu Star",
+      avatar_url: SITE_URL + "/img/icon-192.png",
+      embeds: [{
+        title: "📅 Tonight on Binsu Star",
+        description: lines.join("\n") + `\n\n${dcTs(night[0].when, "F")}\n\n🔮 [Make your Pick'em picks](${SITE_URL}/pickem.html) before the first serve!\n📊 [Full schedule & standings](${SITE_URL}/schedule.html)`,
+        color: 0xC6971F,
+        footer: { text: "Binsu Star · times shown in your timezone" },
+      }],
+    });
+    m.textContent = "✅ Posted the match night to Discord.";
+  } catch (e) { m.textContent = "⚠️ " + e.message; }
+}
+async function dcPostPickem() {
+  const m = document.getElementById("dcMsg");
+  const night = dcNextNight();
+  if (!night.length) { m.textContent = "No upcoming fixtures to post."; return; }
+  m.textContent = "Posting…";
+  const lines = night.map(f => `• ${dcGroupTag(f)}**${f.teamA}** vs **${f.teamB}** — locks ${dcTs(f.when, "R")}`);
+  try {
+    await dcPost({
+      username: "Binsu Star",
+      avatar_url: SITE_URL + "/img/icon-192.png",
+      embeds: [{
+        title: "🔮 Pick'em is open!",
+        description: `Call the winners before the matches lock:\n\n${lines.join("\n")}\n\n➡️ **[Make your picks](${SITE_URL}/pickem.html)** — every correct call is 10 pts.`,
+        color: 0xC6971F,
+        footer: { text: "Binsu Star Pick'em · lock times shown in your timezone" },
+      }],
+    });
+    m.textContent = "✅ Posted the Pick'em reminder to Discord.";
+  } catch (e) { m.textContent = "⚠️ " + e.message; }
+}
+/* Final-score embed, used by the auto-post after a result is saved. */
+async function dcPostResult(f) {
+  let a = 0, b = 0; const scores = [];
+  (f.sets || []).forEach(st => {
+    const hp = typeof st.a === "number" && typeof st.b === "number";
+    (hp ? st.a >= st.b : st.w === "A") ? a++ : b++;
+    if (hp) scores.push(`${st.a}–${st.b}`);
+  });
+  const winner = a > b ? f.teamA : f.teamB;
+  await dcPost({
+    username: "Binsu Star",
+    avatar_url: SITE_URL + "/img/icon-192.png",
+    embeds: [{
+      title: `🏁 FINAL — ${f.teamA} ${a}–${b} ${f.teamB}`,
+      description: `${dcGroupTag(f)}**${winner}** take it${scores.length ? ` (${scores.join(", ")})` : ""}.\n\n📊 [Standings](${SITE_URL}/standings.html) · 🔮 [Pick'em](${SITE_URL}/pickem.html)`,
+      color: 0x22B866,
+      footer: { text: "Binsu Star · Season 2" },
+    }],
+  });
+}
+function initDcCard() {
+  const hookIn = document.getElementById("dcHook");
+  if (!hookIn) return;
+  hookIn.value = dcHook();
+  document.getElementById("dcAuto").checked = dcAuto();
+  document.getElementById("dcSave").addEventListener("click", () => {
+    const v = hookIn.value.trim();
+    try { v ? localStorage.setItem("soai_dc_hook", v) : localStorage.removeItem("soai_dc_hook"); } catch (e) {}
+    document.getElementById("dcMsg").textContent = v ? "✅ Webhook saved on this device." : "Webhook cleared.";
+  });
+  document.getElementById("dcAuto").addEventListener("change", e => {
+    try { localStorage.setItem("soai_dc_auto", e.target.checked ? "1" : "0"); } catch (e2) {}
+  });
+  document.getElementById("dcTest").addEventListener("click", async () => {
+    const m = document.getElementById("dcMsg");
+    try { localStorage.setItem("soai_dc_hook", hookIn.value.trim()); } catch (e) {}
+    m.textContent = "Sending…";
+    try {
+      await dcPost({ username: "Binsu Star", avatar_url: SITE_URL + "/img/icon-192.png", content: "✅ **Binsu Star website connected!** Schedule drops, Pick'em reminders and final scores will post here." });
+      m.textContent = "✅ Test message sent — check the channel.";
+    } catch (e) { m.textContent = "⚠️ " + e.message; }
+  });
+  document.getElementById("dcNight").addEventListener("click", dcPostNight);
+  document.getElementById("dcPickem").addEventListener("click", dcPostPickem);
+}
+
 /* ---------- Season 2 fixtures admin ---------- */
 let S2DATA = { teams: [], fixtures: [] };
 async function loadS2() {
   try { S2DATA = await apiGet("/s2"); } catch (e) { S2DATA = { teams: [], fixtures: [] }; }
+  if (typeof S2_GROUPS_CACHE !== "undefined") S2_GROUPS_CACHE = S2DATA.groups || S2_GROUPS_CACHE;
   const opts = `<option value="">Team…</option>` + (S2DATA.teams || []).map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
   const a = document.getElementById("fxA"), b = document.getElementById("fxB");
   if (a && b) { const av = a.value, bv = b.value; a.innerHTML = opts; b.innerHTML = opts; a.value = av; b.value = bv; }
@@ -211,7 +323,14 @@ async function saveFxResult(id) {
   const inp = document.querySelector(`.fx-sets[data-id="${id}"]`);
   const sets = parseFxSets(inp ? inp.value : "");
   const r = await apiPost("/admin/s2/result", { id, sets }, true);
-  if (r && r.ok) await loadS2();
+  if (r && r.ok) {
+    await loadS2();
+    const fx = (S2DATA.fixtures || []).find(x => x.id === id);
+    if (fx && fx.sets && fx.sets.length && dcAuto() && dcHook()) {
+      try { await dcPostResult(fx); document.getElementById("dcMsg").textContent = "✅ Final score auto-posted to Discord."; }
+      catch (e) { document.getElementById("dcMsg").textContent = "⚠️ Discord auto-post failed: " + e.message; }
+    }
+  }
 }
 async function addFixture() {
   const m = document.getElementById("fxMsg");
@@ -677,6 +796,7 @@ function init() {
   document.getElementById("plResetBtn").addEventListener("click", resetPlayersAdmin);
   document.getElementById("hoAdd").addEventListener("click", addHonor);
   document.getElementById("refreshHonorsBtn").addEventListener("click", loadHonors);
+  initDcCard();
   document.getElementById("fxAdd").addEventListener("click", addFixture);
   document.getElementById("refreshS2Btn").addEventListener("click", loadS2);
   document.getElementById("s2TeamsSave").addEventListener("click", saveS2Teams);
