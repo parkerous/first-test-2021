@@ -957,8 +957,12 @@ async function verifyDiscord(req, body, publicKey) {
 }
 async function getS2Data(KV) {
   const raw = await KV.get("s2");
-  const d = raw ? JSON.parse(raw) : { teams: DEFAULT_S2_TEAMS.slice(), fixtures: DEFAULT_S2_FIXTURES.map(x => ({ ...x })) };
-  if (!d.fixtures || !d.fixtures.length) d.fixtures = DEFAULT_S2_FIXTURES.map(x => ({ ...x }));
+  if (raw == null) return { teams: DEFAULT_S2_TEAMS.slice(), fixtures: DEFAULT_S2_FIXTURES.map(x => ({ ...x })) };
+  const d = JSON.parse(raw);
+  // same guarded heal as GET /s2: only pre-draw data adopts the default schedule
+  if ((!d.fixtures || !d.fixtures.length) && Array.isArray(d.teams) && d.teams.indexOf("Invictus") === -1) {
+    d.fixtures = DEFAULT_S2_FIXTURES.map(x => ({ ...x }));
+  }
   return d;
 }
 function slashPlayed(f) { return !!(f.sets && f.sets.length); }
@@ -971,24 +975,45 @@ function slashSets(f) {
   return [a, b];
 }
 function slashStandingsLines(gTeams, played) {
+  // mirrors computeScrimStandings (js/scrims.js) so Discord ranks tied
+  // teams exactly like the standings page the embed links to
   const t = {};
-  gTeams.forEach(n => { t[n] = { n, w: 0, l: 0 }; });
+  gTeams.forEach(n => { t[n] = { n, w: 0, l: 0, sw: 0, sl: 0, pf: 0, pa: 0, pointed: false }; });
   played.forEach(f => {
-    if (!(f.teamA in t)) return;
-    const [a, b] = slashSets(f);
+    const A = t[f.teamA], B = t[f.teamB];
+    if (!A || !B) return;
+    let a = 0, b = 0;
+    (f.sets || []).forEach(st => {
+      const hp = typeof st.a === "number" && typeof st.b === "number";
+      const aWon = hp ? st.a >= st.b : st.w === "A";
+      if (hp) { A.pf += st.a; A.pa += st.b; B.pf += st.b; B.pa += st.a; A.pointed = B.pointed = true; }
+      if (aWon) { a++; A.sw++; B.sl++; } else { b++; B.sw++; A.sl++; }
+    });
     if (a === b) return;
-    const win = a > b ? f.teamA : f.teamB, lose = a > b ? f.teamB : f.teamA;
-    if (t[win]) t[win].w++;
-    if (t[lose]) t[lose].l++;
+    if (a > b) { A.w++; B.l++; } else { B.w++; A.l++; }
   });
-  return Object.values(t).sort((x, y) => (y.w - y.l) - (x.w - x.l) || y.w - x.w || x.n.localeCompare(y.n))
-    .map((r, i) => `\`${String(i + 1).padStart(2)}\` **${r.n}** — ${r.w}–${r.l}`).join("\n") || "—";
+  const rows = Object.values(t).map(r => ({
+    ...r,
+    record: r.w - r.l,
+    played: r.w + r.l,
+    diff: r.pointed ? r.pf - r.pa : null,
+    setWinrate: (r.sw + r.sl) ? r.sw / (r.sw + r.sl) : null,
+  })).sort((x, y) =>
+    y.record - x.record ||
+    ((y.played > 0 ? 1 : 0) - (x.played > 0 ? 1 : 0)) ||
+    ((y.diff || 0) - (x.diff || 0)) ||
+    ((y.setWinrate || 0) - (x.setWinrate || 0)) ||
+    x.n.localeCompare(y.n));
+  return rows.map((r, i) => `\`${String(i + 1).padStart(2)}\` **${r.n}** — ${r.w}–${r.l}`).join("\n") || "—";
 }
-const SLASH_SITE = "https://binsuasia.netlify.app";
-function slashEmbed(topic, d) {
+const SLASH_SITE = "https://binsuasia.netlify.app";   // keep in sync with SITE_URL in js/admin.js
+function slashEmbed(topic, d, site) {
+  const SITE = site || SLASH_SITE;
   const ts = (when, style) => `<t:${Math.floor(when / 1000)}:${style}>`;
   const reg = (d.fixtures || []).filter(f => f.stage === "regular");
-  const upcoming = reg.filter(f => !slashPlayed(f) && f.when).sort((a, b) => a.when - b.when);
+  // same "still relevant" window the admin webhook posts use
+  const upcoming = reg.filter(f => !slashPlayed(f) && f.when && f.when > Date.now() - 3 * 3600e3)
+    .sort((a, b) => a.when - b.when);
   const played = reg.filter(slashPlayed);
   const g = S2_GROUP_DRAW;
   const gTag = f => (g.A.indexOf(f.teamA) !== -1 || g.A.indexOf(f.teamB) !== -1) ? "🟢 A" : "🔴 B";
@@ -999,7 +1024,7 @@ function slashEmbed(topic, d) {
         { name: "🟢 Group A", value: slashStandingsLines(g.A, played), inline: true },
         { name: "🔴 Group B", value: slashStandingsLines(g.B, played), inline: true },
       ],
-      description: `Full tables: ${SLASH_SITE}/standings.html`,
+      description: `Full tables: ${SITE}/standings.html`,
       color: 0xC6971F,
     };
   }
@@ -1007,7 +1032,7 @@ function slashEmbed(topic, d) {
     const next = upcoming.slice(0, 6).map(f => `${gTag(f)} **${f.teamA}** vs **${f.teamB}** — ${ts(f.when, "f")} (${ts(f.when, "R")})`);
     return {
       title: "📅 Upcoming Matches",
-      description: (next.join("\n") || "No upcoming fixtures.") + `\n\nFull schedule: ${SLASH_SITE}/schedule.html`,
+      description: (next.join("\n") || "No upcoming fixtures.") + `\n\nFull schedule: ${SITE}/schedule.html`,
       color: 0xC6971F,
     };
   }
@@ -1015,7 +1040,7 @@ function slashEmbed(topic, d) {
     const next = upcoming.slice(0, 2).map(f => `${gTag(f)} **${f.teamA}** vs **${f.teamB}** — locks ${ts(f.when, "R")}`);
     return {
       title: "🔮 Pick'em",
-      description: (next.length ? `Next up:\n${next.join("\n")}\n\n` : "") + `Make your picks (10 pts per correct call): ${SLASH_SITE}/pickem.html`,
+      description: (next.length ? `Next up:\n${next.join("\n")}\n\n` : "") + `Make your picks (10 pts per correct call): ${SITE}/pickem.html`,
       color: 0xC6971F,
     };
   }
@@ -1027,7 +1052,7 @@ function slashEmbed(topic, d) {
     description: [
       next.length ? `**Next matches**\n${next.join("\n")}` : "",
       recent.length ? `**Latest results**\n${recent.join("\n")}` : "",
-      `📊 ${SLASH_SITE}/standings.html · 🔮 ${SLASH_SITE}/pickem.html · 🏅 ${SLASH_SITE}/stats.html`,
+      `📊 ${SITE}/standings.html · 🔮 ${SITE}/pickem.html · 🏅 ${SITE}/stats.html`,
     ].filter(Boolean).join("\n\n"),
     color: 0xC6971F,
   };
@@ -1039,19 +1064,25 @@ export default {
     const url = new URL(req.url);
     // Discord interactions need the raw body for signature verification
     if (url.pathname === "/interactions" && req.method === "POST") {
-      const KV = env.SOAI;
-      const cfg = JSON.parse((await KV.get("discord")) || "{}");
-      if (!cfg.publicKey) return json({ error: "slash command not registered" }, 501);
-      const body = await req.text();
-      if (!(await verifyDiscord(req, body, cfg.publicKey))) return new Response("invalid request signature", { status: 401 });
-      const it = JSON.parse(body);
-      if (it.type === 1) return json({ type: 1 });                     // PING -> PONG
-      if (it.type === 2 && it.data && it.data.name === "binsustar") {  // slash command
-        const opt = (it.data.options || []).find(o => o.name === "topic");
-        const d = await getS2Data(KV);
-        return json({ type: 4, data: { embeds: [slashEmbed(opt ? opt.value : "overview", d)] } });
+      try {
+        const KV = env.SOAI;
+        const cfg = JSON.parse((await KV.get("discord")) || "{}");
+        if (!cfg.publicKey) return json({ error: "slash command not registered" }, 501);
+        const body = await req.text();
+        if (!(await verifyDiscord(req, body, cfg.publicKey))) return new Response("invalid request signature", { status: 401 });
+        const it = JSON.parse(body);
+        if (it.type === 1) return json({ type: 1 });                     // PING -> PONG
+        if (it.type === 2 && it.data && it.data.name === "binsustar") {  // slash command
+          const opt = (it.data.options || []).find(o => o.name === "topic");
+          const d = await getS2Data(KV);
+          // when this Worker also serves the site, link to its own origin
+          const site = env.ASSETS ? url.origin : undefined;
+          return json({ type: 4, data: { embeds: [slashEmbed(opt ? opt.value : "overview", d, site)] } });
+        }
+        return json({ type: 4, data: { content: "Unknown command." } });
+      } catch (e) {
+        return json({ error: String(e && e.message || e) }, 500);
       }
-      return json({ type: 4, data: { content: "Unknown command." } });
     }
     try {
       const res = await handleApi(req, env, url);
