@@ -16,10 +16,10 @@
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=31" rel="stylesheet" />
-  <link href="css/home.css?v=31" rel="stylesheet" />
-  <link href="css/teams.css?v=31" rel="stylesheet" />
-  <script src="js/theme.js?v=31"></script>
+  <link href="css/voll-e.css?v=32" rel="stylesheet" />
+  <link href="css/home.css?v=32" rel="stylesheet" />
+  <link href="css/teams.css?v=32" rel="stylesheet" />
+  <script src="js/theme.js?v=32"></script>
 </head>
 <body>
 
@@ -108,6 +108,17 @@
           <div class="row" style="align-items:center;margin-bottom:4px"><h2 style="margin:0">Fixtures &amp; results</h2><span class="spacer"></span><button class="btn ghost" id="refreshS2Btn">↻ Refresh</button></div>
           <p class="mini-note" style="margin-top:0">Type set scores as <b>25-20, 23-25, 15-10</b> and save — or <b>A 2-0</b> / <b>B 2-0</b> for a result with no point scores (e.g. a forfeit). Save an empty box to clear a result.</p>
           <div id="fxAdmin"></div>
+        </div>
+        <div class="card">
+          <h2>💬 Discord webhook</h2>
+          <p class="mini-note" style="margin-top:0">Post straight from the site to your Discord. In Discord: <b>Server Settings → Integrations → Webhooks → New Webhook</b> → pick the channel (e.g. #results-season-2) → Copy Webhook URL, and paste it here. The URL is saved <b>only on this device</b>. Match times in the posts use Discord's live timestamps, so every member sees their own timezone — same as the website.</p>
+          <div class="row"><input id="dcHook" type="text" placeholder="https://discord.com/api/webhooks/…" style="flex:1;min-width:220px" /><button class="btn" id="dcSave">💾 Save</button><button class="btn ghost" id="dcTest">🧪 Test</button></div>
+          <label class="row" style="gap:8px;align-items:center;font-size:13px;color:var(--muted);margin-top:8px"><input type="checkbox" id="dcAuto" /> Auto-post finals to Discord when I save a result</label>
+          <div class="row" style="margin-top:8px">
+            <button class="btn" id="dcNight">📅 Post next match night</button>
+            <button class="btn" id="dcPickem">🔮 Post Pick'em reminder</button>
+            <span class="msg" id="dcMsg" style="color:var(--muted);font-size:12.5px"></span>
+          </div>
         </div>
         <div class="card">
           <h2>Season 2 teams</h2>
@@ -221,8 +232,9 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Admin</p>
 
-  <script src="js/api.js?v=31"></script>
-  <script src="js/scrims.js?v=31"></script>
-  <script src="js/admin.js?v=31"></script>
+  <script src="js/api.js?v=32"></script>
+  <script src="js/scrims.js?v=32"></script>
+  <script src="js/s2.js?v=32"></script>
+  <script src="js/admin.js?v=32"></script>
 </body>
 </html>
