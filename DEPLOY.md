@@ -90,3 +90,21 @@ to use the shared data too:
   you'd move images to Cloudflare R2.
 - Nothing to change in the site code after deploy — the site auto-detects that
   it's being served by the Worker and uses the shared storage.
+
+## Discord slash command (/binsustar)
+
+After the Worker is deployed:
+
+1. Create an app at https://discord.com/developers/applications → copy the
+   **Application ID** and **Public Key** (General Information) and the bot
+   **Token** (Bot tab).
+2. Site admin panel → Season 2 → Discord webhook → "Slash command" →
+   paste all three → **Register /binsustar** (the token is used for that
+   one call and never stored).
+3. In the developer portal, set **Interactions Endpoint URL** to
+   `https://<your-worker>/interactions` — Discord sends a test ping the
+   Worker answers automatically.
+4. Invite the app to the server (Installation → Guild Install link).
+
+Members can then use `/binsustar`, `/binsustar topic:standings`,
+`topic:schedule` or `topic:pickem` anywhere in the server.

@@ -44,7 +44,15 @@ async function fetchJson(base, path, method, body, adminHdr) {
   const opts = { method, headers };
   if (method === "POST") opts.body = JSON.stringify(body || {});
   const r = await fetch(base + path, opts);
-  if (!r.ok) throw new Error("HTTP " + r.status);
+  if (!r.ok) {
+    // a JSON error body means a real backend answered — carry its message
+    // along so POST callers can surface it instead of falling back
+    let data = null;
+    try { data = await r.json(); } catch (e) { /* not JSON → plain HTTP error */ }
+    const err2 = new Error((data && data.error) || ("HTTP " + r.status));
+    if (data && typeof data === "object") err2.backendError = data;
+    throw err2;
+  }
   return r.json();   // throws if the response isn't JSON (e.g. a static host's HTML)
 }
 
@@ -68,17 +76,21 @@ function originHasApi() {
   return _originProbe;
 }
 
-/* Route one request through override → same-origin Worker → in-browser. */
+/* Route one request through override → same-origin Worker → in-browser.
+   A POST that a real backend REJECTED (JSON error body) is returned as-is —
+   falling back to the in-browser store would report a misleading error and
+   silently diverge the two stores. GETs keep the fallback so pages render. */
 async function request(path, method, body, adminHdr) {
+  const remoteErr = e => (method === "POST" && e.backendError) ? e.backendError : null;
   const override = overrideBase();
   if (override) {
     try { return await fetchJson(override, path, method, body, adminHdr); }
-    catch (e) { return localCall(path, method, body, adminHdr); }
+    catch (e) { return remoteErr(e) || localCall(path, method, body, adminHdr); }
   }
   const origin = sameOriginBase();
   if (origin && await originHasApi()) {
     try { return await fetchJson(origin, path, method, body, adminHdr); }
-    catch (e) { return localCall(path, method, body, adminHdr); }
+    catch (e) { return remoteErr(e) || localCall(path, method, body, adminHdr); }
   }
   return localCall(path, method, body, adminHdr);
 }
@@ -878,6 +890,11 @@ function fileToDataUrl(file, max = 420) {
     if (p === "/admin/players/reset" && method === "POST") {
       if (!isAdmin(adminHdr)) return err("unauthorized", 401);
       kvPut("players", JSON.stringify(seedPlayers())); return ok({ ok: true });
+    }
+
+    if (p === "/admin/discord/register" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      return err("slash commands need the shared Cloudflare Worker deployed (it hosts the /interactions endpoint) — see DEPLOY.md", 400);
     }
 
     /* ---- honors: tournament placements driving the all-time rankings ---- */

@@ -16,10 +16,10 @@
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=34" rel="stylesheet" />
-  <link href="css/home.css?v=34" rel="stylesheet" />
-  <link href="css/teams.css?v=34" rel="stylesheet" />
-  <script src="js/theme.js?v=34"></script>
+  <link href="css/voll-e.css?v=35" rel="stylesheet" />
+  <link href="css/home.css?v=35" rel="stylesheet" />
+  <link href="css/teams.css?v=35" rel="stylesheet" />
+  <script src="js/theme.js?v=35"></script>
 </head>
 <body>
 
@@ -123,6 +123,13 @@
             <button class="btn" id="dcLeaders">🏅 Stat leaders</button>
           </div>
           <p class="msg" id="dcMsg" style="color:var(--muted);font-size:12.5px;margin:8px 0 0"></p>
+          <details style="margin-top:12px">
+            <summary style="cursor:pointer;color:var(--muted);font-size:13px;font-weight:700">⚡ Slash command — let members type /binsustar in Discord</summary>
+            <p class="mini-note" style="margin:8px 0 6px">Needs the shared Cloudflare Worker deployed (it answers Discord's requests). One-time setup: <b>discord.com/developers</b> → New Application → copy the <b>Application ID</b> and <b>Public Key</b> (General Information) and the <b>Token</b> (Bot tab) → paste below → Register. Then set the app's <b>Interactions Endpoint URL</b> to <code>https://&lt;your-worker&gt;/interactions</code> and invite the app to the server. The bot token is used once to register and is never stored.</p>
+            <div class="row"><input id="dxAppId" type="text" placeholder="Application ID" style="flex:1;min-width:150px" /><input id="dxPubKey" type="text" placeholder="Public Key" style="flex:2;min-width:200px" /></div>
+            <div class="row"><input id="dxToken" type="password" placeholder="Bot Token (used once, not stored)" style="flex:1;min-width:220px" /><button class="btn" id="dxRegister">⚡ Register /binsustar</button></div>
+            <p class="msg" id="dxMsg" style="color:var(--muted);font-size:12.5px;margin:6px 0 0"></p>
+          </details>
         </div>
         <div class="card">
           <h2>Season 2 teams</h2>
@@ -236,9 +243,9 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Admin</p>
 
-  <script src="js/api.js?v=34"></script>
-  <script src="js/scrims.js?v=34"></script>
-  <script src="js/s2.js?v=34"></script>
-  <script src="js/admin.js?v=34"></script>
+  <script src="js/api.js?v=35"></script>
+  <script src="js/scrims.js?v=35"></script>
+  <script src="js/s2.js?v=35"></script>
+  <script src="js/admin.js?v=35"></script>
 </body>
 </html>

@@ -358,6 +358,21 @@ function initDcCard() {
   document.getElementById("dcPickem").addEventListener("click", dcPostPickem);
   document.getElementById("dcStandings").addEventListener("click", dcPostStandings);
   document.getElementById("dcLeaders").addEventListener("click", dcPostLeaders);
+  document.getElementById("dxRegister").addEventListener("click", async () => {
+    const m = document.getElementById("dxMsg");
+    const appId = document.getElementById("dxAppId").value.trim();
+    const publicKey = document.getElementById("dxPubKey").value.trim();
+    const botToken = document.getElementById("dxToken").value.trim();
+    if (!appId || !publicKey || !botToken) { m.textContent = "All three fields are required."; return; }
+    m.textContent = "Registering with Discord…";
+    try {
+      const r = await apiPost("/admin/discord/register", { appId, publicKey, botToken }, true);
+      if (r && r.ok) {
+        document.getElementById("dxToken").value = "";
+        m.textContent = "✅ /binsustar registered! Now set the app's Interactions Endpoint URL to " + (r.endpoint || "https://<your-worker>/interactions") + " and invite the app to the server.";
+      } else m.textContent = "⚠️ " + ((r && r.error) || "failed");
+    } catch (e) { m.textContent = "⚠️ " + e.message; }
+  });
 }
 
 /* ---------- Season 2 fixtures admin ---------- */
