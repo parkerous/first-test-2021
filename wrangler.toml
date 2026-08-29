@@ -11,4 +11,4 @@ binding = "ASSETS"
 # Shared storage for teams, announcements and learning
 [[kv_namespaces]]
 binding = "SOAI"
-id = "54049222951449bb85acaf849242d153"
+id = "dda159e466a343698f9d131616e36a34"
