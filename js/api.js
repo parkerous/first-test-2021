@@ -16,7 +16,11 @@
    "Load failed".
    ============================================================ */
 
-const SOAI_API = "";   // no hard-coded remote; discovered at runtime (see above)
+/* The league's shared Cloudflare Worker — every visitor reads and writes the
+   same data (fixtures, results, stats, pick'em, honors) wherever the site is
+   hosted. If the Worker is ever unreachable, the in-browser backend below
+   still keeps every page rendering. */
+const SOAI_API = "https://binsu-star.binsustar.workers.dev";
 
 /* Old builds hard-coded a Cloudflare Worker URL and saved it as an override.
    That Worker is gone, so a leftover copy in a visitor's browser would keep
