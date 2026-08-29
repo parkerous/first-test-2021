@@ -13,8 +13,8 @@ const SEASONS = {
       { rank: 5, name: "Nyiino", score: "4.50", tier: "A+" },
       { rank: 6, name: "Jemira", score: "4.39", tier: "A+", hm: true },
       { rank: 7, name: "Coas", score: "4.18", tier: "A" },
-      { rank: 8, name: "Why", score: "3.93", tier: "B+" },
-      { rank: 9, name: "Qarz", score: "4.18", tier: "B+" },
+      { rank: 8, name: "Qarz", score: "4.18", tier: "B+" },
+      { rank: 9, name: "Why", score: "3.93", tier: "B+" },
     ],
     "Outside": [
       { rank: 1, name: "Rising", score: "4.90", tier: "S+" },

@@ -73,7 +73,13 @@ function renderPlayerAdmin() {
     const stats = {};
     el.querySelectorAll(`.pl-stat[data-id="${b.dataset.id}"]`).forEach(inp => { stats[inp.dataset.k] = +inp.value || 0; });
     const r = await apiPost("/admin/players/update", { id: b.dataset.id, stats }, true);
-    if (r && r.ok) { b.textContent = "✅"; setTimeout(() => { b.textContent = "💾"; }, 1200); await loadPlayers(); }
+    if (r && r.ok) {
+      // update in place instead of re-rendering — a re-render would replace this
+      // button before the ✅ confirmation is ever seen
+      const pl = PLAYERS.find(x => x.id === b.dataset.id);
+      if (pl) pl.stats = { ...(pl.stats || {}), ...stats };
+      b.textContent = "✅"; setTimeout(() => { b.textContent = "💾"; }, 1200);
+    }
   }));
   el.querySelectorAll(".pl-del").forEach(b => b.addEventListener("click", async () => {
     await apiPost("/admin/players/delete", { id: b.dataset.id }, true); await loadPlayers();
@@ -417,10 +423,13 @@ function renderS2Admin() {
     await apiPost("/admin/s2/fixture/delete", { id: b.dataset.id }, true); await loadS2();
   }));
 }
-/* "25-20, 23-25" → point sets; "A 2-0" / "B 2-1" → winner-only sets; "" → clear */
+/* "25-20, 23-25" → point sets; "A 2-0" / "B 2-1" → winner-only sets; "" → clear.
+   Returns { sets, bad } — bad counts tokens that didn't parse (typos like "25:20"
+   or tied scores like "25-25"), so callers can refuse instead of silently
+   saving a partial result or wiping a saved one. */
 function parseFxSets(text) {
   const t = (text || "").trim();
-  if (!t) return [];
+  if (!t) return { sets: [], bad: 0 };
   const ff = t.match(/^([ab])\s*(\d+)\s*-\s*(\d+)$/i);
   if (ff) {
     // "A 2-0" = team A won 2 sets to 0, no point scores recorded
@@ -428,16 +437,25 @@ function parseFxSets(text) {
     const sets = [];
     for (let i = 0; i < +ff[2]; i++) sets.push({ w: win });
     for (let i = 0; i < +ff[3]; i++) sets.push({ w: lose });
-    return sets;
+    return { sets, bad: 0 };
   }
-  return t.split(",").map(p => {
+  let bad = 0;
+  const sets = t.split(",").map(p => {
     const m = p.trim().match(/^(\d+)\s*-\s*(\d+)$/);
-    return m ? { a: +m[1], b: +m[2] } : null;
+    if (!m || +m[1] === +m[2]) { bad++; return null; }   // typo or tied set score
+    return { a: +m[1], b: +m[2] };
   }).filter(Boolean);
+  return { sets, bad };
 }
 async function saveFxResult(id) {
   const inp = document.querySelector(`.fx-sets[data-id="${id}"]`);
-  const sets = parseFxSets(inp ? inp.value : "");
+  const m = document.getElementById("fxListMsg");
+  const { sets, bad } = parseFxSets(inp ? inp.value : "");
+  if (bad) {
+    if (m) m.textContent = `⚠️ Not saved — couldn't read ${bad} set score(s). Use "25-20, 23-25" or "A 2-0" (ties like 25-25 aren't valid).`;
+    return;
+  }
+  if (m) m.textContent = "";
   const r = await apiPost("/admin/s2/result", { id, sets }, true);
   if (r && r.ok) {
     await loadS2();
@@ -516,13 +534,19 @@ function makeScrimTeamEditor(mountEl, initial) {
 }
 function renderScrimSets() {
   const el = document.getElementById("scSets");
+  // keep whatever's already typed — rebuilding (e.g. "+ Add a set") must not wipe it
+  const keep = [];
+  for (let i = 0; i < 5; i++) {
+    const a = document.getElementById(`scS${i}a`), b = document.getElementById(`scS${i}b`);
+    keep[i] = { a: a ? a.value : "", b: b ? b.value : "" };
+  }
   let html = "";
   for (let i = 0; i < scrimSetCount; i++) {
     html += `<div class="row" style="align-items:center;gap:8px">
       <span style="color:var(--muted);font-size:13px;width:52px">Set ${i + 1}</span>
-      <input type="number" min="0" id="scS${i}a" placeholder="A" style="width:80px" />
+      <input type="number" min="0" id="scS${i}a" placeholder="A" value="${esc(keep[i].a)}" style="width:80px" />
       <span style="color:var(--muted)">–</span>
-      <input type="number" min="0" id="scS${i}b" placeholder="B" style="width:80px" />
+      <input type="number" min="0" id="scS${i}b" placeholder="B" value="${esc(keep[i].b)}" style="width:80px" />
     </div>`;
   }
   el.innerHTML = html;
@@ -733,6 +757,7 @@ async function removeAnn(i) {
 }
 function addAnn() { anns.unshift({ lg: "Announcement", title: "", desc: "", url: "", img: "" }); renderAnns(); }
 async function saveAnns(okMsg) {
+  if (typeof okMsg !== "string") okMsg = "";   // called as a click handler → okMsg is the event
   const m = document.getElementById("annMsg"); m.textContent = "Saving…";
   const clean = anns.filter(a => a.title && a.title.trim());
   try { const r = await apiPost("/admin/announcements", { announcements: clean }, true); m.textContent = r.ok ? (okMsg || "✅ Saved — it's live on the homepage slideshow.") : "⚠️ " + (r.error || "failed"); }
