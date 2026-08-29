@@ -1074,16 +1074,39 @@ function slashStandingsLines(gTeams, played) {
 const SLASH_SITE = "https://binsuasia.netlify.app";   // keep in sync with SITE_URL in js/admin.js
 /* topic:leaders — top 5 by league points (mirrors dcPostLeaders in js/admin.js
    and PSTAT_WEIGHTS in js/pstats.js) */
-/* link buttons under every /binsustar reply — cleaner than URLs in the text */
-const slashBtn = (label, emoji, path) => ({ type: 2, style: 5, label, emoji: { name: emoji }, url: SLASH_SITE + path });
+/* /binsustar replies are a little in-Discord dashboard: the button row
+   switches topics by UPDATING the same message (interaction type 3 →
+   response type 7) — nobody leaves Discord. The active topic's button is
+   highlighted and disabled. Only "Make your picks" links out, because
+   picks themselves live on the site. */
+const SLASH_TOPICS = [
+  ["overview", "🏐", "Overview"],
+  ["standings", "📊", "Standings"],
+  ["schedule", "📅", "Schedule"],
+  ["pickem", "🔮", "Pick'em"],
+  ["leaders", "🏅", "Leaders"],
+];
 function slashButtons(topic) {
-  const btns =
-    topic === "standings" ? [slashBtn("Full standings", "📊", "/standings.html"), slashBtn("Schedule", "📅", "/schedule.html")]
-    : topic === "schedule" ? [slashBtn("Full schedule", "📅", "/schedule.html"), slashBtn("Make your picks", "🔮", "/pickem.html")]
-    : topic === "pickem" ? [slashBtn("Make your picks", "🔮", "/pickem.html"), slashBtn("Schedule", "📅", "/schedule.html")]
-    : topic === "leaders" ? [slashBtn("All player stats", "🏅", "/stats.html")]
-    : [slashBtn("Standings", "📊", "/standings.html"), slashBtn("Pick'em", "🔮", "/pickem.html"), slashBtn("Stats", "🏅", "/stats.html")];
-  return [{ type: 1, components: btns }];
+  const nav = SLASH_TOPICS.map(([t, emoji, label]) => ({
+    type: 2, style: t === topic ? 1 : 2, custom_id: "bs:" + t,
+    label, emoji: { name: emoji }, disabled: t === topic,
+  }));
+  const rows = [{ type: 1, components: nav }];
+  if (topic === "pickem") {
+    rows.push({ type: 1, components: [{ type: 2, style: 5, label: "Make your picks", emoji: { name: "🔮" }, url: SLASH_SITE + "/pickem.html" }] });
+  }
+  return rows;
+}
+/* build the embed for any topic (shared by the slash command and its buttons) */
+async function slashTopicPayload(KV, topic) {
+  let embed;
+  if (topic === "leaders") {
+    const raw = await KV.get("players");
+    embed = slashLeadersEmbed(raw ? JSON.parse(raw) : seedPlayers());
+  } else {
+    embed = slashEmbed(topic, await getS2Data(KV));
+  }
+  return { embeds: [embed], components: slashButtons(topic) };
 }
 function slashLeadersEmbed(players) {
   const W = { kills: 2, aces: 2, blocks: 2, digs: 1, assists: 1 };
@@ -1266,14 +1289,13 @@ export default {
         if (it.type === 2 && it.data && it.data.name === "binsustar") {  // slash command
           const opt = (it.data.options || []).find(o => o.name === "topic");
           const topic = opt ? opt.value : "overview";
-          let embed;
-          if (topic === "leaders") {
-            const raw = await KV.get("players");
-            embed = slashLeadersEmbed(raw ? JSON.parse(raw) : seedPlayers());
-          } else {
-            embed = slashEmbed(topic, await getS2Data(KV));
-          }
-          return json({ type: 4, data: { embeds: [embed], components: slashButtons(topic) } });
+          return json({ type: 4, data: await slashTopicPayload(KV, topic) });
+        }
+        if (it.type === 3 && it.data && String(it.data.custom_id || "").indexOf("bs:") === 0) {
+          // dashboard button click → swap the topic in the SAME message
+          const topic = it.data.custom_id.slice(3);
+          if (!SLASH_TOPICS.some(([t]) => t === topic)) return json({ type: 6 });   // stale/unknown button: ack quietly
+          return json({ type: 7, data: await slashTopicPayload(KV, topic) });
         }
         return json({ type: 4, data: { content: "Unknown command." } });
       } catch (e) {
