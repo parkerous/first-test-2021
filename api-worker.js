@@ -322,6 +322,17 @@ function cleanSets(arr) {
     return null;
   }).filter(Boolean).slice(0, 5);
 }
+/* which side won a decided fixture — "A", "B", or "" (unplayed / malformed) */
+function fxWinnerSide(f) {
+  if (!f || !Array.isArray(f.sets) || !f.sets.length) return "";
+  let a = 0, b = 0;
+  f.sets.forEach(st => {
+    const hp = typeof st.a === "number" && typeof st.b === "number";
+    if (hp) { st.a >= st.b ? a++ : b++; }
+    else if (st.w === "A" || st.w === "B") { st.w === "A" ? a++ : b++; }
+  });
+  return a > b ? "A" : b > a ? "B" : "";
+}
 /* team pool: accept plain names (legacy) or {name, logo} → [{name, logo}] */
 function normScrimTeams(arr) {
   return (Array.isArray(arr) ? arr : []).map(t => typeof t === "string"
@@ -930,6 +941,37 @@ async function handleApi(req, env, url) {
       await KV.put("pickem", JSON.stringify(map));
     }
     return json({ ok: true });
+  }
+  if (p === "/pickem/name" && req.method === "POST") {
+    const b = await req.json();
+    const voter = cleanStr(b.voter, 60), name = cleanStr(b.name, 24);
+    if (!voter) return json({ error: "voter is required" }, 400);
+    const names = JSON.parse((await KV.get("picknames")) || "{}");
+    if (name) names[voter] = name; else delete names[voter];
+    await KV.put("picknames", JSON.stringify(names)); return json({ ok: true });
+  }
+  if (p === "/pickem/leaderboard" && req.method === "GET") {
+    const me = cleanStr(url.searchParams.get("voter"), 60);
+    const d = await getS2Data(KV);
+    const winners = {};   // fixture id → "A" / "B" (decided matches only)
+    (d.fixtures || []).forEach(f => { const w = fxWinnerSide(f); if (w) winners[f.id] = w; });
+    const map = JSON.parse((await KV.get("pickem")) || "{}");
+    const names = JSON.parse((await KV.get("picknames")) || "{}");
+    const tally = {};   // voter → { picks, correct }
+    Object.keys(map).forEach(fid => {
+      const voters = map[fid].voters || {};
+      Object.keys(voters).forEach(v => {
+        const t = tally[v] || (tally[v] = { picks: 0, correct: 0 });
+        t.picks++;
+        if (winners[fid] && voters[v] === winners[fid]) t.correct++;
+      });
+    });
+    const rows = Object.keys(tally).map(v => ({
+      name: names[v] || "Fan " + v.slice(-4),
+      pts: tally[v].correct * 10, correct: tally[v].correct, picks: tally[v].picks,
+      you: !!me && v === me,
+    })).sort((a, b) => b.pts - a.pts || b.correct - a.correct || a.picks - b.picks || a.name.localeCompare(b.name));
+    return json({ rows: rows.slice(0, 20), total: rows.length, you: rows.find(r => r.you) || null });
   }
 
   if (p === "/site" && req.method === "GET") {

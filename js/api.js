@@ -474,6 +474,17 @@ function fileToDataUrl(file, max = 420) {
       return null;
     }).filter(Boolean).slice(0, 5);
   }
+  /* which side won a decided fixture — "A", "B", or "" (unplayed / malformed) */
+  function fxWinnerSide(f) {
+    if (!f || !Array.isArray(f.sets) || !f.sets.length) return "";
+    let a = 0, b = 0;
+    f.sets.forEach(st => {
+      const hp = typeof st.a === "number" && typeof st.b === "number";
+      if (hp) { st.a >= st.b ? a++ : b++; }
+      else if (st.w === "A" || st.w === "B") { st.w === "A" ? a++ : b++; }
+    });
+    return a > b ? "A" : b > a ? "B" : "";
+  }
   /* team pool: accept plain names (legacy) or {name, logo} → [{name, logo}] */
   function normScrimTeams(arr) {
     return (Array.isArray(arr) ? arr : []).map(t => typeof t === "string"
@@ -951,6 +962,37 @@ function fileToDataUrl(file, max = 420) {
       e[pick] = (e[pick] || 0) + 1;
       e.voters[voter] = pick;
       kvPut("pickem", JSON.stringify(map)); return ok({ ok: true });
+    }
+    if (p === "/pickem/name" && method === "POST") {
+      const voter = cleanStr(body.voter, 60), name = cleanStr(body.name, 24);
+      if (!voter) return err("voter is required", 400);
+      const names = JSON.parse(kvGet("picknames") || "{}");
+      if (name) names[voter] = name; else delete names[voter];
+      kvPut("picknames", JSON.stringify(names)); return ok({ ok: true });
+    }
+    if (p === "/pickem/leaderboard" && method === "GET") {
+      const me = cleanStr(query.get("voter"), 60);
+      const s2raw = kvGet("s2");
+      const fxList = s2raw ? (JSON.parse(s2raw).fixtures || []) : DEFAULT_S2_FIXTURES;
+      const winners = {};   // fixture id → "A" / "B" (decided matches only)
+      fxList.forEach(f => { const w = fxWinnerSide(f); if (w) winners[f.id] = w; });
+      const map = JSON.parse(kvGet("pickem") || "{}");
+      const names = JSON.parse(kvGet("picknames") || "{}");
+      const tally = {};   // voter → { picks, correct }
+      Object.keys(map).forEach(fid => {
+        const voters = map[fid].voters || {};
+        Object.keys(voters).forEach(v => {
+          const t = tally[v] || (tally[v] = { picks: 0, correct: 0 });
+          t.picks++;
+          if (winners[fid] && voters[v] === winners[fid]) t.correct++;
+        });
+      });
+      const rows = Object.keys(tally).map(v => ({
+        name: names[v] || "Fan " + v.slice(-4),
+        pts: tally[v].correct * 10, correct: tally[v].correct, picks: tally[v].picks,
+        you: !!me && v === me,
+      })).sort((a, b) => b.pts - a.pts || b.correct - a.correct || a.picks - b.picks || a.name.localeCompare(b.name));
+      return ok({ rows: rows.slice(0, 20), total: rows.length, you: rows.find(r => r.you) || null });
     }
 
     /* ---- site logo + admin login ---- */

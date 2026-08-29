@@ -130,6 +130,51 @@ async function renderPickem() {
     try { await apiPost("/pickem/vote", { fixtureId: fid, pick, voter: pickVoterId() }); } catch (e) { /* local pick still saved */ }
     renderPickem();
   }));
+
+  renderPickBoard();
 }
 
-document.addEventListener("DOMContentLoaded", renderPickem);
+/* ---------- fan leaderboard: every voter ranked by pick'em points ---------- */
+function pickName() { try { return localStorage.getItem("soai_pick_name") || ""; } catch (e) { return ""; } }
+async function renderPickBoard() {
+  const host = document.getElementById("pickBoard");
+  if (!host) return;
+  let lb = { rows: [], total: 0 };
+  try { lb = await apiGet("/pickem/leaderboard?voter=" + encodeURIComponent(pickVoterId())); } catch (e) { /* board optional */ }
+  if (!lb.rows || !lb.rows.length) {
+    host.innerHTML = `<div class="card" style="text-align:center;padding:22px">
+      <div style="font-size:26px">🏆</div><b>No fans on the board yet</b>
+      <p class="mini-note" style="margin:6px auto 0;max-width:480px">Make a pick above and you're in — points land as soon as your matches finish.</p></div>`;
+    return;
+  }
+  const medal = i => i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : String(i + 1);
+  host.innerHTML = `<div class="table-scroll"><table class="standings">
+    <thead><tr><th>Rank</th><th>Fan</th><th class="num">Correct</th><th class="num">Picks</th><th class="num">Pts</th></tr></thead>
+    <tbody>` + lb.rows.map((r, i) => `
+      <tr${r.you ? ' style="background:color-mix(in srgb, var(--yellow) 14%, transparent);font-weight:800"' : ""}>
+        <td class="rk">${medal(i)}</td>
+        <td>${scrimEsc(r.name)}${r.you ? ' <span class="pending-pill">you</span>' : ""}</td>
+        <td class="num">${r.correct}</td><td class="num">${r.picks}</td>
+        <td class="num"><b>${r.pts}</b></td>
+      </tr>`).join("") + `
+    </tbody></table></div>
+    <p class="mini-note" style="margin-top:8px">${lb.total} fan${lb.total === 1 ? "" : "s"} on the board · top 20 shown${lb.you && !lb.rows.some(r => r.you) ? ` · you: ${lb.you.pts} pts (outside the top 20 — keep picking!)` : ""}</p>`;
+}
+function initPickName() {
+  const inp = document.getElementById("pkName"), btn = document.getElementById("pkNameSave");
+  if (!inp || !btn) return;
+  inp.value = pickName();
+  btn.addEventListener("click", async () => {
+    const m = document.getElementById("pkNameMsg");
+    const name = inp.value.trim().slice(0, 24);
+    try { name ? localStorage.setItem("soai_pick_name", name) : localStorage.removeItem("soai_pick_name"); } catch (e) {}
+    m.textContent = "Saving…";
+    try {
+      const r = await apiPost("/pickem/name", { voter: pickVoterId(), name });
+      m.textContent = (r && r.ok) ? (name ? "✅ You're on the board as “" + name + "”." : "Name cleared — you'll show as “Fan ####”.") : "⚠️ " + ((r && r.error) || "failed");
+    } catch (e) { m.textContent = "⚠️ " + e.message; }
+    renderPickBoard();
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => { renderPickem(); initPickName(); });
