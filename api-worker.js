@@ -847,6 +847,7 @@ async function handleApi(req, env, url) {
           { name: "standings", value: "standings" },
           { name: "schedule", value: "schedule" },
           { name: "pickem", value: "pickem" },
+          { name: "leaders", value: "leaders" },
         ],
       }],
     }];
@@ -1029,6 +1030,26 @@ function slashStandingsLines(gTeams, played) {
   return rows.map((r, i) => `\`${String(i + 1).padStart(2)}\` **${r.n}** — ${r.w}–${r.l}`).join("\n") || "—";
 }
 const SLASH_SITE = "https://binsuasia.netlify.app";   // keep in sync with SITE_URL in js/admin.js
+/* topic:leaders — top 5 by league points (mirrors dcPostLeaders in js/admin.js
+   and PSTAT_WEIGHTS in js/pstats.js) */
+function slashLeadersEmbed(players, site) {
+  const SITE = site || SLASH_SITE;
+  const W = { kills: 2, aces: 2, blocks: 2, digs: 1, assists: 1 };
+  const pts = p => { const st = p.stats || {}; let x = 0; for (const k in W) x += W[k] * (+st[k] || 0); return Math.round(x * 10) / 10; };
+  const top = (players || []).map(p => ({ ...p, pts: pts(p) })).filter(p => p.pts > 0)
+    .sort((a, b) => b.pts - a.pts).slice(0, 5);
+  const medal = ["🥇", "🥈", "🥉", "4.", "5."];
+  const lines = top.map((p, i) => {
+    const st = p.stats || {};
+    return `${medal[i]} **${p.name}** (${p.team}) — **${p.pts} pts** · ${st.kills || 0}K ${st.aces || 0}A ${st.blocks || 0}B ${st.digs || 0}D`;
+  });
+  return {
+    title: "🏅 Player Leaderboard — Top 5",
+    description: (lines.join("\n") || "No player stats logged yet.") + `\n\nSpiker / Setter / Libero boards: ${SITE}/stats.html`,
+    color: 0xC6971F,
+    footer: { text: "Kills ×2 · Aces ×2 · Blocks ×2 · Digs ×1 · Assists ×1" },
+  };
+}
 function slashEmbed(topic, d, site) {
   const SITE = site || SLASH_SITE;
   const ts = (when, style) => `<t:${Math.floor(when / 1000)}:${style}>`;
@@ -1190,10 +1211,16 @@ export default {
         if (it.type === 1) return json({ type: 1 });                     // PING -> PONG
         if (it.type === 2 && it.data && it.data.name === "binsustar") {  // slash command
           const opt = (it.data.options || []).find(o => o.name === "topic");
-          const d = await getS2Data(KV);
+          const topic = opt ? opt.value : "overview";
           // when this Worker also serves the site, link to its own origin
           const site = env.ASSETS ? url.origin : undefined;
-          return json({ type: 4, data: { embeds: [slashEmbed(opt ? opt.value : "overview", d, site)] } });
+          if (topic === "leaders") {
+            const raw = await KV.get("players");
+            const players = raw ? JSON.parse(raw) : seedPlayers();
+            return json({ type: 4, data: { embeds: [slashLeadersEmbed(players, site)] } });
+          }
+          const d = await getS2Data(KV);
+          return json({ type: 4, data: { embeds: [slashEmbed(topic, d, site)] } });
         }
         return json({ type: 4, data: { content: "Unknown command." } });
       } catch (e) {
