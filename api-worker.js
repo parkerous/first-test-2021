@@ -1074,8 +1074,18 @@ function slashStandingsLines(gTeams, played) {
 const SLASH_SITE = "https://binsuasia.netlify.app";   // keep in sync with SITE_URL in js/admin.js
 /* topic:leaders — top 5 by league points (mirrors dcPostLeaders in js/admin.js
    and PSTAT_WEIGHTS in js/pstats.js) */
-function slashLeadersEmbed(players, site) {
-  const SITE = site || SLASH_SITE;
+/* link buttons under every /binsustar reply — cleaner than URLs in the text */
+const slashBtn = (label, emoji, path) => ({ type: 2, style: 5, label, emoji: { name: emoji }, url: SLASH_SITE + path });
+function slashButtons(topic) {
+  const btns =
+    topic === "standings" ? [slashBtn("Full standings", "📊", "/standings.html"), slashBtn("Schedule", "📅", "/schedule.html")]
+    : topic === "schedule" ? [slashBtn("Full schedule", "📅", "/schedule.html"), slashBtn("Make your picks", "🔮", "/pickem.html")]
+    : topic === "pickem" ? [slashBtn("Make your picks", "🔮", "/pickem.html"), slashBtn("Schedule", "📅", "/schedule.html")]
+    : topic === "leaders" ? [slashBtn("All player stats", "🏅", "/stats.html")]
+    : [slashBtn("Standings", "📊", "/standings.html"), slashBtn("Pick'em", "🔮", "/pickem.html"), slashBtn("Stats", "🏅", "/stats.html")];
+  return [{ type: 1, components: btns }];
+}
+function slashLeadersEmbed(players) {
   const W = { kills: 2, aces: 2, blocks: 2, digs: 1, assists: 1 };
   const pts = p => { const st = p.stats || {}; let x = 0; for (const k in W) x += W[k] * (+st[k] || 0); return Math.round(x * 10) / 10; };
   const top = (players || []).map(p => ({ ...p, pts: pts(p) })).filter(p => p.pts > 0)
@@ -1087,13 +1097,12 @@ function slashLeadersEmbed(players, site) {
   });
   return {
     title: "🏅 Player Leaderboard — Top 5",
-    description: (lines.join("\n") || "No player stats logged yet.") + `\n\nSpiker / Setter / Libero boards: ${SITE}/stats.html`,
+    description: lines.join("\n") || "No player stats logged yet — check back after the first match night!",
     color: 0xC6971F,
     footer: { text: "Kills ×2 · Aces ×2 · Blocks ×2 · Digs ×1 · Assists ×1" },
   };
 }
-function slashEmbed(topic, d, site) {
-  const SITE = site || SLASH_SITE;
+function slashEmbed(topic, d) {
   const ts = (when, style) => `<t:${Math.floor(when / 1000)}:${style}>`;
   const reg = (d.fixtures || []).filter(f => f.stage === "regular");
   // same "still relevant" window the admin webhook posts use
@@ -1105,28 +1114,31 @@ function slashEmbed(topic, d, site) {
   if (topic === "standings") {
     return {
       title: "📊 Group Stage Standings",
+      description: "Single round robin · every match BO3 · win **+1**, loss **−1**",
       fields: [
         { name: "🟢 Group A", value: slashStandingsLines(g.A, played), inline: true },
         { name: "🔴 Group B", value: slashStandingsLines(g.B, played), inline: true },
       ],
-      description: `Full tables: ${SITE}/standings.html`,
       color: 0xC6971F,
+      footer: { text: "Binsu Star · Season 2" },
     };
   }
   if (topic === "schedule") {
     const next = upcoming.slice(0, 6).map(f => `${gTag(f)} **${f.teamA}** vs **${f.teamB}** — ${ts(f.when, "f")} (${ts(f.when, "R")})`);
     return {
       title: "📅 Upcoming Matches",
-      description: (next.join("\n") || "No upcoming fixtures.") + `\n\nFull schedule: ${SITE}/schedule.html`,
+      description: next.join("\n") || "No upcoming fixtures — the schedule is all played out!",
       color: 0xC6971F,
+      footer: { text: "Binsu Star · times shown in your timezone" },
     };
   }
   if (topic === "pickem") {
     const next = upcoming.slice(0, 2).map(f => `${gTag(f)} **${f.teamA}** vs **${f.teamB}** — locks ${ts(f.when, "R")}`);
     return {
       title: "🔮 Pick'em",
-      description: (next.length ? `Next up:\n${next.join("\n")}\n\n` : "") + `Make your picks (10 pts per correct call): ${SITE}/pickem.html`,
+      description: (next.length ? `**Next up**\n${next.join("\n")}\n\n` : "") + "Call the winners before each match locks — every correct pick is **10 pts** on the fan leaderboard.",
       color: 0xC6971F,
+      footer: { text: "Binsu Star Pick'em · lock times shown in your timezone" },
     };
   }
   // overview
@@ -1137,9 +1149,9 @@ function slashEmbed(topic, d, site) {
     description: [
       next.length ? `**Next matches**\n${next.join("\n")}` : "",
       recent.length ? `**Latest results**\n${recent.join("\n")}` : "",
-      `📊 ${SITE}/standings.html · 🔮 ${SITE}/pickem.html · 🏅 ${SITE}/stats.html`,
-    ].filter(Boolean).join("\n\n"),
+    ].filter(Boolean).join("\n\n") || "Season 2 is live — 13 teams, two groups, every match BO3.",
     color: 0xC6971F,
+    footer: { text: "Binsu Star · Season 2" },
   };
 }
 
@@ -1254,15 +1266,14 @@ export default {
         if (it.type === 2 && it.data && it.data.name === "binsustar") {  // slash command
           const opt = (it.data.options || []).find(o => o.name === "topic");
           const topic = opt ? opt.value : "overview";
-          // when this Worker also serves the site, link to its own origin
-          const site = env.ASSETS ? url.origin : undefined;
+          let embed;
           if (topic === "leaders") {
             const raw = await KV.get("players");
-            const players = raw ? JSON.parse(raw) : seedPlayers();
-            return json({ type: 4, data: { embeds: [slashLeadersEmbed(players, site)] } });
+            embed = slashLeadersEmbed(raw ? JSON.parse(raw) : seedPlayers());
+          } else {
+            embed = slashEmbed(topic, await getS2Data(KV));
           }
-          const d = await getS2Data(KV);
-          return json({ type: 4, data: { embeds: [slashEmbed(topic, d, site)] } });
+          return json({ type: 4, data: { embeds: [embed], components: slashButtons(topic) } });
         }
         return json({ type: 4, data: { content: "Unknown command." } });
       } catch (e) {
