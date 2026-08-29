@@ -17,10 +17,10 @@
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=38" rel="stylesheet" />
-  <link href="css/home.css?v=38" rel="stylesheet" />
-  <link href="css/season.css?v=38" rel="stylesheet" />
-  <script src="js/theme.js?v=38"></script>
+  <link href="css/voll-e.css?v=39" rel="stylesheet" />
+  <link href="css/home.css?v=39" rel="stylesheet" />
+  <link href="css/season.css?v=39" rel="stylesheet" />
+  <script src="js/theme.js?v=39"></script>
 </head>
 <body>
 
@@ -61,11 +61,25 @@
     <div id="pickList"></div>
   </section>
 
+  <!-- fan leaderboard: every voter ranked by pick'em points -->
+  <section class="section" style="max-width:760px">
+    <div class="section-head"><h2><span class="bar"></span>🏆 Fan Leaderboard</h2></div>
+    <p class="mini-note" style="margin:-6px 0 14px;color:var(--muted);font-size:13.5px">
+      Every fan ranked by Pick'em points — <b>10 per correct call</b>. Save a name to claim your spot on the board; until then you appear as “Fan ####”.
+    </p>
+    <div class="row" style="margin-bottom:12px">
+      <input id="pkName" type="text" maxlength="24" placeholder="Your name on the board (e.g. Roblox username)" style="flex:1;min-width:200px" />
+      <button class="btn" id="pkNameSave">💾 Save name</button>
+      <span class="msg" id="pkNameMsg" style="color:var(--muted);font-size:12.5px"></span>
+    </div>
+    <div id="pickBoard"></div>
+  </section>
+
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Pick'em</p>
 
-  <script src="js/api.js?v=38"></script>
-  <script src="js/scrims.js?v=38"></script>
-  <script src="js/s2.js?v=38"></script>
-  <script src="js/pickem.js?v=38"></script>
+  <script src="js/api.js?v=39"></script>
+  <script src="js/scrims.js?v=39"></script>
+  <script src="js/s2.js?v=39"></script>
+  <script src="js/pickem.js?v=39"></script>
 </body>
 </html>
