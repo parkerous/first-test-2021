@@ -108,3 +108,27 @@ After the Worker is deployed:
 
 Members can then use `/binsustar`, `/binsustar topic:standings`,
 `topic:schedule` or `topic:pickem` anywhere in the server.
+
+## Automatic Discord posts (no buttons needed)
+
+With the Worker deployed, it can post to your webhook **by itself**:
+
+- 📅 **Match-night hype** — ~1 hour before the night's first serve
+- 🔮 **Pick'em reminder** — from 12:00 GMT+8 on match days
+- 🏁 **Final scores** — the moment a result is saved in the admin panel
+
+Setup:
+
+1. Site admin panel → Season 2 → Discord webhook → **"Automatic posts"** →
+   paste your webhook URL (+ optional role ID), tick what you want →
+   **Save to Worker**. The webhook is stored only in the Worker's private
+   KV — never in the repo or anyone's browser.
+2. Cloudflare dashboard → your Worker → **Settings → Triggers →
+   Add Cron Trigger** → schedule `0 * * * *` (hourly). Final-score posts
+   don't need the cron; match-night and Pick'em posts do.
+3. Done. KV markers guarantee each night is announced only once, even if
+   the cron runs more often.
+
+Saving an **empty** URL clears the config and stops all automatic posts.
+If you also had "auto-post finals" enabled in the browser, the admin panel
+turns it off for you when you enable Worker finals (no double posts).

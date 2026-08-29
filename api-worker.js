@@ -773,7 +773,15 @@ async function handleApi(req, env, url) {
     if (!fx) return json({ error: "fixture not found" }, 404);
     const sets = cleanSets(b.sets);
     fx.sets = sets.length ? sets : null;   // empty → clear the result
-    await KV.put("s2", JSON.stringify(cur)); return json({ ok: true });
+    await KV.put("s2", JSON.stringify(cur));
+    // auto-announce the final on Discord when a hook is configured for it
+    if (fx.sets && fx.sets.length) {
+      const hook = await getHook(KV);
+      if (hook && hook.auto && hook.auto.finals) {
+        try { await postHook(hook, { embeds: [hookResultEmbed(fx)] }, false); } catch (e) { /* result is saved either way */ }
+      }
+    }
+    return json({ ok: true });
   }
 
   /* ---- player roster + stats (admin-managed) ---- */
@@ -850,6 +858,26 @@ async function handleApi(req, env, url) {
     if (!r.ok) return json({ error: "Discord rejected the registration (HTTP " + r.status + ") — check the app id and bot token" }, 400);
     await KV.put("discord", JSON.stringify({ appId, publicKey }));   // token is NOT stored
     return json({ ok: true, endpoint: url.origin + "/interactions" });
+  }
+
+  /* ---- automatic webhook posts: config lives ONLY in this Worker's KV ---- */
+  if (p === "/admin/discord/hook" && req.method === "POST") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const b = await req.json();
+    const hookUrl = String(b.url || "").trim();
+    if (!hookUrl) { await KV.put("dchook", ""); return json({ ok: true, cleared: true }); }
+    if (!/^https:\/\/(discord\.com|discordapp\.com)\/api\/webhooks\/\d+\/[\w-]+$/.test(hookUrl)) {
+      return json({ error: "that doesn't look like a Discord webhook URL" }, 400);
+    }
+    const roleId = /^\d{5,25}$/.test(String(b.roleId || "").trim()) ? String(b.roleId).trim() : "";
+    const auto = { night: !!b.night, pickem: !!b.pickem, finals: !!b.finals };
+    await KV.put("dchook", JSON.stringify({ url: hookUrl, roleId, auto }));
+    return json({ ok: true });
+  }
+  if (p === "/admin/discord/hook" && req.method === "GET") {
+    if (!isAdmin(req, env)) return json({ error: "unauthorized" }, 401);
+    const h = await getHook(KV);
+    return json(h ? { configured: true, tail: "…" + h.url.slice(-4), roleId: h.roleId || "", auto: h.auto || {} } : { configured: false });
   }
 
   /* ---- honors: tournament placements driving the all-time rankings ---- */
@@ -1052,7 +1080,101 @@ function slashEmbed(topic, d, site) {
   };
 }
 
+/* ============ automatic Discord webhook posts (cron-driven) ============
+   The webhook URL + role live ONLY in this Worker's KV ("dchook"), saved
+   from the admin panel — never in the repo or the public site. With a cron
+   trigger (see DEPLOY.md) the Worker posts on its own:
+   - match-night hype   ~1 hour before the night's first serve
+   - pick'em reminder   from 12:00 GMT+8 on match days
+   - final scores       the moment a result is saved (no cron needed)
+   Embeds mirror the one-tap posts in js/admin.js so both paths look alike. */
+async function getHook(KV) {
+  try { const raw = await KV.get("dchook"); const h = raw ? JSON.parse(raw) : null; return h && h.url ? h : null; }
+  catch (e) { return null; }
+}
+async function postHook(hook, payload, ping) {
+  const mention = (ping && hook.roleId) ? { content: `<@&${hook.roleId}>`, allowed_mentions: { roles: [hook.roleId] } } : {};
+  const r = await fetch(hook.url, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: "Binsu Star", avatar_url: SLASH_SITE + "/img/icon-192.png", ...mention, ...payload }),
+  });
+  if (!r.ok && r.status !== 204) throw new Error("Discord returned HTTP " + r.status);
+}
+const hookTs = (when, style) => `<t:${Math.floor(when / 1000)}:${style}>`;
+function hookGroupTag(f) {
+  const inA = S2_GROUP_DRAW.A.indexOf(f.teamA) !== -1 || S2_GROUP_DRAW.A.indexOf(f.teamB) !== -1;
+  const inB = S2_GROUP_DRAW.B.indexOf(f.teamA) !== -1 || S2_GROUP_DRAW.B.indexOf(f.teamB) !== -1;
+  return inA ? "Group A · " : inB ? "Group B · " : "";
+}
+const gmt8Day = ms => Math.floor((ms + 8 * 3600e3) / 86400e3);
+/* the next match night = all upcoming fixtures sharing the earliest GMT+8 date
+   (same rule as dcNextNight in js/admin.js) */
+function hookNextNight(fixtures, now) {
+  const up = (fixtures || []).filter(f => f.stage === "regular" && !(f.sets && f.sets.length) && f.when && f.when > now - 3 * 3600e3)
+    .sort((a, b) => a.when - b.when);
+  if (!up.length) return [];
+  const d0 = gmt8Day(up[0].when);
+  return up.filter(f => gmt8Day(f.when) === d0);
+}
+function hookNightEmbed(night) {
+  const lines = night.map(f => `🏐 ${hookGroupTag(f)}**${f.teamA}** vs **${f.teamB}** — ${hookTs(f.when, "t")} (${hookTs(f.when, "R")}) · BO3`);
+  return {
+    title: "📅 Tonight on Binsu Star",
+    description: lines.join("\n") + `\n\n${hookTs(night[0].when, "F")}\n\n🔮 [Make your Pick'em picks](${SLASH_SITE}/pickem.html) before the first serve!\n📊 [Full schedule & standings](${SLASH_SITE}/schedule.html)`,
+    color: 0xC6971F,
+    footer: { text: "Binsu Star · times shown in your timezone" },
+  };
+}
+function hookPickemEmbed(night) {
+  const lines = night.map(f => `• ${hookGroupTag(f)}**${f.teamA}** vs **${f.teamB}** — locks ${hookTs(f.when, "R")}`);
+  return {
+    title: "🔮 Pick'em is open!",
+    description: `Call the winners before the matches lock:\n\n${lines.join("\n")}\n\n➡️ **[Make your picks](${SLASH_SITE}/pickem.html)** — every correct call is 10 pts.`,
+    color: 0xC6971F,
+    footer: { text: "Binsu Star Pick'em · lock times shown in your timezone" },
+  };
+}
+function hookResultEmbed(f) {
+  let a = 0, b = 0; const scores = [];
+  (f.sets || []).forEach(st => {
+    const hp = typeof st.a === "number" && typeof st.b === "number";
+    if (hp) { st.a >= st.b ? a++ : b++; scores.push(`${st.a}–${st.b}`); }
+    else if (st.w === "A" || st.w === "B") { st.w === "A" ? a++ : b++; }
+  });
+  const winner = a > b ? f.teamA : f.teamB;
+  return {
+    title: `🏁 FINAL — ${f.teamA} ${a}–${b} ${f.teamB}`,
+    description: `${hookGroupTag(f)}**${winner}** take it${scores.length ? ` (${scores.join(", ")})` : ""}.\n\n📊 [Standings](${SLASH_SITE}/standings.html) · 🔮 [Pick'em](${SLASH_SITE}/pickem.html)`,
+    color: 0x22B866,
+    footer: { text: "Binsu Star · Season 2" },
+  };
+}
+/* one cron tick: KV markers make posts once-per-night no matter how often it runs */
+async function runAutoPosts(KV, now) {
+  const hook = await getHook(KV);
+  if (!hook) return;
+  const auto = hook.auto || {};
+  const d = await getS2Data(KV);
+  const night = hookNextNight(d.fixtures, now);
+  if (!night.length) return;
+  const day = gmt8Day(night[0].when);
+  if (auto.pickem && gmt8Day(now) === day) {
+    const h8 = Math.floor(((now + 8 * 3600e3) % 86400e3) / 3600e3);   // hour of day, GMT+8
+    if (h8 >= 12 && !(await KV.get("dcposted:pk:" + day))) {
+      await KV.put("dcposted:pk:" + day, "1", { expirationTtl: 604800 });   // marker first — no dupes even if the post retries
+      try { await postHook(hook, { embeds: [hookPickemEmbed(night)] }, true); } catch (e) {}
+    }
+  }
+  if (auto.night && night[0].when - now <= 66 * 60e3 && !(await KV.get("dcposted:mn:" + day))) {
+    await KV.put("dcposted:mn:" + day, "1", { expirationTtl: 604800 });
+    try { await postHook(hook, { embeds: [hookNightEmbed(night)] }, true); } catch (e) {}
+  }
+}
+
 export default {
+  async scheduled(event, env, ctx) {
+    try { await runAutoPosts(env.SOAI, Date.now()); } catch (e) { /* next tick retries */ }
+  },
   async fetch(req, env) {
     if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
     const url = new URL(req.url);
