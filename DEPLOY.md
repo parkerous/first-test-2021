@@ -107,7 +107,7 @@ After the Worker is deployed:
 4. Invite the app to the server (Installation → Guild Install link).
 
 Members can then use `/binsustar`, `/binsustar topic:standings`,
-`topic:schedule` or `topic:pickem` anywhere in the server.
+`topic:schedule`, `topic:pickem` or `topic:leaders` anywhere in the server.
 
 ## Automatic Discord posts (no buttons needed)
 
