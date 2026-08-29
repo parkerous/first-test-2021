@@ -314,8 +314,10 @@ const DEFAULT_SCRIMS = [
 function cleanSets(arr) {
   if (!Array.isArray(arr)) return [];
   return arr.map(s => {
-    if (s && typeof s.a === "number" && typeof s.b === "number" && isFinite(s.a) && isFinite(s.b))
-      return { a: Math.max(0, Math.round(s.a)), b: Math.max(0, Math.round(s.b)) };
+    if (s && typeof s.a === "number" && typeof s.b === "number" && isFinite(s.a) && isFinite(s.b)) {
+      const a = Math.max(0, Math.round(s.a)), b = Math.max(0, Math.round(s.b));
+      return a === b ? null : { a, b };   // a volleyball set can't tie
+    }
     if (s && (s.w === "A" || s.w === "B")) return { w: s.w };
     return null;
   }).filter(Boolean).slice(0, 5);
@@ -408,6 +410,7 @@ async function handleApi(req, env, url) {
       if (cat && (t.category || "League") !== cat) continue;
       out.push(publicTeam(t));
     }
+    out.sort((a, b) => a.createdAt - b.createdAt);   // match the client shim's ordering
     return json(out);
   }
   if (p === "/team" && req.method === "GET") {
@@ -670,24 +673,6 @@ async function handleApi(req, env, url) {
     await KV.put("analysis:" + id, JSON.stringify(a));
     return json({ ok: true, id });
   }
-  if (p === "/learn" && req.method === "POST") {
-    const b = await req.json();
-    const raw = await KV.get("learn");
-    const agg = raw ? JSON.parse(raw) : { actions: {}, results: {}, videos: 0, touches: 0 };
-    if (b.newVideo) agg.videos += 1;
-    for (const ev of (b.events || [])) {
-      if (!ev || !ev.action) continue;
-      agg.touches += 1;
-      agg.actions[ev.action] = (agg.actions[ev.action] || 0) + 1;
-      if (ev.result) { const key = ev.action + ":" + ev.result; agg.results[key] = (agg.results[key] || 0) + 1; }
-    }
-    await KV.put("learn", JSON.stringify(agg));
-    return json({ ok: true });
-  }
-  if (p === "/learn/insights" && req.method === "GET") {
-    const raw = await KV.get("learn");
-    return json(raw ? JSON.parse(raw) : { actions: {}, results: {}, videos: 0, touches: 0 });
-  }
   /* ---- Preseason scrims: standings source (public read, admin write) ---- */
   if (p === "/scrims" && req.method === "GET") {
     let teams;
@@ -901,6 +886,11 @@ async function handleApi(req, env, url) {
     const fid = cleanStr(b.fixtureId, 40), pick = b.pick === "A" ? "A" : b.pick === "B" ? "B" : "";
     const voter = cleanStr(b.voter, 60);
     if (!fid || !pick || !voter) return json({ error: "fixtureId, pick and voter are required" }, 400);
+    // only real, still-open fixtures accept votes — the UI lock alone isn't enough
+    const s2d = await getS2Data(KV);
+    const fx = (s2d.fixtures || []).find(f => f.id === fid);
+    if (!fx) return json({ error: "unknown fixture" }, 404);
+    if ((fx.sets && fx.sets.length) || (fx.when && fx.when <= Date.now())) return json({ error: "match locked" }, 409);
     const raw = await KV.get("pickem"); const map = raw ? JSON.parse(raw) : {};
     const e = map[fid] || (map[fid] = { A: 0, B: 0, voters: {} });
     const prev = e.voters[voter];
@@ -969,8 +959,10 @@ function slashPlayed(f) { return !!(f.sets && f.sets.length); }
 function slashSets(f) {
   let a = 0, b = 0;
   (f.sets || []).forEach(st => {
+    // mirror js/scrims.js: a set counts only with numeric points or an explicit winner
     const hp = typeof st.a === "number" && typeof st.b === "number";
-    (hp ? st.a >= st.b : st.w === "A") ? a++ : b++;
+    if (hp) { st.a >= st.b ? a++ : b++; }
+    else if (st.w === "A" || st.w === "B") { st.w === "A" ? a++ : b++; }
   });
   return [a, b];
 }
@@ -985,8 +977,10 @@ function slashStandingsLines(gTeams, played) {
     let a = 0, b = 0;
     (f.sets || []).forEach(st => {
       const hp = typeof st.a === "number" && typeof st.b === "number";
-      const aWon = hp ? st.a >= st.b : st.w === "A";
-      if (hp) { A.pf += st.a; A.pa += st.b; B.pf += st.b; B.pa += st.a; A.pointed = B.pointed = true; }
+      let aWon;
+      if (hp) { aWon = st.a >= st.b; A.pf += st.a; A.pa += st.b; B.pf += st.b; B.pa += st.a; A.pointed = B.pointed = true; }
+      else if (st.w === "A" || st.w === "B") { aWon = st.w === "A"; }
+      else return;   // mirror js/scrims.js: skip malformed set entries
       if (aWon) { a++; A.sw++; B.sl++; } else { b++; B.sw++; A.sl++; }
     });
     if (a === b) return;

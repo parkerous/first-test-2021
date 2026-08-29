@@ -466,8 +466,10 @@ function fileToDataUrl(file, max = 420) {
   function cleanSets(arr) {
     if (!Array.isArray(arr)) return [];
     return arr.map(s => {
-      if (s && typeof s.a === "number" && typeof s.b === "number" && isFinite(s.a) && isFinite(s.b))
-        return { a: Math.max(0, Math.round(s.a)), b: Math.max(0, Math.round(s.b)) };
+      if (s && typeof s.a === "number" && typeof s.b === "number" && isFinite(s.a) && isFinite(s.b)) {
+        const a = Math.max(0, Math.round(s.a)), b = Math.max(0, Math.round(s.b));
+        return a === b ? null : { a, b };   // a volleyball set can't tie
+      }
       if (s && (s.w === "A" || s.w === "B")) return { w: s.w };
       return null;
     }).filter(Boolean).slice(0, 5);
@@ -927,6 +929,12 @@ function fileToDataUrl(file, max = 420) {
       const fid = cleanStr(body.fixtureId, 40), pick = body.pick === "A" ? "A" : body.pick === "B" ? "B" : "";
       const voter = cleanStr(body.voter, 60);
       if (!fid || !pick || !voter) return err("fixtureId, pick and voter are required", 400);
+      // only real, still-open fixtures accept votes — the UI lock alone isn't enough
+      const s2raw = kvGet("s2");
+      const fxList = s2raw ? (JSON.parse(s2raw).fixtures || []) : DEFAULT_S2_FIXTURES;
+      const fx = fxList.find(f => f.id === fid);
+      if (!fx) return err("unknown fixture", 404);
+      if ((fx.sets && fx.sets.length) || (fx.when && fx.when <= Date.now())) return err("match locked", 409);
       const raw = kvGet("pickem"); const map = raw ? JSON.parse(raw) : {};
       const e = map[fid] || (map[fid] = { A: 0, B: 0, voters: {} });
       const prev = e.voters[voter];
