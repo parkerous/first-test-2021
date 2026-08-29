@@ -16,11 +16,11 @@
   <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
   <link rel="icon" type="image/svg+xml" href="img/mikasa.svg" />
   <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="img/favicon.png" />
-  <link href="css/voll-e.css?v=37" rel="stylesheet" />
-  <link href="css/home.css?v=37" rel="stylesheet" />
-  <link href="css/teams.css?v=37" rel="stylesheet" />
-  <link href="css/season.css?v=37" rel="stylesheet" />
-  <script src="js/theme.js?v=37"></script>
+  <link href="css/voll-e.css?v=38" rel="stylesheet" />
+  <link href="css/home.css?v=38" rel="stylesheet" />
+  <link href="css/teams.css?v=38" rel="stylesheet" />
+  <link href="css/season.css?v=38" rel="stylesheet" />
+  <script src="js/theme.js?v=38"></script>
 </head>
 <body>
 
@@ -127,6 +127,18 @@
             <div class="row"><input id="dxAppId" type="text" placeholder="Application ID" style="flex:1;min-width:150px" /><input id="dxPubKey" type="text" placeholder="Public Key" style="flex:2;min-width:200px" /></div>
             <div class="row"><input id="dxToken" type="password" placeholder="Bot Token (used once, not stored)" style="flex:1;min-width:220px" /><button class="btn" id="dxRegister">⚡ Register /binsustar</button></div>
             <p class="msg" id="dxMsg" style="color:var(--muted);font-size:12.5px;margin:6px 0 0"></p>
+          </details>
+          <details style="margin-top:10px">
+            <summary style="cursor:pointer;color:var(--muted);font-size:13px;font-weight:700">🤖 Automatic posts — the Worker posts on its own schedule</summary>
+            <p class="mini-note" style="margin:8px 0 6px">Needs the shared Cloudflare Worker deployed with a <b>cron trigger</b> (see DEPLOY.md). Save your webhook here and the Worker posts by itself: <b>match-night hype</b> ~1 hour before the first serve, the <b>Pick'em reminder</b> at 12:00 GMT+8 on match days, and <b>final scores</b> the moment a result is saved. The webhook is stored only in your Worker's private storage — never in this browser or the site code.</p>
+            <div class="row"><input id="dwUrl" type="text" placeholder="https://discord.com/api/webhooks/…" style="flex:1;min-width:220px" /><button class="btn" id="dwSave">💾 Save to Worker</button></div>
+            <div class="row"><input id="dwRole" type="text" placeholder="Role ID to ping (optional)" style="flex:1;min-width:220px" /></div>
+            <div class="row" style="gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted)">
+              <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="dwNight" checked /> Match night</label>
+              <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="dwPickem" checked /> Pick'em reminder</label>
+              <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="dwFinals" checked /> Final scores</label>
+            </div>
+            <p class="msg" id="dwMsg" style="color:var(--muted);font-size:12.5px;margin:6px 0 0"></p>
           </details>
         </div>
         <div class="card">
@@ -254,9 +266,9 @@
 
   <p class="footer-note"><span class="credit">Made with 🏐 by <b>Ight</b></span> · Binsu Star · Admin</p>
 
-  <script src="js/api.js?v=37"></script>
-  <script src="js/scrims.js?v=37"></script>
-  <script src="js/s2.js?v=37"></script>
-  <script src="js/admin.js?v=37"></script>
+  <script src="js/api.js?v=38"></script>
+  <script src="js/scrims.js?v=38"></script>
+  <script src="js/s2.js?v=38"></script>
+  <script src="js/admin.js?v=38"></script>
 </body>
 </html>

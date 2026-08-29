@@ -898,6 +898,14 @@ function fileToDataUrl(file, max = 420) {
       if (!isAdmin(adminHdr)) return err("unauthorized", 401);
       return err("slash commands need the shared Cloudflare Worker deployed (it hosts the /interactions endpoint) — see DEPLOY.md", 400);
     }
+    if (p === "/admin/discord/hook" && method === "POST") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      return err("automatic posts need the shared Cloudflare Worker deployed (its cron trigger does the posting) — see DEPLOY.md", 400);
+    }
+    if (p === "/admin/discord/hook" && method === "GET") {
+      if (!isAdmin(adminHdr)) return err("unauthorized", 401);
+      return ok({ configured: false, local: true });
+    }
 
     /* ---- honors: tournament placements driving the all-time rankings ---- */
     if (p === "/honors" && method === "GET") {

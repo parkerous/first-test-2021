@@ -379,6 +379,42 @@ function initDcCard() {
       } else m.textContent = "⚠️ " + ((r && r.error) || "failed");
     } catch (e) { m.textContent = "⚠️ " + e.message; }
   });
+  // 🤖 automatic posts — webhook saved into the Worker's private KV
+  document.getElementById("dwSave").addEventListener("click", async () => {
+    const m = document.getElementById("dwMsg");
+    m.textContent = "Saving…";
+    try {
+      const r = await apiPost("/admin/discord/hook", {
+        url: document.getElementById("dwUrl").value.trim(),
+        roleId: document.getElementById("dwRole").value.trim(),
+        night: document.getElementById("dwNight").checked,
+        pickem: document.getElementById("dwPickem").checked,
+        finals: document.getElementById("dwFinals").checked,
+      }, true);
+      if (r && r.ok) {
+        if (r.cleared) { m.textContent = "🗑️ Cleared — the Worker won't post on its own anymore."; return; }
+        document.getElementById("dwUrl").value = "";
+        m.textContent = "✅ Saved to the Worker — automatic posts are on.";
+        if (document.getElementById("dwFinals").checked && dcAuto()) {
+          // finals would post twice (Worker + this browser) — turn the local one off
+          try { localStorage.setItem("soai_dc_auto", "0"); } catch (e) {}
+          document.getElementById("dcAuto").checked = false;
+          m.textContent += " Turned off this device's “auto-post finals” so finals don't post twice.";
+        }
+      } else m.textContent = "⚠️ " + ((r && r.error) || "failed");
+    } catch (e) { m.textContent = "⚠️ " + e.message; }
+  });
+  // show whether the Worker already has a webhook saved
+  (async () => {
+    try {
+      const st = await rawGet("/admin/discord/hook", adminKey());
+      if (st && st.configured) {
+        const on = Object.keys(st.auto || {}).filter(k => st.auto[k]).join(" · ") || "nothing enabled";
+        document.getElementById("dwMsg").textContent = `✅ Worker webhook saved (${st.tail}) — auto: ${on}. Save again to change it, or save empty to clear.`;
+        if (st.roleId) document.getElementById("dwRole").value = st.roleId;
+      }
+    } catch (e) { /* local mode or worker not deployed — the save button explains */ }
+  })();
 }
 
 /* ---------- Season 2 fixtures admin ---------- */
