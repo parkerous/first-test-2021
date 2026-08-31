@@ -342,8 +342,9 @@ async function buildStandingsCanvas() {
     c.fillStyle = "#8f867a"; c.font = `800 15px ${F}`;
     c.fillText("TEAM", x + 58, tableTop - 14);
     c.textAlign = "right";
-    c.fillText("W–L", x + colW - 176, tableTop - 14);
-    c.fillText("PTS", x + colW - 112, tableTop - 14);
+    c.fillText("W–L", x + colW - 236, tableTop - 14);
+    c.fillText("PTS", x + colW - 172, tableTop - 14);
+    c.fillText("DIFF", x + colW - 106, tableTop - 14);
     c.textAlign = "left";
     c.fillText("FORM", x + colW - 92, tableTop - 14);
     rows.forEach((t, i) => {
@@ -353,13 +354,16 @@ async function buildStandingsCanvas() {
       c.textBaseline = "middle";
       const midY = y + (rowH - 4) / 2 - 4;
       c.fillStyle = i === 0 ? "#f5d97b" : "#8f867a"; c.font = `900 22px ${F}`; c.fillText(String(i + 1), x + 4, midY);
-      let nm = t.name; if (nm.length > 17) nm = nm.slice(0, 16) + "…";
+      let nm = t.name; if (nm.length > 16) nm = nm.slice(0, 15) + "…";
       c.fillStyle = "#f2ecdd"; c.font = `800 24px ${F}`; c.fillText((i === 0 ? "👑 " : "") + nm, x + 42, midY);
       c.textAlign = "right"; c.font = `700 22px ${F}`; c.fillStyle = "#cbb98a";
-      c.fillText(`${t.mw}–${t.ml}`, x + colW - 176, midY);
+      c.fillText(`${t.mw}–${t.ml}`, x + colW - 236, midY);
       const r = t.record;
       c.fillStyle = r > 0 ? "#57d98a" : r < 0 ? "#ff8080" : "#8f867a"; c.font = `900 24px ${F}`;
-      c.fillText(r > 0 ? "+" + r : String(r), x + colW - 112, midY);
+      c.fillText(r > 0 ? "+" + r : String(r), x + colW - 172, midY);
+      const dv = t.diff;
+      c.fillStyle = dv > 0 ? "#57d98a" : dv < 0 ? "#ff8080" : "#8f867a"; c.font = `700 20px ${F}`;
+      c.fillText(dv == null ? "—" : (dv > 0 ? "+" + dv : String(dv)), x + colW - 106, midY);
       c.textAlign = "left";
       const fm = (formBy[t.name] || []).slice(-5);
       fm.forEach((w, k) => {
