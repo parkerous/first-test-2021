@@ -285,4 +285,116 @@ async function renderS2Standings() {
   host.innerHTML = tableFor("A", groups.A || []) + tableFor("B", groups.B || []);
 }
 
-document.addEventListener("DOMContentLoaded", function () { renderS2Schedule(); renderS2Standings(); renderScoreStrip(); });
+/* ---- shareable standings graphic (1200×675 PNG, drawn from live data) ---- */
+async function buildStandingsCanvas() {
+  const data = await apiGet("/s2");
+  const groups = data.groups || S2_GROUPS_CACHE || { A: [], B: [] };
+  S2_GROUPS_CACHE = groups;
+  const played = (data.fixtures || []).filter(f => f.stage === "regular" && s2Played(f));
+  const chrono = played.slice().sort((a, b) => (a.when || a.createdAt || 0) - (b.when || b.createdAt || 0));
+  const formBy = {};
+  chrono.forEach(m => {
+    const w = s2Winner(m);
+    [[m.teamA, w === m.teamA], [m.teamB, w === m.teamB]].forEach(([t, won]) => { (formBy[t] = formBy[t] || []).push(won); });
+  });
+  const rowsFor = g => computeScrimStandings(groups[g] || [], played.filter(f => teamGroup(f.teamA) === g));
+  const A = rowsFor("A"), B = rowsFor("B");
+
+  // site logo (admin-uploaded if set, else the bundled crest)
+  let logoSrc = "img/binsu-pfp.jpg";
+  try { const site = await apiGet("/site"); if (site && site.logo) logoSrc = site.logo; } catch (e) {}
+  const logo = await new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = logoSrc; });
+
+  const W = 1200, rowH = 56, headTop = 176, tableTop = headTop + 66;
+  const H = Math.max(675, tableTop + Math.max(A.length, B.length) * rowH + 84);
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const c = cv.getContext("2d");
+  const F = '-apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+
+  // backdrop: dark court with a gold glow
+  const bg = c.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, "#241b0e"); bg.addColorStop(.5, "#15110b"); bg.addColorStop(1, "#0d0d10");
+  c.fillStyle = bg; c.fillRect(0, 0, W, H);
+  const glow = c.createRadialGradient(170, 90, 20, 170, 90, 620);
+  glow.addColorStop(0, "rgba(255,205,60,.20)"); glow.addColorStop(1, "rgba(255,205,60,0)");
+  c.fillStyle = glow; c.fillRect(0, 0, W, H);
+
+  // header: logo + wordmark + subtitle + date
+  if (logo) {
+    c.save(); c.beginPath(); c.arc(112, 88, 56, 0, Math.PI * 2); c.closePath();
+    c.fillStyle = "#0d0d10"; c.fill(); c.clip();
+    c.drawImage(logo, 56, 32, 112, 112); c.restore();
+    c.beginPath(); c.arc(112, 88, 56, 0, Math.PI * 2); c.lineWidth = 4; c.strokeStyle = "#c6971f"; c.stroke();
+  }
+  c.textBaseline = "alphabetic";
+  c.fillStyle = "#f5d97b"; c.font = `900 52px ${F}`; c.fillText("BINSU STAR", 196, 84);
+  c.fillStyle = "#cbb98a"; c.font = `800 22px ${F}`; c.fillText("SEASON 2 · GROUP STAGE STANDINGS", 196, 122);
+  const dateTxt = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  c.fillStyle = "#8f867a"; c.font = `600 19px ${F}`; c.textAlign = "right"; c.fillText("🏐 " + dateTxt, W - 60, 122); c.textAlign = "left";
+  c.strokeStyle = "rgba(198,151,31,.5)"; c.lineWidth = 2;
+  c.beginPath(); c.moveTo(56, headTop - 22); c.lineTo(W - 56, headTop - 22); c.stroke();
+
+  // two group tables side by side
+  const drawGroup = (x, name, dotColor, rows) => {
+    const colW = 520;
+    c.fillStyle = dotColor; c.beginPath(); c.arc(x + 12, headTop + 8, 9, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "#f2ecdd"; c.font = `900 27px ${F}`; c.fillText("GROUP " + name, x + 34, headTop + 17);
+    c.fillStyle = "#8f867a"; c.font = `800 15px ${F}`;
+    c.fillText("TEAM", x + 58, tableTop - 14);
+    c.textAlign = "right";
+    c.fillText("W–L", x + colW - 176, tableTop - 14);
+    c.fillText("PTS", x + colW - 112, tableTop - 14);
+    c.textAlign = "left";
+    c.fillText("FORM", x + colW - 92, tableTop - 14);
+    rows.forEach((t, i) => {
+      const y = tableTop + i * rowH;
+      if (i % 2 === 0) { c.fillStyle = "rgba(255,255,255,.035)"; c.fillRect(x - 8, y - 4, colW + 16, rowH - 4); }
+      if (i === 0) { c.fillStyle = "rgba(198,151,31,.16)"; c.fillRect(x - 8, y - 4, colW + 16, rowH - 4); }
+      c.textBaseline = "middle";
+      const midY = y + (rowH - 4) / 2 - 4;
+      c.fillStyle = i === 0 ? "#f5d97b" : "#8f867a"; c.font = `900 22px ${F}`; c.fillText(String(i + 1), x + 4, midY);
+      let nm = t.name; if (nm.length > 17) nm = nm.slice(0, 16) + "…";
+      c.fillStyle = "#f2ecdd"; c.font = `800 24px ${F}`; c.fillText((i === 0 ? "👑 " : "") + nm, x + 42, midY);
+      c.textAlign = "right"; c.font = `700 22px ${F}`; c.fillStyle = "#cbb98a";
+      c.fillText(`${t.mw}–${t.ml}`, x + colW - 176, midY);
+      const r = t.record;
+      c.fillStyle = r > 0 ? "#57d98a" : r < 0 ? "#ff8080" : "#8f867a"; c.font = `900 24px ${F}`;
+      c.fillText(r > 0 ? "+" + r : String(r), x + colW - 112, midY);
+      c.textAlign = "left";
+      const fm = (formBy[t.name] || []).slice(-5);
+      fm.forEach((w, k) => {
+        c.fillStyle = w ? "#2f9e5f" : "#b34a4a";
+        c.beginPath(); c.roundRect(x + colW - 92 + k * 19, midY - 8, 15, 15, 4); c.fill();
+      });
+      if (!fm.length) { c.fillStyle = "#57503f"; c.font = `700 18px ${F}`; c.fillText("—", x + colW - 92, midY); }
+      c.textBaseline = "alphabetic";
+    });
+  };
+  drawGroup(60, "A", "#57d98a", A);
+  drawGroup(628, "B", "#ff8080", B);
+
+  // footer
+  c.fillStyle = "#8f867a"; c.font = `700 18px ${F}`; c.textAlign = "center";
+  c.fillText("binsuasia.netlify.app  ·  every match BO3  ·  win +1 / loss −1", W / 2, H - 34);
+  c.textAlign = "left";
+  return cv;
+}
+async function downloadStandingsGraphic() {
+  const btn = document.getElementById("stGraphicBtn");
+  if (btn) btn.textContent = "🎨 Drawing…";
+  try {
+    const cv = await buildStandingsCanvas();
+    const a = document.createElement("a");
+    a.download = "binsu-standings.png";
+    a.href = cv.toDataURL("image/png");
+    a.click();
+    if (btn) btn.textContent = "✅ Saved!";
+  } catch (e) { if (btn) btn.textContent = "⚠️ " + e.message; }
+  setTimeout(() => { if (btn) btn.textContent = "📸 Download graphic"; }, 1800);
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  renderS2Schedule(); renderS2Standings(); renderScoreStrip();
+  const gBtn = document.getElementById("stGraphicBtn");
+  if (gBtn) gBtn.addEventListener("click", downloadStandingsGraphic);
+});
