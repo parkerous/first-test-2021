@@ -305,7 +305,7 @@ async function buildStandingsCanvas() {
   try { const site = await apiGet("/site"); if (site && site.logo) logoSrc = site.logo; } catch (e) {}
   const logo = await new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = logoSrc; });
 
-  const W = 1200, rowH = 56, headTop = 176, tableTop = headTop + 66;
+  const W = 1320, rowH = 56, headTop = 176, tableTop = headTop + 66;
   const H = Math.max(675, tableTop + Math.max(A.length, B.length) * rowH + 84);
   const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const c = cv.getContext("2d");
@@ -336,17 +336,18 @@ async function buildStandingsCanvas() {
 
   // two group tables side by side
   const drawGroup = (x, name, dotColor, rows) => {
-    const colW = 520;
+    const colW = 580;
     c.fillStyle = dotColor; c.beginPath(); c.arc(x + 12, headTop + 8, 9, 0, Math.PI * 2); c.fill();
     c.fillStyle = "#f2ecdd"; c.font = `900 27px ${F}`; c.fillText("GROUP " + name, x + 34, headTop + 17);
     c.fillStyle = "#8f867a"; c.font = `800 15px ${F}`;
     c.fillText("TEAM", x + 58, tableTop - 14);
     c.textAlign = "right";
-    c.fillText("W–L", x + colW - 236, tableTop - 14);
-    c.fillText("PTS", x + colW - 172, tableTop - 14);
-    c.fillText("DIFF", x + colW - 106, tableTop - 14);
+    c.fillText("W–L", x + colW - 300, tableTop - 14);
+    c.fillText("PTS", x + colW - 234, tableTop - 14);
+    c.fillText("SETS", x + colW - 166, tableTop - 14);
+    c.fillText("DIFF", x + colW - 100, tableTop - 14);
     c.textAlign = "left";
-    c.fillText("FORM", x + colW - 92, tableTop - 14);
+    c.fillText("FORM", x + colW - 84, tableTop - 14);
     rows.forEach((t, i) => {
       const y = tableTop + i * rowH;
       if (i % 2 === 0) { c.fillStyle = "rgba(255,255,255,.035)"; c.fillRect(x - 8, y - 4, colW + 16, rowH - 4); }
@@ -357,29 +358,32 @@ async function buildStandingsCanvas() {
       let nm = t.name; if (nm.length > 16) nm = nm.slice(0, 15) + "…";
       c.fillStyle = "#f2ecdd"; c.font = `800 24px ${F}`; c.fillText((i === 0 ? "👑 " : "") + nm, x + 42, midY);
       c.textAlign = "right"; c.font = `700 22px ${F}`; c.fillStyle = "#cbb98a";
-      c.fillText(`${t.mw}–${t.ml}`, x + colW - 236, midY);
+      c.fillText(`${t.mw}–${t.ml}`, x + colW - 300, midY);
       const r = t.record;
       c.fillStyle = r > 0 ? "#57d98a" : r < 0 ? "#ff8080" : "#8f867a"; c.font = `900 24px ${F}`;
-      c.fillText(r > 0 ? "+" + r : String(r), x + colW - 172, midY);
+      c.fillText(r > 0 ? "+" + r : String(r), x + colW - 234, midY);
+      const sd = (t.sw + t.sl) ? t.sw - t.sl : null;
+      c.fillStyle = sd > 0 ? "#57d98a" : sd < 0 ? "#ff8080" : "#8f867a"; c.font = `700 20px ${F}`;
+      c.fillText(sd == null ? "—" : (sd > 0 ? "+" + sd : String(sd)), x + colW - 166, midY);
       const dv = t.diff;
       c.fillStyle = dv > 0 ? "#57d98a" : dv < 0 ? "#ff8080" : "#8f867a"; c.font = `700 20px ${F}`;
-      c.fillText(dv == null ? "—" : (dv > 0 ? "+" + dv : String(dv)), x + colW - 106, midY);
+      c.fillText(dv == null ? "—" : (dv > 0 ? "+" + dv : String(dv)), x + colW - 100, midY);
       c.textAlign = "left";
       const fm = (formBy[t.name] || []).slice(-5);
       fm.forEach((w, k) => {
         c.fillStyle = w ? "#2f9e5f" : "#b34a4a";
-        c.beginPath(); c.roundRect(x + colW - 92 + k * 19, midY - 8, 15, 15, 4); c.fill();
+        c.beginPath(); c.roundRect(x + colW - 84 + k * 17, midY - 7, 13, 13, 4); c.fill();
       });
-      if (!fm.length) { c.fillStyle = "#57503f"; c.font = `700 18px ${F}`; c.fillText("—", x + colW - 92, midY); }
+      if (!fm.length) { c.fillStyle = "#57503f"; c.font = `700 18px ${F}`; c.fillText("—", x + colW - 84, midY); }
       c.textBaseline = "alphabetic";
     });
   };
   drawGroup(60, "A", "#57d98a", A);
-  drawGroup(628, "B", "#ff8080", B);
+  drawGroup(680, "B", "#ff8080", B);
 
   // footer
   c.fillStyle = "#8f867a"; c.font = `700 18px ${F}`; c.textAlign = "center";
-  c.fillText("binsuasia.netlify.app  ·  every match BO3  ·  win +1 / loss −1", W / 2, H - 34);
+  c.fillText("binsuasia.netlify.app  ·  every match BO3  ·  win +1 / loss −1  ·  SETS = set diff · DIFF = point diff", W / 2, H - 34);
   c.textAlign = "left";
   return cv;
 }
