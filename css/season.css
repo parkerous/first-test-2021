@@ -120,6 +120,23 @@ span.pk-team.won { border-color: #22b866; color: var(--ink); }
 
 /* ---- ESPN-style score strip (homepage) ---- */
 .score-strip { background: var(--panel); border-bottom: 1px solid var(--line); }
+
+/* ---------- schedule: big paginated match-night cards ---------- */
+.sch-day { border: 1px solid var(--line); background: var(--panel); border-radius: 16px; padding: 14px 18px 8px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+.sch-dayhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-weight: 900; font-size: 16.5px; padding-bottom: 10px; }
+.sch-night { font-size: 11px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; color: #8a6d00; background: color-mix(in srgb, var(--yellow) 32%, transparent); border-radius: 999px; padding: 4px 11px; }
+.sch-doneflag { font-size: 12px; font-weight: 700; color: var(--muted); margin-left: auto; }
+.sch-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 2px; border-top: 1px solid var(--line); font-size: 15px; }
+.sch-teams { flex: 1; min-width: 230px; font-size: 15.5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sch-teams i { font-style: normal; font-weight: 800; font-size: 12.5px; color: var(--muted); }
+.sch-score { font-weight: 900; font-size: 17px; color: var(--gold); padding: 0 2px; }
+.sch-win { color: var(--gold); }
+.sch-time { color: var(--muted); font-size: 13.5px; font-weight: 600; }
+.sch-pager { display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; margin: 18px 0 4px; }
+.sch-pager button { font: inherit; font-weight: 800; font-size: 14px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 10px; padding: 9px 15px; cursor: pointer; transition: background .12s; }
+.sch-pager button:hover:not(:disabled):not(.on) { background: color-mix(in srgb, var(--yellow) 12%, var(--panel)); }
+.sch-pager button.on { background: linear-gradient(92deg, var(--gold), var(--gold-lite)); color: #0d0d10; border-color: transparent; cursor: default; }
+.sch-pager button:disabled { opacity: .4; cursor: default; }
 .sc-rail { display: flex; gap: 10px; overflow-x: auto; padding: 10px 14px; align-items: stretch; scrollbar-width: thin; }
 .sc-card { flex: none; min-width: 148px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 3px; }
 .sc-tag { font-size: 10px; font-weight: 900; letter-spacing: .08em; color: var(--gold); text-transform: uppercase; }
