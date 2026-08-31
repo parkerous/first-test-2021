@@ -494,6 +494,7 @@ function fileToDataUrl(file, max = 420) {
     s2n01_20: [{ a: 25, b: 13 }, { a: 23, b: 25 }, { a: 25, b: 15 }],   // Invictus 2–1 Orchid (29/8)
     s2n02_19: [{ a: 25, b: 14 }, { a: 25, b: 17 }],                     // The Order 2–0 Seishin Skyblade (30/8)
     s2n02_20: [{ a: 22, b: 25 }, { a: 20, b: 25 }],                     // Vanguard 0–2 Teiko (30/8)
+  s2n03_20: [{ a: 18, b: 25 }, { a: 18, b: 25 }],                     // Sendai Crows 0–2 Umino (31/8)
   };
   function healS2(d) {
     let changed = false;
