@@ -97,7 +97,12 @@ async function renderScoreStrip() {
   host.innerHTML = `<div class="sc-rail">${cards.join("")}<a class="sc-more" href="schedule.html">All fixtures →</a></div>`;
 }
 
-/* ---- schedule page (#schedComing / #schedReal / #schedList / #bracketWrap) ---- */
+/* ---- schedule page (#schedComing / #schedReal / #schedList / #bracketWrap) ----
+   Big paginated match-night cards: 5 nights per page, played matches shown
+   in place with their scores. Opens on the page with the next match night. */
+const SCHED_PER_PAGE = 5;
+let SCHED_DAYS = [];      // [{ key, when, items }]
+let SCHED_PAGE = -1;      // -1 → auto-pick the page with the next unplayed night
 async function renderS2Schedule() {
   const list = document.getElementById("schedList");
   if (!list) return;
@@ -113,26 +118,69 @@ async function renderS2Schedule() {
   S2_GROUPS_CACHE = data.groups || S2_GROUPS_CACHE;
   const reg = fx.filter(f => f.stage === "regular").slice()
     .sort((a, b) => (a.when || Infinity) - (b.when || Infinity) || (a.createdAt || 0) - (b.createdAt || 0));
-  const upcoming = reg.filter(f => !s2Played(f));
-  const played = reg.filter(s2Played).reverse();
-  // group upcoming fixtures by the visitor's local calendar day
-  const byDay = [];
-  upcoming.forEach(f => {
+  // group ALL fixtures chronologically by the visitor's local calendar day
+  SCHED_DAYS = [];
+  reg.forEach(f => {
     const key = f.when ? new Date(f.when).toDateString() : "TBA";
-    const last = byDay[byDay.length - 1];
+    const last = SCHED_DAYS[SCHED_DAYS.length - 1];
     if (last && last.key === key) last.items.push(f);
-    else byDay.push({ key, when: f.when, items: [f] });
+    else SCHED_DAYS.push({ key, when: f.when, items: [f] });
   });
+  if (!SCHED_DAYS.length) {
+    list.innerHTML = `<p class="empty">No regular-season fixtures yet — playoff bracket below.</p>`;
+    renderS2Bracket(fx); return;
+  }
+  drawSchedPage();
+  renderS2Bracket(fx);
+}
+function drawSchedPage() {
+  const list = document.getElementById("schedList");
+  const pages = Math.max(1, Math.ceil(SCHED_DAYS.length / SCHED_PER_PAGE));
+  if (SCHED_PAGE < 0) {
+    // auto: the page holding the first night that still has an unplayed match
+    const idx = SCHED_DAYS.findIndex(d => d.items.some(f => !s2Played(f)));
+    SCHED_PAGE = Math.floor((idx === -1 ? SCHED_DAYS.length - 1 : idx) / SCHED_PER_PAGE);
+  }
+  SCHED_PAGE = Math.min(Math.max(SCHED_PAGE, 0), pages - 1);
+
   const dayHead = d => d.when
     ? new Date(d.when).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })
     : "Date TBA";
-  const upRow = f => `<div class="ps-result">📅 ${groupChip(f)} <b>${scrimEsc(f.teamA)}</b> <span class="ps-sets">vs</span> <b>${scrimEsc(f.teamB)}</b> <span class="ps-sets">· ${scrimEsc(s2TimeOnly(f))} · BO3</span></div>`;
-  list.innerHTML =
-    (byDay.length ? byDay.map(d => `<h3 class="grp" style="margin:18px 0 8px">${dayHead(d)}</h3>` + d.items.map(upRow).join("")).join("") : "") +
-    (played.length ? `<h3 class="grp" style="margin:24px 0 10px">Results</h3>` + played.map(f => `<div class="ps-result">🏐 ${groupChip(f)} ${scrimMatchLine(f).text} <span class="ps-sets">· ${scrimEsc(s2When(f))}</span></div>`).join("") : "") +
-    (!byDay.length && !played.length ? `<p class="empty">No regular-season fixtures yet — playoff bracket below.</p>` : "");
+  const setScores = f => (f.sets || []).filter(s => typeof s.a === "number" && typeof s.b === "number").map(s => `${s.a}–${s.b}`).join(", ");
+  const row = f => {
+    if (!s2Played(f)) {
+      return `<div class="sch-row">${groupChip(f)}<span class="sch-teams"><b>${scrimEsc(f.teamA)}</b> <i>vs</i> <b>${scrimEsc(f.teamB)}</b></span><span class="sch-time">🕐 ${scrimEsc(s2TimeOnly(f))} · BO3</span></div>`;
+    }
+    let a = 0, b = 0;
+    f.sets.forEach(s => {
+      const hp = typeof s.a === "number" && typeof s.b === "number";
+      if (hp) { s.a >= s.b ? a++ : b++; }
+      else if (s.w === "A" || s.w === "B") { s.w === "A" ? a++ : b++; }
+    });
+    const w = s2Winner(f), pts = setScores(f);
+    return `<div class="sch-row done">${groupChip(f)}<span class="sch-teams"><b class="${w === f.teamA ? "sch-win" : ""}">${w === f.teamA ? "🏆 " : ""}${scrimEsc(f.teamA)}</b><span class="sch-score">${a}–${b}</span><b class="${w === f.teamB ? "sch-win" : ""}">${scrimEsc(f.teamB)}${w === f.teamB ? " 🏆" : ""}</b></span><span class="sch-time">${pts ? scrimEsc(pts) : "final"}</span></div>`;
+  };
+  const start = SCHED_PAGE * SCHED_PER_PAGE;
+  const slice = SCHED_DAYS.slice(start, start + SCHED_PER_PAGE);
+  const dayCard = (d, i) => `
+    <div class="sch-day">
+      <div class="sch-dayhead"><span class="sch-night">Night ${start + i + 1}</span>${dayHead(d)}${d.items.every(s2Played) ? '<span class="sch-doneflag">🏁 played</span>' : ""}</div>
+      ${d.items.map(row).join("")}
+    </div>`;
+  const pager = pages > 1 ? `
+    <div class="sch-pager">
+      <button id="schPrev" ${SCHED_PAGE === 0 ? "disabled" : ""}>‹ Earlier</button>
+      ${Array.from({ length: pages }, (_, p) => `<button class="sch-pg${p === SCHED_PAGE ? " on" : ""}" data-pg="${p}">${p + 1}</button>`).join("")}
+      <button id="schNext" ${SCHED_PAGE === pages - 1 ? "disabled" : ""}>Later ›</button>
+    </div>
+    <p class="mini-note" style="text-align:center;margin:4px 0 0">Nights ${start + 1}–${start + slice.length} of ${SCHED_DAYS.length} · 5 match nights per page</p>` : "";
+  list.innerHTML = slice.map(dayCard).join("") + pager;
 
-  renderS2Bracket(fx);
+  const go = p => { SCHED_PAGE = p; drawSchedPage(); document.getElementById("schedList").scrollIntoView({ behavior: "smooth", block: "start" }); };
+  const prev = document.getElementById("schPrev"), next = document.getElementById("schNext");
+  if (prev) prev.addEventListener("click", () => go(SCHED_PAGE - 1));
+  if (next) next.addEventListener("click", () => go(SCHED_PAGE + 1));
+  list.querySelectorAll(".sch-pg").forEach(b => b.addEventListener("click", () => go(+b.dataset.pg)));
 }
 
 /* ---- playoff bracket (#bracketWrap / #bracketHost) ---- */
