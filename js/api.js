@@ -364,6 +364,23 @@ function fileToDataUrl(file, max = 420) {
     { id: "p_159", name: "tadatsuneshinkai", team: "Equinox", pos: "Opposite/Middle" },
     { id: "p_160", name: "kenderdragoonca74", team: "Equinox", pos: "Outside" },
     { id: "p_161", name: "llewor1234", team: "Equinox", pos: "Opposite/Middle" },
+    /* Invictus (registered 1/9 — roster from the team captain) */
+    { id: "p_162", name: "ImagineVolleyB", team: "Invictus", pos: "Outside/Opposite" },
+    { id: "p_163", name: "guguiegsd", team: "Invictus", pos: "Setter" },
+    { id: "p_164", name: "Scorpiones_G", team: "Invictus", pos: "Outside/Opposite" },
+    { id: "p_165", name: "boy09121", team: "Invictus", pos: "All-Rounder" },
+    { id: "p_166", name: "uroo_2301", team: "Invictus", pos: "Libero" },
+    { id: "p_167", name: "Slakcsxs", team: "Invictus", pos: "Middle/Opposite" },
+    { id: "p_168", name: "Big_1PotatoPerson", team: "Invictus", pos: "Opposite/Outside" },
+    { id: "p_169", name: "dam12564", team: "Invictus", pos: "Outside" },
+    { id: "p_170", name: "re1_nerr", team: "Invictus", pos: "Libero" },
+    { id: "p_171", name: "LittleLabrador546", team: "Invictus", pos: "All-Rounder" },
+    { id: "p_172", name: "roblox_user_5362732784", team: "Invictus", pos: "Middle/Setter" },
+    { id: "p_173", name: "XxGirlForestxXALT1", team: "Invictus", pos: "All-Rounder" },
+    { id: "p_174", name: "Keyong_lembek", team: "Invictus", pos: "Outside/Middle" },
+    { id: "p_175", name: "xzc1472", team: "Invictus", pos: "Outside/Opposite" },
+    { id: "p_176", name: "Delosoko", team: "Invictus", pos: "Outside/Middle" },
+    { id: "p_177", name: "chunk239monky", team: "Invictus", pos: "Setter" },
   ];
   const BLANK_STATS = { games: 0, kills: 0, aces: 0, blocks: 0, digs: 0, assists: 0 };
   function cleanPStats(s) {
@@ -904,6 +921,11 @@ function fileToDataUrl(file, max = 420) {
       if (Array.isArray(d) && !d.some(x => x && x.cap)) {
         const capBy = {}; DEFAULT_PLAYERS.forEach(x => { if (x.cap) capBy[x.team + "|" + x.name] = true; });
         d.forEach(x => { if (capBy[x.team + "|" + x.name]) x.cap = true; });
+        kvPut("players", JSON.stringify(d));
+      }
+      // Invictus registered after the original 161 — add their roster once
+      if (Array.isArray(d) && !d.some(x => x && x.team === "Invictus")) {
+        d.push(...seedPlayers().filter(x => x.team === "Invictus"));
         kvPut("players", JSON.stringify(d));
       }
       return ok(d);
