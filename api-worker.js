@@ -356,6 +356,11 @@ const S2_RESULTS_BACKFILL = {
   s2n02_19: [{ a: 25, b: 14 }, { a: 25, b: 17 }],                     // The Order 2–0 Seishin Skyblade (30/8)
   s2n02_20: [{ a: 22, b: 25 }, { a: 20, b: 25 }],                     // Vanguard 0–2 Teiko (30/8)
   s2n03_20: [{ a: 18, b: 25 }, { a: 18, b: 25 }],                     // Sendai Crows 0–2 Umino (31/8)
+  s2n04_20: [{ a: 12, b: 25 }, { a: 23, b: 25 }],                     // Invictus 0–2 Teiko (31/8)
+  s2n05_20: [{ a: 25, b: 23 }, { a: 15, b: 25 }, { a: 22, b: 25 }],   // Orchid 1–2 Umino (1/9)
+  s2n06_19: [{ a: 27, b: 25 }, { a: 25, b: 17 }],                     // The Order 2–0 Miku (3/9)
+  s2n06_20: [{ a: 25, b: 22 }, { a: 25, b: 16 }],                     // Vanguard 2–0 Sendai Crows (3/9)
+  s2n07_20: [{ a: 25, b: 23 }, { a: 17, b: 25 }, { a: 13, b: 25 }],   // Invictus 1–2 Umino (4/9)
 };
 function healS2(d) {
   let changed = false;
@@ -1122,6 +1127,7 @@ function slashStandingsLines(gTeams, played) {
   })).sort((x, y) =>
     y.record - x.record ||
     ((y.played > 0 ? 1 : 0) - (x.played > 0 ? 1 : 0)) ||
+    ((y.sw - y.sl) - (x.sw - x.sl)) ||                       // set difference (official tiebreak, above point diff)
     ((y.diff || 0) - (x.diff || 0)) ||
     ((y.setWinrate || 0) - (x.setWinrate || 0)) ||
     x.n.localeCompare(y.n));
