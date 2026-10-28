@@ -1,7 +1,27 @@
-# Netlify settings for the Retro Snake game.
-# Pure static HTML/CSS/JS — no build step. Publish this folder as-is.
+# Netlify settings for VNL Volley. Plain static files, no build step.
 [build]
   publish = "."
+
+# Old arcade pages now point at the game
+[[redirects]]
+  from = "/volley.html"
+  to = "/"
+  status = 301
+
+[[redirects]]
+  from = "/snake.html"
+  to = "/"
+  status = 301
+
+[[redirects]]
+  from = "/geo.html"
+  to = "/"
+  status = 301
+
+[[redirects]]
+  from = "/crush.html"
+  to = "/"
+  status = 301
 
 [[headers]]
   for = "/*"

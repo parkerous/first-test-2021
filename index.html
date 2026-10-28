@@ -3,87 +3,1281 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>PIXEL ARCADE</title>
-<link rel="stylesheet" href="arcade.css" />
+<title>VNL VOLLEY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <nav class="arcade-nav">
-    <a class="brand" href="index.html">◆ PIXEL ARCADE</a>
-    <a class="tab active" href="index.html">ARCADE</a>
-    <a class="tab" href="snake.html">SNAKE</a>
-    <a class="tab" href="geo.html">GEO GUESS</a>
-    <a class="tab" href="crush.html">CRUSH</a>
-    <a class="tab" href="volley.html">VNL</a>
-  </nav>
+  <div class="cabinet">
+    <h1 class="title">VNL VOLLEY</h1>
+    <p class="subtitle">NATIONS LEAGUE TOURNAMENT • POOLS → PLAYOFFS • SETS TO 15</p>
 
-  <div class="cabinet wide">
-    <h1 class="arcade-title">PIXEL ARCADE</h1>
-    <p class="subtitle">◆ INSERT COIN &bull; PICK A GAME ◆</p>
+    <div class="stageline" id="stageLine">—</div>
 
-    <div class="game-grid">
-      <a class="game-card" href="snake.html">
-        <div class="icon">🐍</div>
-        <h3>SNAKE</h3>
-        <p>Classic slither action. Eat apples, grow long, don't bite yourself. WASD / arrows.</p>
-        <div class="best" id="snakeBest">HI-SCORE: —</div>
-      </a>
+    <div class="hud">
+      <div class="team" id="hudMe" style="color:var(--green)">—</div>
+      <div class="score"><span id="sMe">0</span> : <span id="sOpp">0</span></div>
+      <div class="team" id="hudOpp" style="color:var(--pink)">—</div>
+    </div>
+    <div class="hud sub">
+      <div id="serveMe"></div>
+      <div id="recordLine">RECORD 0W-0L</div>
+      <div id="serveOpp"></div>
+    </div>
 
-      <a class="game-card" href="geo.html">
-        <div class="icon">🌍</div>
-        <h3>GEO GUESS</h3>
-        <p>Where in the world? Read the clue, drop a pin on the map. 2-player duel, 60 locations.</p>
-        <div class="best" id="geoBest">BEST RUN: —</div>
-      </a>
+    <div class="msgline" id="msg">PICK YOUR NATION</div>
 
-      <a class="game-card" href="crush.html">
-        <div class="icon">💘</div>
-        <h3>STARLIGHT CRUSH</h3>
-        <p>Rom-com visual novel. Two leads, one summer — your choices decide who falls for you.</p>
-        <div class="best" id="crushBest">ENDINGS: 0/4</div>
-      </a>
+    <div class="stage-wrap">
+      <div class="stage">
+        <canvas id="court" class="screen" width="480" height="700"></canvas>
 
-      <a class="game-card" href="volley.html">
-        <div class="icon">🏐</div>
-        <h3>VNL VOLLEY</h3>
-        <p>VNL tournament: pools &amp; playoffs, star players, live commentary. Control the full team or lock in as one player.</p>
-        <div class="best" id="vnlBest">RECORD: 0W-0L</div>
-      </a>
+        <div class="timing hidden" id="timing">
+          <div class="label" id="timingLabel">RECEIVE!</div>
+          <div class="track">
+            <div class="zone" id="zoneG"></div>
+            <div class="zoneP" id="zoneP"></div>
+            <div class="marker" id="marker"></div>
+          </div>
+        </div>
 
-      <div class="game-card soon">
-        <div class="icon">❓</div>
-        <h3>COMING SOON</h3>
-        <p>The next cabinet is empty... more games can be posted here.</p>
-        <div class="best">&nbsp;</div>
+        <div class="overlay" id="pickScreen">
+          <h2>VNL VOLLEY</h2>
+          <p class="sub" id="pickPrompt">CHOOSE YOUR NATION</p>
+          <div class="team-grid" id="teamGrid"></div>
+        </div>
+
+        <div class="overlay hidden" id="endScreen">
+          <h2 id="endTitle">MATCH</h2>
+          <p class="big-score" id="endScore">15 : 0</p>
+          <p class="sub" id="endNote"></p>
+          <button class="btn" id="contBtn">CONTINUE</button>
+        </div>
+
+        <div class="overlay hidden" id="tableScreen" style="justify-content:flex-start">
+          <h2 id="tableTitle">STANDINGS</h2>
+          <div id="tableBody" style="display:flex; gap:18px; flex-wrap:wrap; justify-content:center"></div>
+          <p class="sub" id="tableNote"></p>
+          <button class="btn" id="nextBtn">NEXT MATCH</button>
+        </div>
+      </div>
+
+      <div class="side-col">
+        <div class="action-bar" id="actions"></div>
+        <div class="feed" id="feed"></div>
+        <div style="text-align:center; margin-top:8px">
+          <button class="link-btn" id="rosterBtn">VIEW ROSTERS &amp; ATTRIBUTES</button>
+        </div>
+        <div id="rosterBox" class="hidden" style="margin-top:8px; display:flex; gap:14px; flex-wrap:wrap; justify-content:center"></div>
+        <div class="controls">
+          The ball slows down while you decide. ★ = star player with a special.<br/>
+          Serve: float or topspin, then click to aim. Receive &amp; dig: stop the marker in the green.<br/>
+          Call the set by hitter and ball type — PIPE when your opposite is back row.
+        </div>
       </div>
     </div>
 
     <div class="footer-row">
-      <span>© PIXEL ARCADE</span>
-      <span>SCORES SAVED LOCALLY</span>
+      <span>Rosters are an arcade homage to real national teams.</span>
+      <button class="link-btn" id="resetRec">RESET RECORD &amp; TOURNAMENT</button>
     </div>
   </div>
 
   <script>
-    // Pull each game's saved score out of localStorage for the hub cards
-    var snakeHi = Number(localStorage.getItem("retroSnake.highScore")) || 0;
-    if (snakeHi > 0) {
-      document.getElementById("snakeBest").textContent = "HI-SCORE: " + snakeHi;
-    }
-    try {
-      var geoBest = JSON.parse(localStorage.getItem("retroGeo.best") || "null");
-      if (geoBest && geoBest.score > 0) {
-        document.getElementById("geoBest").textContent =
-          "BEST RUN: " + geoBest.score + " (" + geoBest.name + ")";
+  (function () {
+    "use strict";
+
+    // ================== DATA ==================
+    // ovr tracks real-world strength; stars: role -> special skill
+    var TEAMS = [
+      { id:"POL", name:"POLAND",      flag:"🇵🇱", ovr:95, kit:"#d81e36", players:{ S:"JANUSZ", OH1:"LEON", OH2:"SEMENIUK", MB1:"KOCHANOWSKI", MB2:"HUBER", OP:"KUREK", L:"ZATORSKI" }, stars:{ OH1:"spike", MB1:"block" } },
+      { id:"ITA", name:"ITALY",       flag:"🇮🇹", ovr:93, kit:"#1e63ff", players:{ S:"GIANNELLI", OH1:"MICHIELETTO", OH2:"LAVIA", MB1:"GALASSI", MB2:"RUSSO", OP:"ROMANO", L:"BALASO" }, stars:{ OH1:"spike", S:"dump" } },
+      { id:"FRA", name:"FRANCE",      flag:"🇫🇷", ovr:92, kit:"#16308f", players:{ S:"BRIZARD", OH1:"N'GAPETH", OH2:"CLEVENOT", MB1:"LE GOFF", MB2:"CHINENYEZE", OP:"PATRY", L:"GREBENNIKOV" }, stars:{ OH1:"spike", MB2:"block" } },
+      { id:"JPN", name:"JAPAN",       flag:"🇯🇵", ovr:90, kit:"#c81728", players:{ S:"SEKITA", OH1:"ISHIKAWA", OH2:"TAKAHASHI", MB1:"ONODERA", MB2:"YAMAUCHI", OP:"NISHIDA", L:"YAMAMOTO" }, stars:{ OH1:"rec", OP:"spike" } },
+      { id:"BRA", name:"BRAZIL",      flag:"🇧🇷", ovr:89, kit:"#ffd21e", players:{ S:"BRUNINHO", OH1:"LUCARELLI", OH2:"LEAL", MB1:"LUCAO", MB2:"FLAVIO", OP:"DARLAN", L:"THALES" }, stars:{ S:"dump", OH1:"spike" } },
+      { id:"SLO", name:"SLOVENIA",    flag:"🇸🇮", ovr:87, kit:"#1aa7e8", players:{ S:"ROPRET", OH1:"CEBULJ", OH2:"URNAUT", MB1:"KOZAMERNIK", MB2:"PAJENK", OP:"STERN", L:"KOVACIC" }, stars:{ OH2:"spike", MB1:"block" } },
+      { id:"USA", name:"USA",         flag:"🇺🇸", ovr:86, kit:"#1e4f9e", players:{ S:"CHRISTENSON", OH1:"RUSSELL", OH2:"DEFALCO", MB1:"HOLT", MB2:"SMITH", OP:"ANDERSON", L:"SHOJI" }, stars:{ S:"dump", OP:"spike" } },
+      { id:"ARG", name:"ARGENTINA",   flag:"🇦🇷", ovr:84, kit:"#74b7e8", players:{ S:"DE CECCO", OH1:"CONTE", OH2:"PALONSKY", MB1:"LOSER", MB2:"ZERBA", OP:"KUKARTSEV", L:"DANANI" }, stars:{ S:"dump", OH1:"spike" } },
+      { id:"GER", name:"GERMANY",     flag:"🇩🇪", ovr:82, kit:"#2b2b2b", players:{ S:"KAMPA", OH1:"KARLITZEK", OH2:"FROMM", MB1:"KRICK", MB2:"BOHME", OP:"GROZER", L:"ZENGER" }, stars:{ OP:"spike", S:"dump" } },
+      { id:"SRB", name:"SERBIA",      flag:"🇷🇸", ovr:80, kit:"#b31d2d", players:{ S:"JOVOVIC", OH1:"IVOVIC", OH2:"KOVACEVIC", MB1:"LISINAC", MB2:"PODRASCANIN", OP:"LUBURIC", L:"PERIC" }, stars:{ MB1:"block", OP:"spike" } },
+      { id:"IRI", name:"IRAN",        flag:"🇮🇷", ovr:79, kit:"#e8e8e8", players:{ S:"MAROUF", OH1:"EBADIPOUR", OH2:"ESFANDIAR", MB1:"MOUSAVI", MB2:"MOJARAD", OP:"ESMAEILNEZHAD", L:"HAZRATPOUR" }, stars:{ S:"dump", OH1:"spike" } },
+      { id:"NED", name:"NETHERLANDS", flag:"🇳🇱", ovr:78, kit:"#ff7a00", players:{ S:"KEEMINK", OH1:"TER HORST", OH2:"TUINSTRA", MB1:"PLAK", MB2:"KLOK", OP:"ABDEL-AZIZ", L:"ANDRINGA" }, stars:{ OP:"spike", MB1:"block" } },
+      { id:"CAN", name:"CANADA",      flag:"🇨🇦", ovr:77, kit:"#d22730", players:{ S:"SANDERS", OH1:"MAAR", OH2:"HOAG", MB1:"VAN BERKEL", MB2:"DEMYANENKO", OP:"VERNON-EVANS", L:"CURRIE" }, stars:{ OP:"spike", OH1:"rec" } },
+      { id:"BUL", name:"BULGARIA",    flag:"🇧🇬", ovr:75, kit:"#1f8a3a", players:{ S:"BRATOEV", OH1:"NIKOLOV", OH2:"ATANASOV", MB1:"GROZDANOV", MB2:"YOSIFOV", OP:"SOKOLOV", L:"SALPAROV" }, stars:{ OH1:"spike", MB1:"block" } },
+      { id:"TUR", name:"TÜRKIYE",     flag:"🇹🇷", ovr:74, kit:"#a31227", players:{ S:"YENIPAZAR", OH1:"MANDIRACI", OH2:"BULBUL", MB1:"M.LAGUMDZIJA", MB2:"TUMER", OP:"A.LAGUMDZIJA", L:"KAPLAN" }, stars:{ OP:"spike", MB1:"block" } },
+      { id:"CHN", name:"CHINA",       flag:"🇨🇳", ovr:72, kit:"#e3342f", players:{ S:"YU", OH1:"ZHANG", OH2:"LIU", MB1:"PENG", MB2:"WANG", OP:"JIANG", L:"QU" }, stars:{ OH1:"spike", MB1:"block" } },
+      { id:"KOR", name:"KOREA",       flag:"🇰🇷", ovr:68, kit:"#2f6fd6", players:{ S:"HAN", OH1:"JEONG", OH2:"HEO", MB1:"KIM", MB2:"SHIN", OP:"LIM", L:"PARK" }, stars:{ OH1:"spike", OH2:"rec" } }
+    ];
+    function teamById(id) { return TEAMS.find(function (t) { return t.id === id; }); }
+
+    var ROLE_MODS = {
+      S:   { srv:-2,  rec:-4,  set: 9,  att:-18, blk:-4,  def: 3 },
+      OH1: { srv: 2,  rec: 6,  set:-9,  att:  4, blk: 0,  def: 3 },
+      OH2: { srv: 1,  rec: 6,  set:-9,  att:  2, blk: 0,  def: 4 },
+      MB1: { srv:-4,  rec:-14, set:-14, att:  6, blk:10,  def:-7 },
+      MB2: { srv:-4,  rec:-14, set:-14, att:  5, blk: 9,  def:-7 },
+      OP:  { srv: 4,  rec:-9,  set:-11, att:  8, blk: 3,  def:-2 },
+      L:   { srv:-30, rec: 12, set:-4,  att:-40, blk:-40, def: 12 }
+    };
+    var ROT_ORDER = ["S", "OH1", "MB1", "OP", "OH2", "MB2"];      // P1..P6 at rotation 1
+    var ROLE_NAMES = { S:"SETTER", OH1:"OUTSIDE 1", OH2:"OUTSIDE 2", MB1:"MIDDLE 1", MB2:"MIDDLE 2", OP:"OPPOSITE", L:"LIBERO" };
+    var SKILL_TXT = { spike:"SUPER SPIKE", block:"SUPER BLOCK", rec:"SUPER RECEIVE", dump:"SETTER DUMP" };
+    var LIBERO_KITS = ["#ffd21e", "#111111", "#ffffff", "#00b3a4", "#ff7a00", "#7b4bd0"];
+
+    // ================== GEOMETRY ==================
+    // Coordinates are written from YOUR side (bottom); P() mirrors them for the top team.
+    var W = 480, H = 700, NET = 360;
+    var CL = 70, CR = 410, CT = 90, CB = 630, ATK = 90;          // court bounds + 3m line
+    var XL = 140, XM = 240, XR = 340;
+    var SLOT_X = { 1: XR, 2: XR, 3: XM, 4: XL, 5: XL, 6: XM };
+    function P(side, x, y) { return side === 0 ? { x: x, y: y } : { x: W - x, y: 2 * NET - y }; }
+    function isFrontSlot(k) { return k >= 2 && k <= 4; }
+    function slotPoint(side, k) { return P(side, SLOT_X[k], isFrontSlot(k) ? NET + 50 : NET + 212); }
+    function setterSpot(side) { return P(side, 292, NET + 40); }   // between P2 and P3
+    function serveFrom(side) { return P(side, XR - 10, CB + 34); }
+
+    var REC_KEY = "retroVNL.record", CUP_KEY = "retroVNL.cups", TOUR_KEY = "retroVNL.tour";
+    var SHANK_P = 0.07;                                            // flat shank chance on receive/dig
+
+    // ================== STATE ==================
+    var $ = function (id) { return document.getElementById(id); };
+    var cv = $("court"), g = cv.getContext("2d");
+    g.imageSmoothingEnabled = false;
+    var me = null, opp = null;
+    var score = [0, 0], serving = 0;
+    var ball = { x: W / 2, y: H - 80, h: 0, visible: false };
+    var aimPreview = null, timeScale = 1;
+    var cheerAt = -9999, refFlagSide = 0, refFlagAt = -9999;
+    var crowd = [];
+    var tour = null;
+    var mode = "full", myRole = null;                              // "full" team control, or one locked "role"
+    function iControl(role) { return mode === "full" || role === myRole; }
+
+    function rnd(a, b) { return a + Math.random() * (b - a); }
+    function irnd(a, b) { return Math.floor(rnd(a, b + 1)); }
+    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+    function clamp01(v) { return clamp(v, 0, 1); }
+    function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+    function sleep(ms) { return new Promise(function (res) { setTimeout(res, ms); }); }
+    function slow() { timeScale = 0.2; }
+    function fast() { timeScale = 1; }
+
+    // ================== PIXEL PEOPLE ==================
+    var SKINS = ["#ffdcc2", "#f0b990", "#c98a5a", "#9c6238", "#6e4426"];
+    var HAIRC = ["#17120d", "#3a2416", "#6b4423", "#b8863b", "#d8c06a", "#4a4a4a"];
+
+    function makeSprite(kit, face) {
+      var c = document.createElement("canvas");
+      c.width = 12; c.height = 16;
+      var q = c.getContext("2d");
+      function p(x, y, col) { q.fillStyle = col; q.fillRect(x, y, 1, 1); }
+      function row(x1, x2, y, col) { q.fillStyle = col; q.fillRect(x1, y, x2 - x1 + 1, 1); }
+      if (face.style === 2) { for (var x = 2; x <= 9; x += 2) p(x, 0, face.hair); }
+      if (face.style !== 3) {
+        row(2, 9, 1, face.hair);
+        if (face.style === 1) row(2, 9, 2, face.hair);
       }
-    } catch (e) { /* corrupt entry — ignore */ }
-    try {
-      var endings = JSON.parse(localStorage.getItem("retroCrush.endings") || "[]");
-      document.getElementById("crushBest").textContent = "ENDINGS: " + endings.length + "/4";
-    } catch (e) { /* corrupt entry — ignore */ }
-    try {
-      var vr = JSON.parse(localStorage.getItem("retroVNL.record") || "null");
-      if (vr) document.getElementById("vnlBest").textContent = "RECORD: " + vr.w + "W-" + vr.l + "L";
-    } catch (e) { /* corrupt entry — ignore */ }
+      var topFace = face.style === 1 ? 3 : 2;
+      for (var y = topFace; y <= 5; y++) row(3, 8, y, face.skin);
+      if (face.style !== 3) { p(3, topFace, face.hair); p(8, topFace, face.hair); }
+      p(4, 4, "#17120d"); p(7, 4, "#17120d");
+      row(5, 6, 5, face.mouth ? "#a33d4d" : face.skin);
+      for (var y2 = 6; y2 <= 11; y2++) row(2, 9, y2, kit);
+      p(1, 7, face.skin); p(10, 7, face.skin);
+      p(1, 8, face.skin); p(10, 8, face.skin);
+      row(3, 8, 12, "#1b1b1b"); row(3, 8, 13, "#1b1b1b");
+      p(4, 14, face.skin); p(7, 14, face.skin);
+      p(4, 15, "#eee"); p(7, 15, "#eee");
+      return c;
+    }
+    function makeFace() {
+      return { skin: SKINS[irnd(0, 4)], hair: HAIRC[irnd(0, 5)], style: irnd(0, 3), mouth: Math.random() < 0.4 };
+    }
+
+    function kitClash(a, b) {
+      function c(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+      var x = c(a), y = c(b);
+      return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]) < 95;
+    }
+    function pickLiberoKit(teamKit, avoid) {
+      return LIBERO_KITS.find(function (col) {
+        return !kitClash(col, teamKit) && avoid.every(function (a) { return !kitClash(col, a); });
+      }) || "#ffd21e";
+    }
+
+    function makeSide(team, side, kit, liberoKit) {
+      var roster = {}, taken = {};
+      Object.keys(ROLE_MODS).forEach(function (role) {
+        var m = ROLE_MODS[role], num;
+        do { num = irnd(1, 22); } while (taken[num]); taken[num] = 1;
+        var face = makeFace();
+        var skill = (team.stars || {})[role] || null;
+        roster[role] = {
+          name: team.players[role], num: num, face: face, skill: skill,
+          sprite: makeSprite(role === "L" ? liberoKit : kit, face),
+          srv: clamp(team.ovr + m.srv + irnd(-5, 5), 30, 99),
+          rec: clamp(team.ovr + m.rec + irnd(-5, 5) + (skill === "rec" ? 8 : 0), 30, 99),
+          set: clamp(team.ovr + m.set + irnd(-5, 5), 30, 99),
+          att: clamp(team.ovr + m.att + irnd(-5, 5) + (skill === "spike" ? 6 : 0), 30, 99),
+          blk: clamp(team.ovr + m.blk + irnd(-5, 5) + (skill === "block" ? 8 : 0), 30, 99),
+          def: clamp(team.ovr + m.def + irnd(-5, 5), 30, 99)
+        };
+      });
+      return { team: team, roster: roster, side: side, rot: 0, pos: {}, tgt: {}, lineup: {}, onCourt: [] };
+    }
+
+    // ================== ROTATION & LINEUP ==================
+    function roleAt(s, k) { return ROT_ORDER[(k - 1 + s.rot) % 6]; }
+    function frontRoles(s) { return [roleAt(s, 2), roleAt(s, 3), roleAt(s, 4)]; }
+
+    // the libero replaces the back-row middle, except a middle who is about to serve
+    function buildLineup(s, servingSide) {
+      var lu = {};
+      for (var k = 1; k <= 6; k++) {
+        var r = roleAt(s, k);
+        if (!isFrontSlot(k) && r.indexOf("MB") === 0 && !(k === 1 && servingSide === s.side)) r = "L";
+        lu[k] = r;
+      }
+      s.lineup = lu;
+      s.onCourt = [1, 2, 3, 4, 5, 6].map(function (k) { return lu[k]; });
+    }
+    function slotOfRole(s, role) {
+      for (var k = 1; k <= 6; k++) if (s.lineup[k] === role) return k;
+      return 0;
+    }
+    function passersOf(s) {
+      return s.onCourt.filter(function (r) { return r === "L" || r.indexOf("OH") === 0; });
+    }
+
+    // ================== FORMATIONS ==================
+    function setTargets(s, map) {
+      var snap = Object.keys(s.pos).length === 0;
+      s.blockers = [];
+      Object.keys(s.pos).forEach(function (r) {
+        if (s.onCourt.indexOf(r) < 0) { delete s.pos[r]; delete s.tgt[r]; }
+      });
+      s.onCourt.forEach(function (r) {
+        var t = map[r];
+        if (!s.pos[r]) s.pos[r] = snap ? { x: t.x, y: t.y } : P(s.side, CL - 10, NET + ATK);  // subs jog in from the sideline
+        s.tgt[r] = { x: t.x, y: t.y };
+      });
+    }
+    function moveTo(s, role, pt) { if (s.tgt[role]) s.tgt[role] = { x: pt.x, y: pt.y }; }
+
+    function serveFormation(s) {
+      var m = {};
+      s.onCourt.forEach(function (r) { m[r] = slotPoint(s.side, slotOfRole(s, r)); });
+      m[s.lineup[1]] = serveFrom(s.side);
+      return m;
+    }
+
+    // libero + both outsides form the passing line; the setter hides near the target
+    function receiveFormation(s) {
+      var m = {};
+      var ps = passersOf(s).sort(function (a, b) { return SLOT_X[slotOfRole(s, a)] - SLOT_X[slotOfRole(s, b)]; });
+      var lineX = ps.length === 3 ? [125, 240, 355] : [170, 310, 240];
+      s.onCourt.forEach(function (r) {
+        var k = slotOfRole(s, r), pi = ps.indexOf(r);
+        if (pi >= 0) m[r] = P(s.side, lineX[pi], NET + 190);
+        else if (isFrontSlot(k)) m[r] = P(s.side, SLOT_X[k], NET + 42);
+        else m[r] = P(s.side, SLOT_X[k], NET + 125);
+      });
+      return m;
+    }
+
+    // after the serve everyone switches: OH left, MB middle, S/OP right
+    function baseFormation(s) {
+      var m = {};
+      s.onCourt.forEach(function (r) {
+        var front = isFrontSlot(slotOfRole(s, r)), x;
+        if (front) x = r.indexOf("OH") === 0 ? XL : r.indexOf("MB") === 0 ? XM : XR;
+        else x = (r === "S" || r === "OP") ? XR : r.indexOf("OH") === 0 ? XM : XL;
+        m[r] = P(s.side, x, front ? NET + 45 : NET + 205);
+      });
+      return m;
+    }
+
+    // attacking: setter at the target, front-row hitters off the net ready to approach
+    function attackFormation(s) {
+      var m = baseFormation(s);
+      s.onCourt.forEach(function (r) {
+        var front = isFrontSlot(slotOfRole(s, r));
+        if (r === "S") m[r] = setterSpot(s.side);
+        else if (front) m[r] = P(s.side, r.indexOf("OH") === 0 ? 112 : r.indexOf("MB") === 0 ? 250 : 368, NET + 112);
+        else if (r === "OP") m[r] = P(s.side, 268, NET + 165);
+      });
+      return m;
+    }
+
+    function transition(atk) {
+      var def = atk === me ? opp : me;
+      setTargets(atk, attackFormation(atk));
+      setTargets(def, baseFormation(def));
+    }
+
+    // on serve contact: servers switch to defense, the setter releases, the passer moves to the ball
+    function onServeContact(srvSide, rcvSide, target) {
+      setTargets(srvSide, baseFormation(srvSide));
+      moveTo(rcvSide, "S", setterSpot(rcvSide.side));
+      var ps = passersOf(rcvSide);
+      var near = nearest(rcvSide, target, ps.length ? ps : null);
+      var who = near.pos;
+      // the libero takes every ball he can reasonably reach
+      if (rcvSide.pos.L && dist(rcvSide.pos.L, target) < near.d + 45) who = "L";
+      moveTo(rcvSide, who, target);
+      return who;
+    }
+
+    // middle + nearest pin blocker slide over to the attacker
+    function blockPair(defSide, x) {
+      var front = frontRoles(defSide);
+      var y = defSide.side === 0 ? NET + 38 : NET - 38;
+      var mb = front.find(function (r) { return r.indexOf("MB") === 0; });
+      var other = nearest(defSide, { x: x, y: y }, front.filter(function (r) { return r !== mb; })).pos;
+      moveTo(defSide, mb, { x: clamp(x + 14, CL + 14, CR - 14), y: y });
+      moveTo(defSide, other, { x: clamp(x - 14, CL + 14, CR - 14), y: y });
+      defSide.blockers = [mb, other];
+      return defSide.blockers;
+    }
+
+    // ================== CROWD & REFEREE ==================
+    function buildCrowd() {
+      crowd = [];
+      var cols = ["#d81e36", "#1e63ff", "#ffd21e", "#ff7a00", "#0e9e45", "#7b4bd0", "#13293f", "#ffffff"];
+      function band(x1, x2, y1, y2, sx, sy) {
+        for (var y = y1; y <= y2; y += sy)
+          for (var x = x1; x <= x2; x += sx)
+            crowd.push({ x: x + irnd(-2, 2), y: y + irnd(-2, 2), c: cols[irnd(0, cols.length - 1)], ph: rnd(0, Math.PI * 2) });
+      }
+      band(14, W - 14, 14, 74, 13, 15);
+      band(14, 50, 100, H - 80, 14, 16);
+      band(W - 50, W - 14, 100, H - 80, 14, 16);
+      band(14, W - 14, H - 62, H - 14, 13, 15);
+    }
+
+    var refSprite = (function () {
+      var c = document.createElement("canvas"); c.width = 10; c.height = 14;
+      var q = c.getContext("2d");
+      function p(x, y, col) { q.fillStyle = col; q.fillRect(x, y, 1, 1); }
+      function row(x1, x2, y, col) { q.fillStyle = col; q.fillRect(x1, y, x2 - x1 + 1, 1); }
+      row(3, 6, 0, "#17120d");
+      row(3, 6, 1, "#f0b990"); row(3, 6, 2, "#f0b990");
+      p(4, 1, "#17120d"); p(6, 1, "#17120d");
+      for (var y = 3; y <= 8; y++) row(2, 7, y, "#13407a");
+      row(4, 5, 3, "#fff");
+      row(2, 7, 9, "#222"); row(2, 7, 10, "#222");
+      p(3, 11, "#f0b990"); p(6, 11, "#f0b990");
+      p(3, 12, "#222"); p(6, 12, "#222");
+      return c;
+    })();
+
+    // ================== RENDER ==================
+    var lastFrame = performance.now();
+    var LABEL_FONT = '19px "VT323", monospace';
+    var ROLE_FONT = '16px "VT323", monospace';
+
+    function stepPlayers(dt) {
+      var k = 1 - Math.exp(-dt * 5.5 * timeScale);
+      [me, opp].forEach(function (s) {
+        if (!s) return;
+        Object.keys(s.pos).forEach(function (r) {
+          var p = s.pos[r], t = s.tgt[r];
+          if (!t) return;
+          p.x += (t.x - p.x) * k;
+          p.y += (t.y - p.y) * k;
+        });
+      });
+    }
+
+    function pill(text, x, y, font, fg, bg) {
+      g.font = font;
+      var w = g.measureText(text).width + 8;
+      g.fillStyle = bg;
+      g.fillRect(Math.round(x - w / 2), Math.round(y - 9), Math.round(w), 17);
+      g.fillStyle = fg;
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.fillText(text, x, y + 0.5);
+    }
+
+    function draw(now) {
+      var dt = Math.min(0.05, (now - lastFrame) / 1000);
+      lastFrame = now;
+      stepPlayers(dt);
+
+      // arena + crowd
+      g.fillStyle = "#cfe6fb"; g.fillRect(0, 0, W, H);
+      g.fillStyle = "#b3d4f2";
+      g.fillRect(6, 6, W - 12, 78); g.fillRect(6, H - 70, W - 12, 64);
+      g.fillRect(6, 84, 52, H - 160); g.fillRect(W - 58, 84, 52, H - 160);
+      var cheer = clamp01(1 - (now - cheerAt) / 900);
+      crowd.forEach(function (s) {
+        var bounce = cheer > 0 ? Math.abs(Math.sin(now / 90 + s.ph)) * 4 * cheer : Math.sin(now / 700 + s.ph) * 0.7;
+        g.fillStyle = s.c;
+        g.globalAlpha = cheer > 0 ? 0.95 : 0.7;
+        g.fillRect(s.x, s.y - bounce, 4, 4);
+        g.globalAlpha = 0.4;
+        g.fillRect(s.x, s.y - bounce + 4, 4, 3);
+        g.globalAlpha = 1;
+      });
+
+      // free zone + court
+      g.fillStyle = "#3f9bea"; g.fillRect(58, 84, W - 116, H - 154);
+      g.fillStyle = "#1668d8"; g.fillRect(CL, CT, CR - CL, CB - CT);
+      g.fillStyle = "#1e7ef0"; g.fillRect(CL, NET - ATK, CR - CL, ATK * 2);
+      g.strokeStyle = "#ffffff"; g.lineWidth = 2.5;
+      g.strokeRect(CL, CT, CR - CL, CB - CT);
+      g.beginPath(); g.moveTo(CL, NET - ATK); g.lineTo(CR, NET - ATK); g.stroke();
+      g.beginPath(); g.moveTo(CL, NET + ATK); g.lineTo(CR, NET + ATK); g.stroke();
+
+      // net, posts, antennas, referee
+      g.fillStyle = "#1a1a1a";
+      g.fillRect(CL - 16, NET - 5, 6, 10); g.fillRect(CR + 10, NET - 5, 6, 10);
+      g.fillStyle = "#f5f5f5"; g.fillRect(CL - 10, NET - 4, CR - CL + 20, 8);
+      g.strokeStyle = "#9aa7b5"; g.lineWidth = 1;
+      for (var nx = CL - 8; nx <= CR + 8; nx += 7) {
+        g.beginPath(); g.moveTo(nx, NET - 3); g.lineTo(nx, NET + 3); g.stroke();
+      }
+      g.strokeStyle = "#5f6b78";
+      g.beginPath(); g.moveTo(CL - 10, NET); g.lineTo(CR + 10, NET); g.stroke();
+      [CL, CR].forEach(function (ax) {
+        for (var seg = 0; seg < 5; seg++) {
+          g.fillStyle = seg % 2 ? "#ffffff" : "#e8352e";
+          g.fillRect(ax - 1.5, NET - 6 - (seg + 1) * 5, 3, 5);
+        }
+      });
+      g.fillStyle = "#8a5a2b"; g.fillRect(CR + 20, NET - 12, 22, 24);
+      g.fillStyle = "#6e4420"; g.fillRect(CR + 20, NET + 8, 22, 4);
+      g.drawImage(refSprite, CR + 26, NET - 26, 15, 21);
+      var flag = clamp01(1 - (now - refFlagAt) / 1200);
+      if (flag > 0) {
+        g.strokeStyle = "#ffd21e"; g.lineWidth = 2.5;
+        g.beginPath();
+        g.moveTo(CR + 33, NET - 18);
+        g.lineTo(CR + 41, NET - 18 + (refFlagSide === 0 ? 10 : -10));
+        g.stroke();
+      }
+
+      if (aimPreview) {
+        g.strokeStyle = "rgba(255,221,0,0.95)"; g.lineWidth = 2;
+        g.beginPath(); g.arc(aimPreview.x, aimPreview.y, 12, 0, Math.PI * 2); g.stroke();
+        g.beginPath(); g.moveTo(aimPreview.x - 16, aimPreview.y); g.lineTo(aimPreview.x + 16, aimPreview.y); g.stroke();
+        g.beginPath(); g.moveTo(aimPreview.x, aimPreview.y - 16); g.lineTo(aimPreview.x, aimPreview.y + 16); g.stroke();
+      }
+
+      // players, back to front, then their labels on top
+      var list = [];
+      [opp, me].forEach(function (s) {
+        if (!s) return;
+        Object.keys(s.pos).forEach(function (r) { list.push({ s: s, r: r, p: s.pos[r] }); });
+      });
+      list.sort(function (a, b) { return a.p.y - b.p.y; });
+      list.forEach(function (it) {
+        var mine = it.s.side === 0, isYou = mine && mode === "role" && it.r === myRole;
+        g.strokeStyle = isYou ? "#ffd21e" : mine ? "#0e9e45" : "#e0348a";
+        g.lineWidth = isYou ? 3.5 : 2;
+        g.beginPath(); g.ellipse(it.p.x, it.p.y + 17, isYou ? 16 : 13, isYou ? 6 : 5, 0, 0, Math.PI * 2); g.stroke();
+        g.drawImage(it.s.roster[it.r].sprite, Math.round(it.p.x - 15), Math.round(it.p.y - 24), 30, 40);
+      });
+      list.forEach(function (it) {
+        var P0 = it.s.roster[it.r], mine = it.s.side === 0;
+        var isYou = mine && mode === "role" && it.r === myRole;
+        var nm = P0.name.length > 11 ? P0.name.slice(0, 10) + "." : P0.name;
+        pill((isYou ? "YOU " : "") + nm + (P0.skill ? " ★" : ""), it.p.x, it.p.y - 34, LABEL_FONT,
+             isYou ? "#13293f" : P0.skill ? "#ffd21e" : "#ffffff",
+             isYou ? "#ffd21e" : "rgba(10,30,60,0.85)");
+        pill(it.r + " #" + P0.num, it.p.x, it.p.y + 33, ROLE_FONT, "#ffffff", mine ? "#0e9e45" : "#e0348a");
+      });
+
+      // ball: shadow on the floor shrinks as the ball climbs
+      if (ball.visible) {
+        var shR = Math.max(2.2, 8 - ball.h * 3.4);
+        g.fillStyle = "rgba(0,20,60," + (0.45 - ball.h * 0.11) + ")";
+        g.beginPath(); g.ellipse(ball.x, ball.y, shR, shR * 0.55, 0, 0, Math.PI * 2); g.fill();
+        var r = 6 + ball.h * 5, by = ball.y - ball.h * 30;
+        g.fillStyle = "#ffd500";
+        g.beginPath(); g.arc(ball.x, by, r, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = "#1e4fd8"; g.lineWidth = Math.max(1.4, r * 0.3);
+        g.beginPath(); g.arc(ball.x, by, r * 0.62, 0.3, 1.8); g.stroke();
+        g.beginPath(); g.arc(ball.x, by, r * 0.62, Math.PI + 0.3, Math.PI + 1.8); g.stroke();
+        g.strokeStyle = "#17408f"; g.lineWidth = 1;
+        g.beginPath(); g.arc(ball.x, by, r, 0, Math.PI * 2); g.stroke();
+      }
+      requestAnimationFrame(draw);
+    }
+
+    function flyBall(from, to, ms, peak) {
+      ball.visible = true;
+      return new Promise(function (res) {
+        var t = 0, last = performance.now();
+        (function step(now) {
+          t += (now - last) / ms * timeScale; last = now;
+          var tt = clamp01(t);
+          ball.x = from.x + (to.x - from.x) * tt;
+          ball.y = from.y + (to.y - from.y) * tt;
+          ball.h = Math.sin(tt * Math.PI) * peak;
+          if (tt < 1) requestAnimationFrame(step); else res();
+        })(last);
+      });
+    }
+
+    // ================== UI ==================
+    function msg(t) { $("msg").textContent = t; }
+
+    function feed(side, text, hot) {
+      var box = $("feed"), div = document.createElement("div");
+      div.className = "line " + (side === 0 ? "me" : side === 1 ? "op" : "") + (hot ? " hot" : "");
+      div.textContent = text;
+      box.appendChild(div);
+      while (box.children.length > 40) box.removeChild(box.firstChild);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function buttons(list) {
+      return new Promise(function (res) {
+        var bar = $("actions"); bar.innerHTML = "";
+        list.forEach(function (o) {
+          var b = document.createElement("button");
+          b.className = "btn"; b.textContent = o.label; b.disabled = !!o.disabled;
+          b.addEventListener("click", function () { bar.innerHTML = ""; res(o.value); });
+          bar.appendChild(b);
+        });
+      });
+    }
+
+    function aimClick(half) {
+      return new Promise(function (res) {
+        cv.classList.add("aiming");
+        function toCourt(e) {
+          var r = cv.getBoundingClientRect();
+          var x = clamp((e.clientX - r.left) / r.width * W, CL + 10, CR - 10);
+          var y = (e.clientY - r.top) / r.height * H;
+          y = half === "top" ? clamp(y, CT + 10, NET - 16) : clamp(y, NET + 16, CB - 10);
+          return { x: x, y: y };
+        }
+        function onMove(e) { aimPreview = toCourt(e); }
+        function onClick(e) {
+          cv.removeEventListener("mousemove", onMove);
+          cv.removeEventListener("click", onClick);
+          cv.classList.remove("aiming");
+          var pt = toCourt(e); aimPreview = null; res(pt);
+        }
+        cv.addEventListener("mousemove", onMove);
+        cv.addEventListener("click", onClick);
+      });
+    }
+
+    function timingBar(label, speedMs) {
+      return new Promise(function (res) {
+        var wrap = $("timing"), mk = $("marker");
+        $("timingLabel").textContent = label;
+        var center = rnd(0.3, 0.7);
+        $("zoneG").style.left = (center - 0.15) * 100 + "%";
+        $("zoneG").style.width = "30%";
+        $("zoneP").style.left = (center - 0.05) * 100 + "%";
+        $("zoneP").style.width = "10%";
+        wrap.classList.remove("hidden");
+        var t0 = performance.now(), done = false, raf;
+        function pos(now) { return (1 - Math.cos(((now - t0) / speedMs) * Math.PI * 2)) / 2; }
+        (function step(now) {
+          if (done) return;
+          mk.style.left = pos(now) * 100 + "%";
+          raf = requestAnimationFrame(step);
+        })(t0);
+        function stop(e) {
+          if (done) return; done = true;
+          e.preventDefault();
+          cancelAnimationFrame(raf);
+          document.removeEventListener("pointerdown", stop, true);
+          document.removeEventListener("keydown", key, true);
+          var q = clamp01(1 - Math.abs(pos(performance.now()) - center) / 0.5);
+          wrap.classList.add("hidden");
+          res(q);
+        }
+        function key(e) { if (e.key === " ") stop(e); }
+        setTimeout(function () {
+          document.addEventListener("pointerdown", stop, true);
+          document.addEventListener("keydown", key, true);
+        }, 120);
+        setTimeout(function () { if (!done) { done = true; cancelAnimationFrame(raf); wrap.classList.add("hidden"); res(0.15); } }, speedMs * 2.4);
+      });
+    }
+
+    // ================== GAME MATH ==================
+    function passGrade(q) { return q >= 0.72 ? 2 : q >= 0.42 ? 1 : q >= 0.2 ? 0 : -1; }
+    var GRADE_TXT = ["POOR PASS", "GOOD PASS", "PERFECT PASS"];
+
+    function nearest(sideObj, pt, roles) {
+      var best = null, bd = 1e9;
+      (roles || Object.keys(sideObj.pos)).forEach(function (p) {
+        if (!sideObj.pos[p]) return;
+        var d = dist(sideObj.pos[p], pt);
+        if (d < bd) { bd = d; best = p; }
+      });
+      return { pos: best, d: bd };
+    }
+    function gapScore(defSide, pt) { return clamp01(nearest(defSide, pt).d / 120); }
+    function shankChance(Pl) { return Pl.skill === "rec" ? SHANK_P / 2 : SHANK_P; }
+
+    function serveParams(kind, srvAttr, quality) {
+      var power = (kind === "spin" ? 0.75 : 0.5) * (0.6 + srvAttr / 250) * (0.7 + quality * 0.5);
+      var wobble = kind === "float" ? 0.25 : 0.1;
+      var errP = kind === "spin" ? 0.1 - quality * 0.06 : 0.05 - quality * 0.03;
+      return { power: clamp01(power), wobble: wobble, errP: Math.max(0.02, errP) };
+    }
+    function oppBarSpeed() { return Math.round(1500 - (opp.team.ovr - 65) * 16); }
+
+    function zoneName(side, x) {
+      var left = x < 180, right = x > 300;
+      if (side === 1) { var t = left; left = right; right = t; }
+      return left ? "the outside" : right ? "the right side" : "the middle";
+    }
+    function shotDir(originX, target) {
+      var dx = Math.abs(target.x - originX);
+      return dx > 95 ? "cross" : dx < 40 ? "line" : "angle";
+    }
+    function shotName(originX, target) {
+      var d = shotDir(originX, target);
+      return d === "cross" ? "the cross" : d === "line" ? "straight down the line" : "the angle";
+    }
+
+    function setOptions(s, grade) {
+      var front = frontRoles(s);
+      var mb = front.find(function (r) { return r.indexOf("MB") === 0; });
+      var oh = front.find(function (r) { return r.indexOf("OH") === 0; });
+      var opFront = front.indexOf("OP") >= 0;
+      var xs = s.side === 0 ? { left: 120, mid: 240, right: 330, slideX: 300 }
+                            : { left: W - 120, mid: W - 240, right: W - 330, slideX: W - 300 };
+      var opts = [
+        { id:"quick", label:"QUICK", hitter: mb, tempo:0.45, needPass:2, x: xs.mid,    pipe:false },
+        { id:"slide", label:"SLIDE", hitter: mb, tempo:0.55, needPass:2, x: xs.slideX, pipe:false },
+        opFront
+          ? { id:"medium", label:"MEDIUM", hitter:"OP", tempo:0.75, needPass:1, x: xs.right, pipe:false }
+          : { id:"pipe",   label:"PIPE",   hitter:"OP", tempo:0.8,  needPass:1, x: xs.mid,   pipe:true },
+        { id:"high",  label:"HIGH",  hitter: oh, tempo:1.0,  needPass:0, x: xs.left,   pipe:false }
+      ];
+      if (s.roster.S.skill === "dump") {
+        opts.push({ id:"dump", label:"DUMP", hitter:"S", tempo:0.3, needPass:1, x: setterSpot(s.side).x, pipe:false, dump:true });
+      }
+      return opts.map(function (o) { o.disabled = grade < o.needPass; return o; });
+    }
+
+    // AI stand-ins for anyone the human isn't controlling
+    function autoTiming(attr) { return clamp01(rnd(0.25, 1) * (0.75 + attr / 400)); }
+    function aiTarget(defSide, ovr) {
+      var y1 = defSide.side === 0 ? NET + 40 : CT + 20;
+      var y2 = defSide.side === 0 ? CB - 20 : NET - 40;
+      var best = null, bestScore = -1;
+      for (var i = 0; i < 6; i++) {
+        var cand = { x: rnd(CL + 25, CR - 25), y: rnd(y1, y2) };
+        var sc = gapScore(defSide, cand) + rnd(0, (100 - ovr) / 60);
+        if (sc > bestScore) { bestScore = sc; best = cand; }
+      }
+      return best;
+    }
+    function aiPickSet(s, grade) {
+      var opts = setOptions(s, grade).filter(function (o) { return !o.disabled; });
+      if (s.roster.S.skill === "dump" && grade >= 1 && Math.random() < 0.08) {
+        var d = opts.find(function (o) { return o.dump; });
+        if (d) return d;
+      }
+      var nonDump = opts.filter(function (o) { return !o.dump; });
+      var st = nonDump[Math.random() < s.team.ovr / 140 ? 0 : nonDump.length - 1];
+      if (Math.random() < 0.5) st = nonDump[irnd(0, nonDump.length - 1)];
+      return st;
+    }
+
+    // ================== RALLY FLOW ==================
+    async function rally() {
+      buildLineup(me, serving); buildLineup(opp, serving);
+      var srvSide = serving === 0 ? me : opp, rcvSide = serving === 0 ? opp : me;
+      setTargets(srvSide, serveFormation(srvSide));
+      setTargets(rcvSide, receiveFormation(rcvSide));
+      updateHud();
+      if (mode === "role" && me.onCourt.indexOf(myRole) < 0) {
+        feed(0, me.roster[myRole].name + " (YOU) sits this rotation out — " +
+          (myRole === "L" ? "your middle is serving." : "the libero is in for you."));
+      }
+      await sleep(700);                                            // players walk into formation
+      var winner = serving === 0 ? await myServe() : await oppServe();
+      if (winner !== serving) (winner === 0 ? me : opp).rot = ((winner === 0 ? me : opp).rot + 1) % 6;
+      score[winner]++; serving = winner;
+      cheerAt = performance.now(); refFlagAt = performance.now(); refFlagSide = winner;
+      updateHud();
+      await sleep(800);
+    }
+
+    async function myServe() {
+      var sr = me.lineup[1], Sv = me.roster[sr];
+      var kind, target;
+      if (iControl(sr)) {
+        msg(Sv.name + " TO SERVE — CHOOSE THE TOSS");
+        kind = await buttons([
+          { label: "FLOAT SERVE", value: "float" },
+          { label: "TOPSPIN SERVE", value: "spin" }
+        ]);
+        msg((kind === "float" ? "FLOAT" : "TOPSPIN") + " — CLICK WHERE TO SERVE");
+        target = await aimClick("top");
+      } else {
+        kind = Math.random() < 0.5 ? "float" : "spin";
+        target = aiTarget(opp, me.team.ovr);
+        msg(Sv.name + " SERVES...");
+        await sleep(400);
+      }
+      var sp = serveParams(kind, Sv.srv, 0.5 + Sv.srv / 250);
+      target.x = clamp(target.x + rnd(-1, 1) * sp.wobble * 90, CL + 10, CR - 10);
+      target.y = clamp(target.y + rnd(-1, 1) * sp.wobble * 60, CT + 10, NET - 16);
+      feed(0, Sv.name + (kind === "spin" ? " rips a topspin serve!" : " floats one over..."));
+      var flight = flyBall(serveFrom(0), target, kind === "spin" ? 850 : 1100, kind === "spin" ? 1.1 : 1.5);
+      var rcvRole = onServeContact(me, opp, target);
+      await flight;
+      if (Math.random() < sp.errP) { msg("SERVE ERROR!"); feed(0, "...but it catches the net. Error."); return 1; }
+      var RP = opp.roster[rcvRole];
+      if (Math.random() < shankChance(RP)) { msg("ACE!!"); feed(0, RP.name + " SHANKS the serve — ACE!", true); return 0; }
+      var rq = clamp01(RP.rec / 110 - sp.power * 0.45 + rnd(-0.12, 0.18) + (RP.skill === "rec" ? 0.12 : 0));
+      var grade = passGrade(rq);
+      if (grade < 0) { msg("ACE!!"); feed(0, RP.name + " can't handle it — ACE!", true); return 0; }
+      feed(1, RP.name + " receives — " + GRADE_TXT[grade].toLowerCase() + ".");
+      transition(opp);
+      await flyBall(target, setterSpot(1), 600, 1.6);
+      return await oppOffense(grade);
+    }
+
+    async function oppServe() {
+      var sr = opp.lineup[1], Sv = opp.roster[sr];
+      var kind = Math.random() < 0.45 ? "float" : "spin";
+      msg(Sv.name + " — " + (kind === "float" ? "FLOAT" : "TOPSPIN") + " SERVE!");
+      feed(1, Sv.name + (kind === "spin" ? " hammers a topspin serve!" : " floats a tricky one..."));
+      var sp = serveParams(kind, Sv.srv, 0.4 + opp.team.ovr / 300);
+      var target = { x: clamp(rnd(CL + 30, CR - 30), CL + 10, CR - 10), y: clamp(NET + rnd(90, 250), NET + 20, CB - 12) };
+      var flight = flyBall(serveFrom(1), target, kind === "spin" ? 850 : 1100, kind === "spin" ? 1.1 : 1.5);
+      var rcvRole = onServeContact(opp, me, target);
+      await sleep(150);
+      var RP = me.roster[rcvRole];
+      var timing;
+      if (iControl(rcvRole)) {
+        slow();
+        timing = await timingBar("RECEIVE — " + RP.name + "!", oppBarSpeed());
+        fast();
+      } else {
+        timing = autoTiming(RP.rec);
+      }
+      await flight;
+      if (Math.random() < sp.errP * 1.3) { msg("THEIR SERVE IS OUT!"); feed(1, "...long! Service error."); return 0; }
+      if (Math.random() < shankChance(RP)) { msg("SHANKED..."); feed(1, RP.name + " SHANKS it into the stands!", true); return 1; }
+      var rq = clamp01(timing * 0.55 + RP.rec / 220 - sp.power * 0.35 + rnd(-0.05, 0.1) + (RP.skill === "rec" ? 0.1 : 0));
+      var grade = passGrade(rq);
+      if (grade < 0) { msg("ACED..."); feed(1, "ACE! " + Sv.name + " is on fire.", true); return 1; }
+      feed(0, RP.name + " passes — " + GRADE_TXT[grade].toLowerCase() + ".");
+      transition(me);
+      await flyBall(target, setterSpot(0), 600, 1.6);
+      return await myOffense(grade);
+    }
+
+    async function myOffense(grade) {
+      var opts = setOptions(me, grade), st = null;
+      var SN = me.roster.S.name;
+      if (iControl("S")) {
+        msg(SN + " TO SET — PICK HITTER & BALL (" + GRADE_TXT[grade] + ")");
+        var choice = await buttons(opts.map(function (o) {
+          var HP = me.roster[o.hitter];
+          return { label: o.label + " · " + HP.name + (HP.skill ? " ★" : ""), value: o.id, disabled: o.disabled };
+        }));
+        st = opts.find(function (o) { return o.id === choice; });
+      } else {
+        // one-role hitter: call for the ball you want; the setter usually listens
+        var mine = opts.filter(function (o) { return !o.disabled && !o.dump && o.hitter === myRole; });
+        if (mine.length) {
+          msg("CALL FOR THE BALL? (" + GRADE_TXT[grade] + ")");
+          var call = await buttons(mine.map(function (o) { return { label: "CALL " + o.label, value: o.id }; })
+            .concat([{ label: "LET " + SN + " DECIDE", value: "auto" }]));
+          if (call !== "auto") {
+            var want = mine.find(function (o) { return o.id === call; });
+            feed(0, me.roster[myRole].name + " (YOU) calls for a " + want.label.toLowerCase() + " ball!");
+            if (Math.random() < 0.6 + grade * 0.15) st = want;
+            else feed(0, SN + " goes elsewhere...");
+          }
+        } else {
+          await sleep(300);
+        }
+        if (!st) st = aiPickSet(me, grade);
+      }
+      var hitter = st.hitter, HP = me.roster[hitter];
+      if (st.dump) {
+        feed(0, SN + " shows set... DUMP on two!", true);
+        var t0;
+        if (iControl("S")) {
+          msg("DUMP — CLICK WHERE TO DROP IT!");
+          slow();
+          t0 = await aimClick("top");
+          fast();
+        } else {
+          t0 = aiTarget(opp, me.team.ovr);
+        }
+        return await resolveAttack(me, opp, "S", st, t0, grade, true, setterSpot(0).x);
+      }
+      var from = { x: st.x, y: st.pipe ? NET + ATK + 18 : NET + 42 };
+      moveTo(me, hitter, { x: from.x, y: from.y + 14 });
+      blockPair(opp, st.x);
+      feed(0, SN + " gives a " + st.label.toLowerCase() + " ball to " + zoneName(0, st.x) + " for " + HP.name + (HP.skill === "spike" ? " ★" : "") + "...");
+      // the block commits to a direction; on slow sets you can SEE the lean
+      var guess = Math.random() < 0.5 ? "cross" : "line";
+      var aimMe = iControl(hitter);
+      if (st.tempo >= 0.7) {
+        msg(st.label + " TO " + HP.name + " — BLOCK LEANS " + guess.toUpperCase() + (aimMe ? "! AIM AWAY FROM IT!" : "!"));
+        feed(1, "their block is leaning " + guess + "...");
+      } else {
+        msg(st.label + " TO " + HP.name + (aimMe ? " — TOO FAST TO READ! CLICK WHERE TO SPIKE!" : "!"));
+      }
+      var flight = flyBall(setterSpot(0), from, 450 + st.tempo * 350, 1 + st.tempo * 1.4);
+      var target;
+      if (aimMe) {
+        slow();
+        target = await aimClick("top");
+        fast();
+      } else {
+        target = aiTarget(opp, me.team.ovr);
+      }
+      await flight;
+      return await resolveAttack(me, opp, hitter, st, target, grade, true, st.x, guess);
+    }
+
+    async function oppOffense(grade) {
+      var st = aiPickSet(opp, grade);
+      var hitter = st.hitter, HP = opp.roster[hitter];
+      var best = aiTarget(me, opp.team.ovr);
+      if (st.dump) {
+        feed(1, opp.roster.S.name + " DUMPS on two!", true);
+        msg(opp.roster.S.name + " DUMP!");
+        return await resolveAttack(opp, me, "S", st, best, grade, false, setterSpot(1).x);
+      }
+      var from = { x: st.x, y: st.pipe ? NET - ATK - 18 : NET - 42 };
+      moveTo(opp, hitter, { x: from.x, y: from.y - 14 });
+      var pair = blockPair(me, st.x);
+      feed(1, opp.roster.S.name + " sets a " + st.label.toLowerCase() + " ball to " + zoneName(1, st.x) + " for " + HP.name + (HP.skill === "spike" ? " ★" : "") + "...");
+      msg(opp.team.name + ": " + st.label + " TO " + HP.name + "!");
+      // my block commits too: slow sets are easier to read correctly
+      var actualDir = shotDir(st.x, best);
+      var myBlk = Math.max.apply(null, frontRoles(me).map(function (r) { return me.roster[r].blk; }));
+      var guess2 = Math.random() < 0.5 ? "cross" : "line";
+      var readP = clamp01((0.3 + myBlk / 300) * st.tempo);
+      if (actualDir !== "angle" && Math.random() < readP) guess2 = actualDir;
+      var setFlight = flyBall(setterSpot(1), from, 450 + st.tempo * 350, 1 + st.tempo * 1.4);
+      if (mode === "role" && pair.indexOf(myRole) >= 0 && st.tempo >= 0.7) {
+        slow();
+        msg("YOU'RE BLOCKING " + HP.name + " — LEAN WHICH WAY?");
+        guess2 = await buttons([
+          { label: "LEAN CROSS", value: "cross" },
+          { label: "LEAN LINE", value: "line" }
+        ]);
+        fast();
+        feed(0, me.roster[myRole].name + " (YOU) leans " + guess2 + "...");
+      } else if (st.tempo >= 0.7) {
+        feed(0, "your block leans " + guess2 + "...");
+      }
+      await setFlight;
+      return await resolveAttack(opp, me, hitter, st, best, grade, false, st.x, guess2);
+    }
+
+    async function resolveAttack(atkSide, defSide, hitter, st, target, grade, iAttack, originX, guess) {
+      var A = atkSide.roster[hitter];
+      var front = frontRoles(defSide);
+      var mirror = { x: st.x, y: defSide.side === 0 ? NET + 40 : NET - 40 };
+      var blkRole = nearest(defSide, mirror, front).pos;
+      var B = defSide.roster[blkRole];
+      var tempoDodge = 1 - st.tempo * 0.5;
+      var setQ = grade === 2 ? 1 : grade === 1 ? 0.75 : 0.5;
+      var shot = shotName(originX, target);
+      var dir = shotDir(originX, target);
+
+      var flight = flyBall({ x: originX, y: atkSide.side === 0 ? NET + 30 : NET - 30 }, target, st.dump ? 500 : 420 - st.tempo * 60, st.dump ? 1.3 : 0.9);
+
+      var digTiming = null;
+      var blocking = (defSide.blockers || []).concat([blkRole]);
+      var dig = nearest(defSide, target, defSide.onCourt.filter(function (r) { return blocking.indexOf(r) < 0; }));
+      var D = defSide.roster[dig.pos];
+      moveTo(defSide, dig.pos, target);                            // the digger runs to the ball
+      if (!iAttack && !st.dump) {
+        if (iControl(dig.pos)) {
+          await sleep(80);
+          slow();
+          digTiming = await timingBar("DIG — " + D.name + "!", oppBarSpeed() * 0.9);
+          fast();
+        } else {
+          digTiming = autoTiming(D.def);
+        }
+      }
+      await flight;
+
+      // dump resolution: sneaky, rarely blocked
+      if (st.dump) {
+        var dKill = clamp01(0.5 + A.set / 300 + gapScore(defSide, target) * 0.25);
+        if (Math.random() < 0.06) { msg("DUMP ERROR!"); feed(iAttack ? 0 : 1, "...but it drifts wide!"); return iAttack ? 1 : 0; }
+        if (Math.random() < dKill) {
+          msg("DUMP KILL!!"); cheerAt = performance.now();
+          feed(iAttack ? 0 : 1, "and " + A.name + " drops it in the open court!! ★", true);
+          return iAttack ? 0 : 1;
+        }
+        msg(D.name + " READS IT!");
+        feed(defSide.side === 0 ? 0 : 1, D.name + " reads the dump and keeps it alive!");
+        transition(defSide);
+        await flyBall(target, setterSpot(defSide.side), 600, 1.7);
+        return defSide.side === 0 ? await myOffense(1) : await oppOffense(1);
+      }
+
+      var errP = 0.07 + (1 - setQ) * 0.1 + st.tempo * 0.02;
+      if (Math.random() < errP - A.att / 900) {
+        msg("ATTACK ERROR!");
+        feed(iAttack ? 0 : 1, "and " + A.name + " sends " + shot + "... OUT!");
+        return iAttack ? 1 : 0;
+      }
+      var blockP = clamp01((B.blk / 230) * tempoDodge * (1.15 - setQ * 0.3) * (A.skill === "spike" ? 0.75 : 1) + (B.skill === "block" ? 0.1 : 0));
+      // block commitment: right read = much bigger block, wrong read = beaten
+      var killBonus = 0;
+      var readRight = guess && dir !== "angle" && guess === dir;
+      var readWrong = guess && dir !== "angle" && guess !== dir;
+      if (readRight) blockP = clamp01(blockP * (1 + 0.9 * st.tempo));
+      if (readWrong) { blockP *= (1 - 0.6 * st.tempo); killBonus = 0.1 * st.tempo; }
+      if (Math.random() < blockP) {
+        msg("ROOFED!!");
+        feed(defSide.side === 0 ? 0 : 1,
+          B.name + (readRight ? " READ " + shot + " all the way" : B.skill === "block" ? " ★ SUPER BLOCK" : " with the block") + " — stuffs " + A.name + "!", true);
+        return iAttack ? 1 : 0;
+      }
+      var gap = gapScore(defSide, target);
+      var killP = clamp01(0.3 + A.att / 260 + setQ * 0.18 + gap * 0.32 - D.def / 400 + (A.skill === "spike" ? 0.15 : 0) + killBonus);
+      if (Math.random() < killP) {
+        msg("KILL!!"); cheerAt = performance.now();
+        feed(iAttack ? 0 : 1,
+          "and " + A.name + (A.skill === "spike" ? " ★ CRUSHES " : " scores ") + shot +
+          (readWrong ? " — the block bit on the " + guess + "!!" : "!!"), true);
+        return iAttack ? 0 : 1;
+      }
+      if (defSide.side === 0) {
+        if (Math.random() < shankChance(D)) { msg("SHANKED DIG..."); feed(0, D.name + " shanks the dig!"); return 1; }
+        var dg = passGrade(clamp01(digTiming * 0.6 + D.def / 240 - 0.1));
+        if (dg < 0) { msg("THE DIG FLIES AWAY..."); feed(0, D.name + " can't control it."); return 1; }
+        feed(0, D.name + " digs " + shot + "! Transition...");
+        transition(me);
+        await flyBall(target, setterSpot(0), 600, 1.7);
+        return await myOffense(Math.min(dg, 1));
+      } else {
+        if (Math.random() < shankChance(D)) { msg("THEY SHANK THE DIG!"); feed(1, D.name + " shanks it away!"); return 0; }
+        var dgo = passGrade(clamp01(D.def / 130 + rnd(-0.15, 0.15)));
+        if (dgo < 0) { msg("NO CONTROL — POINT!"); feed(1, D.name + " digs it into the stands."); return 0; }
+        feed(1, D.name + " digs it up — they transition.");
+        transition(opp);
+        await flyBall(target, setterSpot(1), 600, 1.7);
+        return await oppOffense(Math.min(dgo, 1));
+      }
+    }
+
+    // ================== TOURNAMENT ==================
+    function record() {
+      try { return JSON.parse(localStorage.getItem(REC_KEY) || '{"w":0,"l":0}'); } catch (e) { return { w: 0, l: 0 }; }
+    }
+    function cups() { return Number(localStorage.getItem(CUP_KEY)) || 0; }
+    function showRecord() {
+      var r = record();
+      $("recordLine").textContent = "🏆 ×" + cups() + "   RECORD " + r.w + "W-" + r.l + "L";
+    }
+    function saveTour() { try { localStorage.setItem(TOUR_KEY, JSON.stringify(tour)); } catch (e) {} }
+    function loadTour() { try { return JSON.parse(localStorage.getItem(TOUR_KEY) || "null"); } catch (e) { return null; } }
+
+    function newTour(myId, playMode, role) {
+      var others = TEAMS.filter(function (t) { return t.id !== myId; });
+      for (var i = others.length - 1; i > 0; i--) { var j = irnd(0, i); var t = others[i]; others[i] = others[j]; others[j] = t; }
+      var ids = [myId].concat(others.slice(0, 7).map(function (t) { return t.id; }));
+      ids.sort(function (a, b) { return teamById(b).ovr - teamById(a).ovr; });
+      var pools = [[ids[0], ids[3], ids[4], ids[7]], [ids[1], ids[2], ids[5], ids[6]]];
+      tour = { myId: myId, pools: pools, round: 0, stage: "pool",
+               table: {}, semis: null, final: null, champion: null,
+               mode: playMode || "full", myRole: role || null };
+      mode = tour.mode; myRole = tour.myRole;
+      ids.forEach(function (id) { tour.table[id] = { w: 0, l: 0, pf: 0, pa: 0 }; });
+      saveTour();
+    }
+
+    function poolPairs(pool, r) {
+      return [[[pool[0], pool[3]], [pool[1], pool[2]]],
+              [[pool[0], pool[2]], [pool[3], pool[1]]],
+              [[pool[0], pool[1]], [pool[2], pool[3]]]][r];
+    }
+
+    function simMatch(idA, idB) {
+      var a = teamById(idA), b = teamById(idB);
+      var pA = clamp(0.5 + (a.ovr - b.ovr) * 0.014, 0.12, 0.88);
+      var sa = 0, sb = 0;
+      while (!((sa >= 15 || sb >= 15) && Math.abs(sa - sb) >= 2) && sa < 25 && sb < 25) {
+        if (Math.random() < pA) sa++; else sb++;
+      }
+      return [sa, sb];
+    }
+
+    function applyResult(idA, idB, sa, sb) {
+      var ta = tour.table[idA], tb = tour.table[idB];
+      if (sa > sb) { ta.w++; tb.l++; } else { tb.w++; ta.l++; }
+      ta.pf += sa; ta.pa += sb; tb.pf += sb; tb.pa += sa;
+    }
+
+    function poolRank(pool) {
+      return pool.slice().sort(function (a, b) {
+        var A = tour.table[a], B = tour.table[b];
+        return (B.w - A.w) || ((B.pf - B.pa) - (A.pf - A.pa));
+      });
+    }
+
+    function standingsHTML() {
+      var h = "";
+      tour.pools.forEach(function (pool, pi) {
+        var ranked = poolRank(pool);
+        h += "<table class='standings'><tr><th>POOL " + (pi ? "B" : "A") + "</th><th>W</th><th>L</th><th>+/-</th></tr>";
+        ranked.forEach(function (id, idx) {
+          var t = teamById(id), s = tour.table[id];
+          var cls = (id === tour.myId ? "you " : "") + (tour.stage !== "pool" && idx < 2 ? "q" : "");
+          h += "<tr class='" + cls + "'><td>" + t.flag + " " + t.name + "</td><td>" + s.w + "</td><td>" + s.l + "</td><td>" + (s.pf - s.pa) + "</td></tr>";
+        });
+        h += "</table>";
+      });
+      if (tour.semis) {
+        h += "<table class='standings'><tr><th>PLAYOFFS</th><th></th></tr>";
+        tour.semis.forEach(function (m) {
+          h += "<tr><td>SF: " + teamById(m[0]).name + " vs " + teamById(m[1]).name + "</td><td>" + (m[2] != null ? m[2] + ":" + m[3] : "") + "</td></tr>";
+        });
+        if (tour.final) h += "<tr><td>FINAL: " + teamById(tour.final[0]).name + " vs " + teamById(tour.final[1]).name + "</td><td>" + (tour.final[2] != null ? tour.final[2] + ":" + tour.final[3] : "") + "</td></tr>";
+        h += "</table>";
+      }
+      return h;
+    }
+
+    function showTable(title, note, btnLabel) {
+      return new Promise(function (res) {
+        $("tableTitle").textContent = title;
+        $("tableBody").innerHTML = standingsHTML();
+        $("tableNote").textContent = note || "";
+        var b = $("nextBtn");
+        b.textContent = btnLabel || "NEXT MATCH";
+        $("tableScreen").classList.remove("hidden");
+        b.onclick = function () { $("tableScreen").classList.add("hidden"); res(); };
+      });
+    }
+
+    function stars(ovr) {
+      var n = clamp(Math.round((ovr - 60) / 8), 1, 5);
+      return "★★★★★".slice(0, n) + "☆☆☆☆☆".slice(0, 5 - n);
+    }
+
+    function setupMatch(foeId) {
+      var mine = teamById(tour.myId), foe = teamById(foeId);
+      var oppKit = kitClash(mine.kit, foe.kit) ? "#f5f5f5" : foe.kit;
+      var myLib = pickLiberoKit(mine.kit, [oppKit]);
+      var oppLib = pickLiberoKit(oppKit, [mine.kit, myLib]);
+      me = makeSide(mine, 0, mine.kit, myLib);
+      opp = makeSide(foe, 1, oppKit, oppLib);
+      $("hudMe").textContent = mine.flag + " " + mine.name;
+      $("hudOpp").textContent = foe.name + " " + foe.flag;
+      var sm = Object.keys(mine.stars).map(function (r) { return me.roster[r].name + " (" + SKILL_TXT[mine.stars[r]] + ")"; }).join(", ");
+      var so = Object.keys(foe.stars).map(function (r) { return opp.roster[r].name + " (" + SKILL_TXT[foe.stars[r]] + ")"; }).join(", ");
+      feed(-1, "— " + mine.name + " vs " + foe.name + " " + stars(foe.ovr) + " —");
+      feed(0, "Stars: " + sm + ". Libero: " + me.roster.L.name + ".");
+      feed(1, "Stars: " + so + ". Libero: " + opp.roster.L.name + ".");
+      $("rosterBox").innerHTML = "<div>" + rosterTable(me) + "</div><div>" + rosterTable(opp) + "</div>";
+    }
+
+    async function playMatch(foeId, label) {
+      setupMatch(foeId);
+      $("stageLine").textContent = label + (mode === "role"
+        ? " • YOU ARE " + me.roster[myRole].name + " (" + ROLE_NAMES[myRole] + ")"
+        : " • FULL TEAM");
+      score = [0, 0]; serving = Math.random() < 0.5 ? 0 : 1;
+      me.rot = 0; opp.rot = 0;
+      updateHud();
+      var over = false;
+      while (!over) {
+        await rally();
+        var hi = Math.max(score[0], score[1]);
+        if (hi >= 15 && Math.abs(score[0] - score[1]) >= 2) over = true;
+      }
+      var won = score[0] > score[1];
+      var r = record();
+      if (won) r.w++; else r.l++;
+      localStorage.setItem(REC_KEY, JSON.stringify(r));
+      showRecord();
+      $("endTitle").textContent = won ? "MATCH WON!" : "MATCH LOST";
+      $("endScore").textContent = score[0] + " : " + score[1];
+      $("endNote").textContent = teamById(tour.myId).name + " vs " + teamById(foeId).name + " — " + label;
+      ball.visible = false;
+      await new Promise(function (res) {
+        $("endScreen").classList.remove("hidden");
+        $("contBtn").onclick = function () { $("endScreen").classList.add("hidden"); res(); };
+      });
+      return won;
+    }
+
+    async function runTournament() {
+      while (tour.stage === "pool") {
+        var r = tour.round;
+        var myMatch = null, sims = [];
+        tour.pools.forEach(function (pool) {
+          poolPairs(pool, r).forEach(function (pair) {
+            if (pair[0] === tour.myId || pair[1] === tour.myId) myMatch = pair;
+            else sims.push(pair);
+          });
+        });
+        var foeId = myMatch[0] === tour.myId ? myMatch[1] : myMatch[0];
+        await playMatch(foeId, "POOL PLAY — ROUND " + (r + 1) + "/3");
+        applyResult(tour.myId, foeId, score[0], score[1]);
+        sims.forEach(function (pair) {
+          var s = simMatch(pair[0], pair[1]);
+          applyResult(pair[0], pair[1], s[0], s[1]);
+        });
+        tour.round++;
+        if (tour.round >= 3) {
+          tour.stage = "semi";
+          var A = poolRank(tour.pools[0]), B = poolRank(tour.pools[1]);
+          tour.semis = [[A[0], B[1], null, null], [B[0], A[1], null, null]];
+        }
+        saveTour();
+        await showTable("STANDINGS", tour.stage === "semi" ? "TOP 2 OF EACH POOL ADVANCE" : "ROUND " + (tour.round + 1) + " OF 3 UP NEXT", tour.stage === "semi" ? "TO THE PLAYOFFS" : "NEXT MATCH");
+      }
+      if (tour.stage === "semi") {
+        var mySemi = tour.semis.find(function (m) { return m[0] === tour.myId || m[1] === tour.myId; });
+        if (!mySemi) {
+          tour.semis.forEach(function (m) { var s = simMatch(m[0], m[1]); m[2] = s[0]; m[3] = s[1]; });
+          var f0 = tour.semis[0], f1 = tour.semis[1];
+          tour.final = [f0[2] > f0[3] ? f0[0] : f0[1], f1[2] > f1[3] ? f1[0] : f1[1], null, null];
+          var fs = simMatch(tour.final[0], tour.final[1]);
+          tour.final[2] = fs[0]; tour.final[3] = fs[1];
+          tour.champion = fs[0] > fs[1] ? tour.final[0] : tour.final[1];
+          tour.stage = "done"; saveTour();
+          await showTable("ELIMINATED IN POOLS", teamById(tour.champion).name + " WINS THE TOURNAMENT", "NEW TOURNAMENT");
+          return endTournament();
+        }
+        var other = tour.semis.find(function (m) { return m !== mySemi; });
+        var so = simMatch(other[0], other[1]); other[2] = so[0]; other[3] = so[1];
+        var foe2 = mySemi[0] === tour.myId ? mySemi[1] : mySemi[0];
+        var wonS = await playMatch(foe2, "SEMIFINAL");
+        mySemi[2] = mySemi[0] === tour.myId ? score[0] : score[1];
+        mySemi[3] = mySemi[0] === tour.myId ? score[1] : score[0];
+        var otherWinner = so[0] > so[1] ? other[0] : other[1];
+        if (!wonS) {
+          tour.final = [foe2, otherWinner, null, null];
+          var fs2 = simMatch(tour.final[0], tour.final[1]);
+          tour.final[2] = fs2[0]; tour.final[3] = fs2[1];
+          tour.champion = fs2[0] > fs2[1] ? tour.final[0] : tour.final[1];
+          tour.stage = "done"; saveTour();
+          await showTable("OUT IN THE SEMIS", teamById(tour.champion).name + " TAKES THE TITLE", "NEW TOURNAMENT");
+          return endTournament();
+        }
+        tour.final = [tour.myId, otherWinner, null, null];
+        tour.stage = "final"; saveTour();
+        await showTable("YOU'RE IN THE FINAL!", "ONE MATCH FOR THE TROPHY", "PLAY THE FINAL");
+      }
+      if (tour.stage === "final") {
+        var foeF = tour.final[0] === tour.myId ? tour.final[1] : tour.final[0];
+        var wonF = await playMatch(foeF, "THE FINAL");
+        tour.final[2] = tour.final[0] === tour.myId ? score[0] : score[1];
+        tour.final[3] = tour.final[0] === tour.myId ? score[1] : score[0];
+        tour.champion = wonF ? tour.myId : foeF;
+        tour.stage = "done"; saveTour();
+        if (wonF) localStorage.setItem(CUP_KEY, String(cups() + 1));
+        showRecord();
+        await showTable(wonF ? "🏆 CHAMPIONS!!" : "SILVER MEDAL", wonF ? teamById(tour.myId).name + " WINS THE VNL!" : teamById(foeF).name + " TAKES GOLD", "NEW TOURNAMENT");
+        return endTournament();
+      }
+    }
+
+    function endTournament() {
+      localStorage.removeItem(TOUR_KEY);
+      tour = null;
+      boot();
+    }
+
+    // ================== SHELL ==================
+    function updateHud() {
+      $("sMe").textContent = score[0];
+      $("sOpp").textContent = score[1];
+      $("serveMe").textContent = (serving === 0 ? "● SERVING — " : "") + (me ? "ROT " + (me.rot + 1) : "");
+      $("serveOpp").textContent = (opp ? "ROT " + (opp.rot + 1) : "") + (serving === 1 ? " — SERVING ●" : "");
+    }
+
+    function rosterTable(sideObj) {
+      var h = "<table class='roster'><tr><th>" + sideObj.team.flag + " " + sideObj.team.name +
+        "</th><th>SRV</th><th>REC</th><th>SET</th><th>ATT</th><th>BLK</th><th>DEF</th></tr>";
+      Object.keys(sideObj.roster).forEach(function (p) {
+        var r = sideObj.roster[p];
+        h += "<tr><td><img src='" + r.sprite.toDataURL() + "' alt=''/>" + p + " " + r.name +
+          (r.skill ? " <span class='star'>★" + SKILL_TXT[r.skill] + "</span>" : "") +
+          "</td><td>" + r.srv + "</td><td>" + r.rec + "</td><td>" + r.set +
+          "</td><td>" + r.att + "</td><td>" + r.blk + "</td><td>" + r.def + "</td></tr>";
+      });
+      return h + "</table>";
+    }
+
+    function pickFrom(prompt, items) {
+      return new Promise(function (res) {
+        $("pickPrompt").textContent = prompt;
+        var grid = $("teamGrid"); grid.innerHTML = "";
+        items.forEach(function (it) {
+          var b = document.createElement("button");
+          b.className = "btn";
+          b.innerHTML = it.html;
+          b.addEventListener("click", function () { res(it.value); });
+          grid.appendChild(b);
+        });
+        $("pickScreen").classList.remove("hidden");
+      });
+    }
+
+    function pickTeam(prompt) {
+      return pickFrom(prompt, TEAMS.map(function (t) {
+        return { html: "<span>" + t.flag + " " + t.name + "</span><span class='stars'>" + stars(t.ovr) + "</span>", value: t };
+      }));
+    }
+
+    async function boot() {
+      showRecord();
+      var saved = loadTour();
+      if (saved && saved.stage !== "done") {
+        tour = saved;
+        mode = tour.mode || "full"; myRole = tour.myRole || null;
+        $("pickScreen").classList.add("hidden");
+        feed(-1, "— TOURNAMENT RESUMED —");
+        runTournament();
+        return;
+      }
+      msg("PICK YOUR NATION");
+      var mine = await pickTeam("CHOOSE YOUR NATION — 8-TEAM TOURNAMENT");
+      var playMode = await pickFrom("HOW DO YOU WANT TO PLAY?", [
+        { html: "<span>🎮 FULL TEAM</span><span class='stars'>CALL IT ALL</span>", value: "full" },
+        { html: "<span>🧍 ONE ROLE</span><span class='stars'>BE 1 PLAYER</span>", value: "role" }
+      ]);
+      var role = null;
+      if (playMode === "role") {
+        role = await pickFrom("PICK YOUR PLAYER — LOCKED FOR THE WHOLE TOURNAMENT", ROT_ORDER.concat(["L"]).map(function (r) {
+          return {
+            html: "<span>" + ROLE_NAMES[r] + "</span><span class='stars'>" + mine.players[r] + (mine.stars[r] ? " ★" : "") + "</span>",
+            value: r
+          };
+        }));
+      }
+      $("pickScreen").classList.add("hidden");
+      newTour(mine.id, playMode, role);
+      await showTable("TOURNAMENT DRAW", "POOL PLAY: 3 MATCHES, TOP 2 ADVANCE TO THE SEMIS", "START POOL PLAY");
+      runTournament();
+    }
+
+    $("rosterBtn").addEventListener("click", function () { $("rosterBox").classList.toggle("hidden"); });
+    $("resetRec").addEventListener("click", function () {
+      localStorage.removeItem(REC_KEY); localStorage.removeItem(CUP_KEY); localStorage.removeItem(TOUR_KEY);
+      showRecord();
+    });
+
+    buildCrowd();
+    requestAnimationFrame(draw);
+    boot();
+  })();
   </script>
 </body>
 </html>
