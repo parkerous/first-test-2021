@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VNL VOLLEY</title>
+<link rel="stylesheet" href="arcade.css" />
+<style>
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    font-size: 13px;
+    letter-spacing: 2px;
+  }
+  .hud .team { text-shadow: 0 0 6px currentColor; }
+  .hud .score {
+    font-size: 20px;
+    color: var(--amber);
+    text-shadow: 0 0 8px var(--amber);
+  }
+  .hud .serveDot { font-size: 10px; color: var(--neon-dim); }
+
+  .msgline {
+    min-height: 20px;
+    text-align: center;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .stage-wrap { display: flex; gap: 14px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+  .stage { position: relative; width: min(94vw, 420px); }
+  #court { cursor: default; }
+  #court.aiming { cursor: crosshair; }
+
+  .action-bar {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    min-height: 46px;
+  }
+  .action-bar .btn { font-size: 12px; padding: 8px 14px; letter-spacing: 2px; }
+  .action-bar .btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+    background: transparent;
+    color: var(--neon);
+    box-shadow: none;
+  }
+
+  /* Timing bar */
+  .timing {
+    position: absolute;
+    left: 6%;
+    right: 6%;
+    bottom: 12px;
+    background: rgba(4,8,5,0.92);
+    border: 2px solid var(--amber);
+    border-radius: 6px;
+    padding: 8px 10px 10px;
+    z-index: 25;
+    box-shadow: 0 0 14px rgba(255,176,0,0.4);
+  }
+  .timing .label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--amber);
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .timing .track {
+    position: relative;
+    height: 16px;
+    background: #16200f;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .timing .zone  { position: absolute; top: 0; bottom: 0; background: rgba(57,255,20,0.25); }
+  .timing .zoneP { position: absolute; top: 0; bottom: 0; background: rgba(57,255,20,0.55); }
+  .timing .marker {
+    position: absolute; top: 0; bottom: 0; width: 4px;
+    background: #fff;
+    box-shadow: 0 0 8px #fff;
+  }
+
+  /* Roster table */
+  .roster {
+    font-size: 11px;
+    letter-spacing: 1px;
+    border-collapse: collapse;
+  }
+  .roster th, .roster td { padding: 3px 8px; text-align: right; }
+  .roster th { color: var(--neon-dim); font-weight: normal; }
+  .roster td:first-child, .roster th:first-child { text-align: left; }
+
+  /* Team select */
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+    width: 100%;
+    max-width: 560px;
+  }
+  .team-grid .btn {
+    font-size: 11px;
+    padding: 8px 6px;
+    letter-spacing: 1px;
+    margin: 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .team-grid .btn .stars { color: var(--amber); }
+  .overlay h2 { margin-bottom: 2px; }
+  .overlay .sub { color: var(--neon-dim); font-size: 11px; letter-spacing: 2px; }
+</style>
+</head>
+<body>
+  <nav class="arcade-nav">
+    <a class="brand" href="index.html">◆ PIXEL ARCADE</a>
+    <a class="tab" href="index.html">ARCADE</a>
+    <a class="tab" href="snake.html">SNAKE</a>
+    <a class="tab" href="geo.html">GEO GUESS</a>
+    <a class="tab" href="crush.html">CRUSH</a>
+    <a class="tab active" href="volley.html">VNL</a>
+  </nav>
+
+  <div class="cabinet wide">
+    <h1 class="arcade-title">VNL VOLLEY</h1>
+    <p class="subtitle">◆ BIRD'S-EYE NATIONS LEAGUE &bull; FIRST TO 15 ◆</p>
+
+    <div class="hud">
+      <div class="team" id="hudMe" style="color:var(--neon)">—</div>
+      <div class="score"><span id="sMe">0</span> : <span id="sOpp">0</span></div>
+      <div class="team" id="hudOpp" style="color:var(--food)">—</div>
+    </div>
+    <div class="hud" style="margin-top:-6px">
+      <div class="serveDot" id="serveMe"></div>
+      <div class="serveDot" style="color:var(--neon-dim)" id="recordLine">RECORD 0W-0L</div>
+      <div class="serveDot" id="serveOpp"></div>
+    </div>
+
+    <div class="msgline" id="msg">PICK YOUR NATION</div>
+
+    <div class="stage-wrap">
+      <div class="stage">
+        <canvas id="court" class="screen" width="420" height="640"></canvas>
+
+        <!-- Timing bar -->
+        <div class="timing hidden" id="timing">
+          <div class="label" id="timingLabel">◆ RECEIVE! CLICK IN THE ZONE ◆</div>
+          <div class="track">
+            <div class="zone" id="zoneG"></div>
+            <div class="zoneP" id="zoneP"></div>
+            <div class="marker" id="marker"></div>
+          </div>
+        </div>
+
+        <!-- Team select -->
+        <div class="overlay" id="pickScreen">
+          <h2>VNL VOLLEY</h2>
+          <p class="sub" id="pickPrompt">CHOOSE YOUR NATION</p>
+          <div class="team-grid" id="teamGrid"></div>
+        </div>
+
+        <!-- Match end -->
+        <div class="overlay hidden" id="endScreen">
+          <h2 id="endTitle">MATCH</h2>
+          <p class="big-score" id="endScore">15 : 0</p>
+          <p id="endNote" class="sub"></p>
+          <button class="btn" id="againBtn">NEW MATCH</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="action-bar" id="actions"></div>
+        <div style="text-align:center">
+          <button class="link-btn" id="rosterBtn" style="font-size:10px">VIEW ATTRIBUTES</button>
+        </div>
+        <div id="rosterBox" class="hidden" style="margin-top:8px; display:flex; gap:18px; flex-wrap:wrap; justify-content:center"></div>
+        <div class="controls" style="max-width:420px">
+          SERVE: PICK FLOAT / TOPSPIN, CLICK TO AIM<br/>
+          RECEIVE &amp; DIG: STOP THE MARKER IN THE ZONE<br/>
+          SET: QUICK &bull; SLIDE &bull; MEDIUM &bull; HIGH — THEN CLICK WHERE TO SPIKE<br/>
+          AIM AT THE GAPS BETWEEN DEFENDERS!
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-row">
+      <span>© PIXEL ARCADE</span>
+      <button class="link-btn" id="resetRec">RESET RECORD</button>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    // ================== DATA ==================
+    // Overall ratings loosely track real-world strength (recent VNL era):
+    // the better the nation, the sharper its AI aim, attributes, and the
+    // faster your timing bar sweeps.
+    var TEAMS = [
+      { id:"POL", name:"POLAND",    flag:"🇵🇱", ovr:95 },
+      { id:"ITA", name:"ITALY",     flag:"🇮🇹", ovr:93 },
+      { id:"FRA", name:"FRANCE",    flag:"🇫🇷", ovr:92 },
+      { id:"JPN", name:"JAPAN",     flag:"🇯🇵", ovr:90 },
+      { id:"BRA", name:"BRAZIL",    flag:"🇧🇷", ovr:89 },
+      { id:"SLO", name:"SLOVENIA",  flag:"🇸🇮", ovr:87 },
+      { id:"USA", name:"USA",       flag:"🇺🇸", ovr:86 },
+      { id:"ARG", name:"ARGENTINA", flag:"🇦🇷", ovr:84 },
+      { id:"GER", name:"GERMANY",   flag:"🇩🇪", ovr:82 },
+      { id:"SRB", name:"SERBIA",    flag:"🇷🇸", ovr:80 },
+      { id:"IRI", name:"IRAN",      flag:"🇮🇷", ovr:79 },
+      { id:"NED", name:"NETHERLANDS",flag:"🇳🇱", ovr:78 },
+      { id:"CAN", name:"CANADA",    flag:"🇨🇦", ovr:77 },
+      { id:"BUL", name:"BULGARIA",  flag:"🇧🇬", ovr:75 },
+      { id:"TUR", name:"TÜRKIYE",   flag:"🇹🇷", ovr:74 },
+      { id:"CHN", name:"CHINA",     flag:"🇨🇳", ovr:72 },
+      { id:"KOR", name:"KOREA",     flag:"🇰🇷", ovr:68 }
+    ];
+
+    var ROLE_MODS = {
+      S:   { srv:-2, rec:-4, set: 9, att:-18, blk:-4, def: 3 },
+      OH1: { srv: 2, rec: 6, set:-9, att:  4, blk: 0, def: 3 },
+      OH2: { srv: 1, rec: 6, set:-9, att:  2, blk: 0, def: 4 },
+      MB1: { srv:-4, rec:-14, set:-14, att: 6, blk:10, def:-7 },
+      MB2: { srv:-4, rec:-14, set:-14, att: 5, blk: 9, def:-7 },
+      OP:  { srv: 4, rec:-9, set:-11, att: 8, blk: 3, def:-2 }
+    };
+
+    // Court geometry (bird's-eye; you are the bottom half)
+    var W = 420, H = 640, NET = H / 2;
+    var L = 30, R = 390, TOP = 40, BOT = 600;   // court bounds
+    var ATK = 93;                               // 3m line offset from net
+
+    // Base formations (front row near net, back row deep)
+    function basePositions(side) {            // side 0 = me(bottom), 1 = opp(top)
+      var f = side === 0 ? 1 : -1;
+      var fy = NET + f * 58, by = NET + f * 215;
+      return {
+        OH1: { x: 100, y: fy }, MB1: { x: 210, y: fy }, S: { x: 320, y: fy },
+        OH2: { x: 100, y: by }, MB2: { x: 210, y: by }, OP: { x: 320, y: by }
+      };
+    }
+
+    var SET_TYPES = [
+      { id: "quick",  label: "QUICK",  hitter: "MB1", tempo: 0.45, needPass: 2, from: { x: 210 } },
+      { id: "slide",  label: "SLIDE",  hitter: "MB2", tempo: 0.55, needPass: 2, from: { x: 290 } },
+      { id: "medium", label: "MEDIUM", hitter: "OP",  tempo: 0.75, needPass: 1, from: { x: 330 } },
+      { id: "high",   label: "HIGH",   hitter: "OH1", tempo: 1.0,  needPass: 0, from: { x: 80 } }
+    ];
+
+    var REC_KEY = "retroVNL.record";
+
+    // ================== STATE ==================
+    var $ = function (id) { return document.getElementById(id); };
+    var cv = $("court"), g = cv.getContext("2d");
+    var me = null, opp = null;                 // {team, roster:{pos:{attrs,num}}, pos:{} }
+    var score = [0, 0], serving = 0, matchOver = true;
+    var ball = { x: W/2, y: H - 80, h: 0, visible: false };
+    var aimPreview = null, phaseName = "";
+
+    function rnd(a, b) { return a + Math.random() * (b - a); }
+    function irnd(a, b) { return Math.floor(rnd(a, b + 1)); }
+    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+    function clamp01(v) { return clamp(v, 0, 1); }
+    function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+    function sleep(ms) { return new Promise(function (res) { setTimeout(res, ms); }); }
+
+    function makeSide(team, side) {
+      var roster = {}, taken = {};
+      Object.keys(ROLE_MODS).forEach(function (pos) {
+        var m = ROLE_MODS[pos], num;
+        do { num = irnd(1, 22); } while (taken[num]); taken[num] = 1;
+        roster[pos] = {
+          num: num,
+          srv: clamp(team.ovr + m.srv + irnd(-5, 5), 40, 99),
+          rec: clamp(team.ovr + m.rec + irnd(-5, 5), 40, 99),
+          set: clamp(team.ovr + m.set + irnd(-5, 5), 40, 99),
+          att: clamp(team.ovr + m.att + irnd(-5, 5), 40, 99),
+          blk: clamp(team.ovr + m.blk + irnd(-5, 5), 40, 99),
+          def: clamp(team.ovr + m.def + irnd(-5, 5), 40, 99)
+        };
+      });
+      return { team: team, roster: roster, pos: basePositions(side), side: side };
+    }
+
+    function jitterPositions(sideObj) {
+      var base = basePositions(sideObj.side);
+      Object.keys(base).forEach(function (p) {
+        sideObj.pos[p] = {
+          x: clamp(base[p].x + irnd(-22, 22), L + 16, R - 16),
+          y: clamp(base[p].y + irnd(-14, 14),
+                   sideObj.side === 0 ? NET + 24 : TOP + 14,
+                   sideObj.side === 0 ? BOT - 14 : NET - 24)
+        };
+      });
+    }
+
+    // ================== RENDER ==================
+    function draw() {
+      g.fillStyle = "#07120b"; g.fillRect(0, 0, W, H);
+      // court floor
+      g.fillStyle = "#0d2414"; g.fillRect(L, TOP, R - L, BOT - TOP);
+      // lines
+      g.strokeStyle = "#39ff14"; g.lineWidth = 2;
+      g.shadowColor = "#39ff14"; g.shadowBlur = 6;
+      g.strokeRect(L, TOP, R - L, BOT - TOP);
+      g.beginPath(); g.moveTo(L, NET - ATK); g.lineTo(R, NET - ATK); g.stroke();
+      g.beginPath(); g.moveTo(L, NET + ATK); g.lineTo(R, NET + ATK); g.stroke();
+      g.shadowBlur = 0;
+      // net
+      g.fillStyle = "#e8e8e8"; g.fillRect(L - 8, NET - 3, R - L + 16, 6);
+      g.fillStyle = "#555"; g.fillRect(L - 8, NET - 1, R - L + 16, 2);
+
+      if (aimPreview) {
+        g.strokeStyle = "rgba(255,176,0,0.8)"; g.lineWidth = 1.5;
+        g.beginPath(); g.arc(aimPreview.x, aimPreview.y, 12, 0, Math.PI * 2); g.stroke();
+        g.beginPath(); g.moveTo(aimPreview.x - 16, aimPreview.y); g.lineTo(aimPreview.x + 16, aimPreview.y); g.stroke();
+        g.beginPath(); g.moveTo(aimPreview.x, aimPreview.y - 16); g.lineTo(aimPreview.x, aimPreview.y + 16); g.stroke();
+      }
+
+      [opp, me].forEach(function (s) {
+        if (!s) return;
+        Object.keys(s.pos).forEach(function (p) {
+          var pt = s.pos[p], mine = s.side === 0;
+          g.save();
+          g.shadowColor = mine ? "#39ff14" : "#ff2e88"; g.shadowBlur = 8;
+          g.fillStyle = mine ? "#1d7a12" : "#8f1f52";
+          g.beginPath(); g.arc(pt.x, pt.y, 12, 0, Math.PI * 2); g.fill();
+          g.restore();
+          g.strokeStyle = mine ? "#39ff14" : "#ff5fb0"; g.lineWidth = 1.5;
+          g.beginPath(); g.arc(pt.x, pt.y, 12, 0, Math.PI * 2); g.stroke();
+          g.fillStyle = "#fff"; g.font = "9px monospace"; g.textAlign = "center";
+          g.fillText(s.roster[p].num, pt.x, pt.y + 3);
+          g.fillStyle = mine ? "#b6ffb0" : "#ffb9d9"; g.font = "8px monospace";
+          g.fillText(p, pt.x, pt.y - 16);
+        });
+      });
+
+      if (ball.visible) {
+        // shadow
+        g.fillStyle = "rgba(0,0,0,0.5)";
+        g.beginPath(); g.ellipse(ball.x, ball.y, 7, 4, 0, 0, Math.PI * 2); g.fill();
+        // ball rises with height
+        var r = 6 + ball.h * 6, by = ball.y - ball.h * 26;
+        g.save();
+        g.shadowColor = "#ffe14d"; g.shadowBlur = 10;
+        g.fillStyle = "#ffe14d";
+        g.beginPath(); g.arc(ball.x, by, r, 0, Math.PI * 2); g.fill();
+        g.restore();
+        g.strokeStyle = "#c9a500"; g.lineWidth = 1;
+        g.beginPath(); g.arc(ball.x, by, r, 0, Math.PI * 2); g.stroke();
+      }
+      requestAnimationFrame(draw);
+    }
+
+    function flyBall(from, to, ms, peak) {
+      ball.visible = true;
+      return new Promise(function (res) {
+        var t0 = performance.now();
+        (function step(now) {
+          var t = clamp01((now - t0) / ms);
+          ball.x = from.x + (to.x - from.x) * t;
+          ball.y = from.y + (to.y - from.y) * t;
+          ball.h = Math.sin(t * Math.PI) * peak;
+          if (t < 1) requestAnimationFrame(step); else res();
+        })(t0);
+      });
+    }
+
+    // ================== UI HELPERS ==================
+    function msg(t) { $("msg").textContent = t; }
+
+    function buttons(list) {       // [{label, value, disabled}] -> Promise(value)
+      return new Promise(function (res) {
+        var bar = $("actions"); bar.innerHTML = "";
+        list.forEach(function (o) {
+          var b = document.createElement("button");
+          b.className = "btn"; b.textContent = o.label; b.disabled = !!o.disabled;
+          b.addEventListener("click", function () { bar.innerHTML = ""; res(o.value); });
+          bar.appendChild(b);
+        });
+      });
+    }
+
+    function aimClick(half) {      // half: "top" -> Promise({x,y})
+      return new Promise(function (res) {
+        cv.classList.add("aiming");
+        function toCourt(e) {
+          var r = cv.getBoundingClientRect();
+          var x = clamp((e.clientX - r.left) / r.width * W, L + 10, R - 10);
+          var y = (e.clientY - r.top) / r.height * H;
+          y = half === "top" ? clamp(y, TOP + 10, NET - 16) : clamp(y, NET + 16, BOT - 10);
+          return { x: x, y: y };
+        }
+        function onMove(e) { aimPreview = toCourt(e); }
+        function onClick(e) {
+          cv.removeEventListener("mousemove", onMove);
+          cv.removeEventListener("click", onClick);
+          cv.classList.remove("aiming");
+          var pt = toCourt(e); aimPreview = null; res(pt);
+        }
+        cv.addEventListener("mousemove", onMove);
+        cv.addEventListener("click", onClick);
+      });
+    }
+
+    function timingBar(label, speedMs) {   // -> Promise(quality 0..1)
+      return new Promise(function (res) {
+        var wrap = $("timing"), mk = $("marker");
+        $("timingLabel").textContent = "◆ " + label + " ◆";
+        // zones: good band 30% wide, perfect 10%, random center
+        var center = rnd(0.3, 0.7);
+        $("zoneG").style.left = (center - 0.15) * 100 + "%";
+        $("zoneG").style.width = "30%";
+        $("zoneP").style.left = (center - 0.05) * 100 + "%";
+        $("zoneP").style.width = "10%";
+        wrap.classList.remove("hidden");
+        var t0 = performance.now(), done = false, raf;
+        function pos(now) { return (1 - Math.cos(((now - t0) / speedMs) * Math.PI * 2)) / 2; }
+        (function step(now) {
+          if (done) return;
+          mk.style.left = pos(now) * 100 + "%";
+          raf = requestAnimationFrame(step);
+        })(t0);
+        function stop(e) {
+          if (done) return; done = true;
+          e.preventDefault();
+          cancelAnimationFrame(raf);
+          document.removeEventListener("pointerdown", stop, true);
+          document.removeEventListener("keydown", key, true);
+          var q = clamp01(1 - Math.abs(pos(performance.now()) - center) / 0.5);
+          wrap.classList.add("hidden");
+          res(q);
+        }
+        function key(e) { if (e.key === " ") stop(e); }
+        // small grace so a stray click from aiming doesn't instantly trigger
+        setTimeout(function () {
+          document.addEventListener("pointerdown", stop, true);
+          document.addEventListener("keydown", key, true);
+        }, 120);
+        // auto-timeout = miss-ish
+        setTimeout(function () { if (!done) { done = true; cancelAnimationFrame(raf); wrap.classList.add("hidden"); res(0.15); } }, speedMs * 2.4);
+      });
+    }
+
+    // ================== MATCH LOGIC ==================
+    function passGrade(q) { return q >= 0.72 ? 2 : q >= 0.42 ? 1 : q >= 0.2 ? 0 : -1; }
+    var GRADE_TXT = ["POOR PASS", "GOOD PASS", "PERFECT PASS"];
+
+    function nearest(sideObj, pt, roles) {
+      var best = null, bd = 1e9;
+      (roles || Object.keys(sideObj.pos)).forEach(function (p) {
+        var d = dist(sideObj.pos[p], pt);
+        if (d < bd) { bd = d; best = p; }
+      });
+      return { pos: best, d: bd };
+    }
+
+    function gapScore(defSide, pt) {       // 0 = on a defender, 1 = wide open
+      return clamp01(nearest(defSide, pt).d / 120);
+    }
+
+    // Serve: returns {target, power, diff} ; kind "float"|"spin"
+    function serveParams(kind, srvAttr, quality) {
+      var power = (kind === "spin" ? 0.75 : 0.5) * (0.6 + srvAttr / 250) * (0.7 + quality * 0.5);
+      var wobble = kind === "float" ? 0.25 : 0.1;
+      var errP = kind === "spin" ? 0.1 - quality * 0.06 : 0.05 - quality * 0.03;
+      return { power: clamp01(power), wobble: wobble, errP: Math.max(0.02, errP) };
+    }
+
+    function oppBarSpeed() {               // better opponents = faster bar
+      return Math.round(1500 - (opp.team.ovr - 65) * 16);
+    }
+
+    async function rally() {
+      jitterPositions(me); jitterPositions(opp);
+      var winner;
+      if (serving === 0) winner = await myServe();
+      else winner = await oppServe();
+      score[winner]++; serving = winner;
+      updateHud();
+      await sleep(700);
+    }
+
+    // ---- my serve ----
+    async function myServe() {
+      msg("YOUR SERVE — CHOOSE THE TOSS");
+      var kind = await buttons([
+        { label: "FLOAT SERVE", value: "float" },
+        { label: "TOPSPIN SERVE", value: "spin" }
+      ]);
+      msg((kind === "float" ? "FLOAT" : "TOPSPIN") + " — CLICK WHERE TO SERVE");
+      var target = await aimClick("top");
+      var srv = me.roster.OP.srv;
+      var sp = serveParams(kind, srv, 0.5 + srv / 250);
+      // wobble the landing spot
+      target.x = clamp(target.x + rnd(-1, 1) * sp.wobble * 90, L + 10, R - 10);
+      target.y = clamp(target.y + rnd(-1, 1) * sp.wobble * 60, TOP + 10, NET - 16);
+      var from = { x: me.pos.OP.x, y: BOT + 24 };
+      msg(me.team.name + " #" + me.roster.OP.num + " SERVES...");
+      await flyBall(from, target, kind === "spin" ? 850 : 1100, kind === "spin" ? 1.1 : 1.5);
+      if (Math.random() < sp.errP) { msg("SERVE ERROR! INTO THE NET."); return 1; }
+      // opponent receives
+      var rcv = nearest(opp, target, ["OH1", "OH2", "OP", "S"]);
+      var rq = clamp01(opp.roster[rcv.pos].rec / 110 - sp.power * 0.45 + rnd(-0.12, 0.18) + (1 - gapScore(opp, target)) * 0.15);
+      var grade = passGrade(rq);
+      if (grade < 0) { msg("ACE!! " + opp.team.name + " SHANKS IT!"); return 0; }
+      msg(opp.team.name + " " + GRADE_TXT[grade]);
+      await sleep(350);
+      return await oppOffense(grade);
+    }
+
+    // ---- opponent serve ----
+    async function oppServe() {
+      var kind = Math.random() < 0.45 ? "float" : "spin";
+      msg(opp.team.name + " " + (kind === "float" ? "FLOAT" : "TOPSPIN") + " SERVE!");
+      var srv = opp.roster.OP.srv;
+      var sp = serveParams(kind, srv, 0.4 + opp.team.ovr / 300);
+      // AI aims at my weakest/open spot
+      var target = {
+        x: clamp(rnd(L + 30, R - 30), L + 10, R - 10),
+        y: clamp(NET + rnd(90, 250), NET + 20, BOT - 12)
+      };
+      await flyBall({ x: opp.pos.OP.x, y: TOP - 24 }, target, kind === "spin" ? 850 : 1100, kind === "spin" ? 1.1 : 1.5);
+      if (Math.random() < sp.errP * 1.3) { msg("THEIR SERVE SAILS OUT!"); return 0; }
+      var rcv = nearest(me, target, ["OH1", "OH2", "OP", "S"]);
+      var timing = await timingBar("RECEIVE WITH #" + me.roster[rcv.pos].num + "!", oppBarSpeed());
+      var rq = clamp01(timing * 0.55 + me.roster[rcv.pos].rec / 220 - sp.power * 0.35 + rnd(-0.05, 0.1));
+      var grade = passGrade(rq);
+      if (grade < 0) { msg("ACED... THE BALL HITS THE FLOOR."); return 1; }
+      msg(GRADE_TXT[grade] + "!");
+      await flyBall(target, { x: me.pos.S.x, y: me.pos.S.y }, 600, 1.6);
+      return await myOffense(grade);
+    }
+
+    // ---- my offense: set choice + aimed attack ----
+    async function myOffense(grade) {
+      msg("CHOOSE THE SET (" + GRADE_TXT[grade] + ")");
+      var opts = SET_TYPES.map(function (s) {
+        return { label: s.label, value: s.id, disabled: grade < s.needPass };
+      });
+      var choice = await buttons(opts);
+      var st = SET_TYPES.find(function (s) { return s.id === choice; });
+      var hitter = st.hitter;
+      var from = { x: st.from.x, y: NET + 42 };
+      me.pos[hitter] = { x: from.x, y: from.y + 14 };
+      msg(st.label + " TO #" + me.roster[hitter].num + " — CLICK WHERE TO SPIKE!");
+      await flyBall({ x: me.pos.S.x, y: me.pos.S.y }, from, 450 + st.tempo * 350, 1 + st.tempo * 1.4);
+      var target = await aimClick("top");
+      return await resolveAttack(me, opp, hitter, st, target, grade, true);
+    }
+
+    // ---- opponent offense (AI) ----
+    async function oppOffense(grade) {
+      var pool = SET_TYPES.filter(function (s) { return grade >= s.needPass; });
+      // strong teams favor fast offense
+      var st = pool[Math.random() < opp.team.ovr / 140 ? 0 : pool.length - 1];
+      if (Math.random() < 0.5) st = pool[irnd(0, pool.length - 1)];
+      var hitter = st.hitter;
+      var from = { x: st.from.x, y: NET - 42 };
+      opp.pos[hitter] = { x: from.x, y: from.y - 14 };
+      msg(opp.team.name + ": " + st.label + " BALL!");
+      await flyBall({ x: opp.pos.S.x, y: opp.pos.S.y }, from, 450 + st.tempo * 350, 1 + st.tempo * 1.4);
+      // AI aims for gaps; sharper aim with higher ovr
+      var best = null, bestScore = -1;
+      for (var i = 0; i < 6; i++) {
+        var cand = { x: rnd(L + 25, R - 25), y: rnd(NET + 40, BOT - 20) };
+        var s = gapScore(me, cand) + rnd(0, (100 - opp.team.ovr) / 60);
+        if (s > bestScore) { bestScore = s; best = cand; }
+      }
+      return await resolveAttack(opp, me, hitter, st, best, grade, false);
+    }
+
+    // ---- attack resolution (shared) ----
+    // attacker aims at `target` in defender court. Rally may continue.
+    async function resolveAttack(atkSide, defSide, hitter, st, target, grade, iAttack) {
+      var A = atkSide.roster[hitter];
+      // blocker: nearest front-row defender to attack x
+      var mirror = { x: st.from.x, y: defSide.side === 0 ? NET + 40 : NET - 40 };
+      var blkRole = nearest(defSide, mirror, ["OH1", "MB1", "S"]).pos;
+      var B = defSide.roster[blkRole];
+      var tempoDodge = 1 - st.tempo * 0.5;          // fast sets beat the block
+      var setQ = grade === 2 ? 1 : grade === 1 ? 0.75 : 0.5;
+
+      await flyBall({ x: st.from.x, y: atkSide.side === 0 ? NET + 30 : NET - 30 }, target, 380 - st.tempo * 60, 0.9);
+
+      var errP = 0.07 + (1 - setQ) * 0.1 + st.tempo * 0.02;
+      if (Math.random() < errP - A.att / 900) {
+        msg(iAttack ? "ATTACK ERROR — WIDE!" : opp.team.name + " HITS IT OUT!");
+        return iAttack ? 1 : 0;
+      }
+      var blockP = clamp01((B.blk / 230) * tempoDodge * (1.15 - setQ * 0.3));
+      if (Math.random() < blockP) {
+        msg(iAttack ? "ROOFED BY #" + B.num + "! " + defSide.team.name + " BLOCK!" : "MONSTER BLOCK #" + defSide.roster[blkRole].num + "!!");
+        return iAttack ? 1 : 0;
+      }
+      // dig attempt by nearest defender
+      var gap = gapScore(defSide, target);
+      var dig = nearest(defSide, target);
+      var D = defSide.roster[dig.pos];
+      var killP = clamp01(0.3 + A.att / 260 + setQ * 0.18 + gap * 0.32 - D.def / 400);
+      if (Math.random() < killP) {
+        msg(iAttack ? "KILL!! " + st.label + " FINDS THE FLOOR!" : A.num + " SCORES THROUGH THE GAP...");
+        return iAttack ? 0 : 1;
+      }
+      // dug up -> transition continues
+      if (defSide.side === 0) {
+        var timing = await timingBar("DIG WITH #" + D.num + "!", oppBarSpeed() * 0.9);
+        var dq = clamp01(timing * 0.6 + D.def / 240 - 0.1);
+        var dg = passGrade(dq);
+        if (dg < 0) { msg("THE DIG FLIES AWAY..."); return 1; }
+        msg("DUG UP! " + GRADE_TXT[dg]);
+        await flyBall(target, { x: me.pos.S.x, y: me.pos.S.y }, 600, 1.7);
+        return await myOffense(Math.min(dg, 1));
+      } else {
+        msg(opp.team.name + " DIGS IT UP!");
+        await sleep(300);
+        var dgo = passGrade(clamp01(D.def / 130 + rnd(-0.15, 0.15)));
+        if (dgo < 0) { msg("...BUT IT ROLLS AWAY! POINT!"); return 0; }
+        return await oppOffense(Math.min(dgo, 1));
+      }
+    }
+
+    // ================== MATCH SHELL ==================
+    function updateHud() {
+      $("sMe").textContent = score[0];
+      $("sOpp").textContent = score[1];
+      $("serveMe").textContent = serving === 0 ? "● SERVING" : "";
+      $("serveOpp").textContent = serving === 1 ? "SERVING ●" : "";
+    }
+
+    function record() {
+      try { return JSON.parse(localStorage.getItem(REC_KEY) || '{"w":0,"l":0}'); }
+      catch (e) { return { w: 0, l: 0 }; }
+    }
+    function showRecord() {
+      var r = record();
+      $("recordLine").textContent = "RECORD " + r.w + "W-" + r.l + "L";
+    }
+
+    async function playMatch() {
+      score = [0, 0]; serving = Math.random() < 0.5 ? 0 : 1;
+      matchOver = false;
+      updateHud();
+      while (!matchOver) {
+        await rally();
+        var hi = Math.max(score[0], score[1]);
+        if (hi >= 15 && Math.abs(score[0] - score[1]) >= 2) matchOver = true;
+        else if (hi >= 14) msg(score[0] > score[1] ? "MATCH POINT!" : score[1] > score[0] ? "THEY HAVE MATCH POINT..." : "DEUCE!");
+      }
+      var won = score[0] > score[1];
+      var r = record();
+      if (won) r.w++; else r.l++;
+      localStorage.setItem(REC_KEY, JSON.stringify(r));
+      showRecord();
+      $("endTitle").textContent = won ? "🏆 YOU WIN!" : "DEFEAT...";
+      $("endScore").textContent = score[0] + " : " + score[1];
+      $("endNote").textContent = won
+        ? me.team.name + " TOPPLES " + opp.team.name + " (" + stars(opp.team.ovr) + ")"
+        : opp.team.name + " (" + stars(opp.team.ovr) + ") WAS TOO STRONG — TRY A LOWER-RANKED FOE";
+      $("endScreen").classList.remove("hidden");
+      ball.visible = false;
+    }
+
+    function stars(ovr) {
+      var n = clamp(Math.round((ovr - 60) / 8), 1, 5);
+      return "★★★★★".slice(0, n) + "☆☆☆☆☆".slice(0, 5 - n);
+    }
+
+    // ---- team pick flow ----
+    function pickTeam(prompt) {
+      return new Promise(function (res) {
+        $("pickPrompt").textContent = prompt;
+        var grid = $("teamGrid"); grid.innerHTML = "";
+        TEAMS.forEach(function (t) {
+          var b = document.createElement("button");
+          b.className = "btn";
+          b.innerHTML = "<span>" + t.flag + " " + t.name + "</span><span class='stars'>" + stars(t.ovr) + "</span>";
+          b.addEventListener("click", function () { res(t); });
+          grid.appendChild(b);
+        });
+        $("pickScreen").classList.remove("hidden");
+      });
+    }
+
+    function rosterTable(sideObj) {
+      var h = "<table class='roster'><tr><th>" + sideObj.team.flag + " " + sideObj.team.name +
+        "</th><th>SRV</th><th>REC</th><th>SET</th><th>ATT</th><th>BLK</th><th>DEF</th></tr>";
+      Object.keys(sideObj.roster).forEach(function (p) {
+        var r = sideObj.roster[p];
+        h += "<tr><td>" + p + " #" + r.num + "</td><td>" + r.srv + "</td><td>" + r.rec +
+          "</td><td>" + r.set + "</td><td>" + r.att + "</td><td>" + r.blk + "</td><td>" + r.def + "</td></tr>";
+      });
+      return h + "</table>";
+    }
+
+    async function boot() {
+      var mine = await pickTeam("CHOOSE YOUR NATION");
+      var foe = await pickTeam("CHOOSE YOUR OPPONENT (★ = REAL-WORLD STRENGTH = DIFFICULTY)");
+      $("pickScreen").classList.add("hidden");
+      if (foe.id === mine.id) foe = TEAMS.find(function (t) { return t.id !== mine.id; });
+      me = makeSide(mine, 0); opp = makeSide(foe, 1);
+      $("hudMe").textContent = mine.flag + " " + mine.name;
+      $("hudOpp").textContent = foe.name + " " + foe.flag;
+      $("rosterBox").innerHTML = "<div>" + rosterTable(me) + "</div><div>" + rosterTable(opp) + "</div>";
+      msg("FIRST TO 15 — GOOD LUCK!");
+      playMatch();
+    }
+
+    $("againBtn").addEventListener("click", function () {
+      $("endScreen").classList.add("hidden");
+      boot();
+    });
+    $("rosterBtn").addEventListener("click", function () {
+      $("rosterBox").classList.toggle("hidden");
+    });
+    $("resetRec").addEventListener("click", function () {
+      localStorage.removeItem(REC_KEY); showRecord();
+    });
+
+    showRecord();
+    requestAnimationFrame(draw);
+    boot();
+  })();
+  </script>
+</body>
+</html>

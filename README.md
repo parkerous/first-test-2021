@@ -30,6 +30,15 @@ graphics, CRT scanlines, and scores saved locally in your browser via
 - **4 endings** (two romance routes, a friendship ending, and a secret one);
   unlocked endings persist locally (`retroCrush.endings`).
 
+### 🏐 VNL Volley (`volley.html`)
+- Bird's-eye volleyball vs real national teams — difficulty scales with
+  their real-world VNL strength (Poland ★★★★★ ... Korea ★).
+- Choose float or topspin serves, call quick / slide / medium / high sets,
+  and click exactly where to send every serve and spike — aim for the gaps.
+- Timing-bar receives and digs (the bar sweeps faster vs better teams).
+- Every player has SRV/REC/SET/ATT/BLK/DEF attributes by position.
+- First to 15, win by 2; win-loss record persists locally (`retroVNL.record`).
+
 ### Menu (`index.html`)
 The arcade hub — a top menu bar on every page plus game cards showing your
 saved scores. Add more games by dropping in a new page and a new card.

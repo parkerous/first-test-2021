@@ -13,6 +13,7 @@
     <a class="tab" href="snake.html">SNAKE</a>
     <a class="tab" href="geo.html">GEO GUESS</a>
     <a class="tab" href="crush.html">CRUSH</a>
+    <a class="tab" href="volley.html">VNL</a>
   </nav>
 
   <div class="cabinet wide">
@@ -39,6 +40,13 @@
         <h3>STARLIGHT CRUSH</h3>
         <p>Rom-com visual novel. Two leads, one summer — your choices decide who falls for you.</p>
         <div class="best" id="crushBest">ENDINGS: 0/4</div>
+      </a>
+
+      <a class="game-card" href="volley.html">
+        <div class="icon">🏐</div>
+        <h3>VNL VOLLEY</h3>
+        <p>Bird's-eye volleyball vs real nations. Call the set, aim the spike, stop the dig. Difficulty = real-world strength.</p>
+        <div class="best" id="vnlBest">RECORD: 0W-0L</div>
       </a>
 
       <div class="game-card soon">
@@ -71,6 +79,10 @@
     try {
       var endings = JSON.parse(localStorage.getItem("retroCrush.endings") || "[]");
       document.getElementById("crushBest").textContent = "ENDINGS: " + endings.length + "/4";
+    } catch (e) { /* corrupt entry — ignore */ }
+    try {
+      var vr = JSON.parse(localStorage.getItem("retroVNL.record") || "null");
+      if (vr) document.getElementById("vnlBest").textContent = "RECORD: " + vr.w + "W-" + vr.l + "L";
     } catch (e) { /* corrupt entry — ignore */ }
   </script>
 </body>
