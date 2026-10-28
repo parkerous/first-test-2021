@@ -38,6 +38,12 @@ graphics, CRT scanlines, and scores saved locally in your browser via
   your tournament resumes after a page reload. Trophies are counted.
 - Rosters homage each nation's stars; every team has **2 star players**
   with specials (SUPER SPIKE / SUPER BLOCK / SUPER RECEIVE / SETTER DUMP).
+- Two ways to play: **FULL TEAM** (you make every call) or **ONE ROLE**
+  (you're locked to one player for the whole tournament; AI teammates do
+  the rest). As a setter you call sets; as a hitter you call for the ball
+  and aim your own spikes; as a front-row blocker you choose the lean on
+  slow sets; you serve, pass and dig whenever the ball comes to you.
+- Block reads: blockers commit cross or line; slow sets are readable.
 - Proper 5-1 rotations; call the set by hitter AND ball type; the ball
   slows down while you decide; live play-by-play commentary feed.
 - ~5-10% flat shank chance on receives and digs (halved for SUPER RECEIVE).

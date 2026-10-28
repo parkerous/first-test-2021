@@ -256,6 +256,9 @@
     var cheerAt = -9999, refFlagSide = 0, refFlagAt = -9999;
     var crowd = [];
     var tour = null;                              // tournament state
+    var mode = "full", myRole = null;             // "full" team control, or one locked "role"
+    function iControl(role) { return mode === "full" || role === myRole; }
+    var ROLE_NAMES = { S:"SETTER", OH1:"OUTSIDE 1", OH2:"OUTSIDE 2", MB1:"MIDDLE 1", MB2:"MIDDLE 2", OP:"OPPOSITE" };
 
     function rnd(a, b) { return a + Math.random() * (b - a); }
     function irnd(a, b) { return Math.floor(rnd(a, b + 1)); }
@@ -409,13 +412,14 @@
         if (!s) return;
         Object.keys(s.pos).forEach(function (role) {
           var pt = s.pos[role], mine = s.side === 0;
-          g.strokeStyle = mine ? "rgba(14,158,69,0.9)" : "rgba(224,52,138,0.9)";
-          g.lineWidth = 1.5;
-          g.beginPath(); g.ellipse(pt.x, pt.y + 14, 11, 4, 0, 0, Math.PI * 2); g.stroke();
+          var isYou = mine && mode === "role" && role === myRole;
+          g.strokeStyle = isYou ? "#ffd21e" : mine ? "rgba(14,158,69,0.9)" : "rgba(224,52,138,0.9)";
+          g.lineWidth = isYou ? 3 : 1.5;
+          g.beginPath(); g.ellipse(pt.x, pt.y + 14, isYou ? 14 : 11, isYou ? 5 : 4, 0, 0, Math.PI * 2); g.stroke();
           g.drawImage(s.roster[role].sprite, pt.x - 12, pt.y - 16, 24, 32);
           g.fillStyle = "#ffffff";
           g.font = "8px monospace"; g.textAlign = "center";
-          var tag = role + " #" + s.roster[role].num + (s.roster[role].skill ? "★" : "");
+          var tag = (isYou ? "YOU · " : "") + role + " #" + s.roster[role].num + (s.roster[role].skill ? "★" : "");
           g.fillStyle = "rgba(10,30,60,0.75)";
           g.fillRect(pt.x - tag.length * 2.6, pt.y - 27, tag.length * 5.2, 9);
           g.fillStyle = s.roster[role].skill ? "#ffd21e" : "#ffffff";
@@ -591,6 +595,31 @@
     }
     function oppBarSpeed() { return Math.round(1500 - (opp.team.ovr - 65) * 16); }
 
+    // AI stand-ins for any player the human isn't controlling
+    function autoTiming(attr) { return clamp01(rnd(0.25, 1) * (0.75 + attr / 400)); }
+    function aiTarget(defSide, ovr) {
+      var y1 = defSide.side === 0 ? NET + 40 : TOP + 20;
+      var y2 = defSide.side === 0 ? BOT - 20 : NET - 40;
+      var best = null, bestScore = -1;
+      for (var i = 0; i < 6; i++) {
+        var cand = { x: rnd(L + 25, R - 25), y: rnd(y1, y2) };
+        var sc = gapScore(defSide, cand) + rnd(0, (100 - ovr) / 60);
+        if (sc > bestScore) { bestScore = sc; best = cand; }
+      }
+      return best;
+    }
+    function aiPickSet(s, grade) {
+      var opts = setOptions(s, grade).filter(function (o) { return !o.disabled; });
+      if (s.roster.S.skill === "dump" && grade >= 1 && Math.random() < 0.08) {
+        var d = opts.find(function (o) { return o.dump; });
+        if (d) return d;
+      }
+      var nonDump = opts.filter(function (o) { return !o.dump; });
+      var st = nonDump[Math.random() < s.team.ovr / 140 ? 0 : nonDump.length - 1];
+      if (Math.random() < 0.5) st = nonDump[irnd(0, nonDump.length - 1)];
+      return st;
+    }
+
     function zoneName(side, x) {
       var left = x < 180, right = x > 300;
       if (side === 1) { var t = left; left = right; right = t; }
@@ -640,13 +669,21 @@
 
     async function myServe() {
       var sr = roleAt(me, 1), S = me.roster[sr];
-      msg(S.name + " TO SERVE — CHOOSE THE TOSS");
-      var kind = await buttons([
-        { label: "FLOAT SERVE", value: "float" },
-        { label: "TOPSPIN SERVE", value: "spin" }
-      ]);
-      msg((kind === "float" ? "FLOAT" : "TOPSPIN") + " — CLICK WHERE TO SERVE");
-      var target = await aimClick("top");
+      var kind, target;
+      if (iControl(sr)) {
+        msg(S.name + " TO SERVE — CHOOSE THE TOSS");
+        kind = await buttons([
+          { label: "FLOAT SERVE", value: "float" },
+          { label: "TOPSPIN SERVE", value: "spin" }
+        ]);
+        msg((kind === "float" ? "FLOAT" : "TOPSPIN") + " — CLICK WHERE TO SERVE");
+        target = await aimClick("top");
+      } else {
+        kind = Math.random() < 0.5 ? "float" : "spin";
+        target = aiTarget(opp, me.team.ovr);
+        msg(S.name + " SERVES...");
+        await sleep(400);
+      }
       var sp = serveParams(kind, S.srv, 0.5 + S.srv / 250);
       target.x = clamp(target.x + rnd(-1, 1) * sp.wobble * 90, L + 10, R - 10);
       target.y = clamp(target.y + rnd(-1, 1) * sp.wobble * 60, TOP + 10, NET - 16);
@@ -675,9 +712,14 @@
       await sleep(150);
       var rcv = nearest(me, target, ["OH1", "OH2", "OP", "S"]);
       var RP = me.roster[rcv.pos];
-      slow();
-      var timing = await timingBar("RECEIVE — " + RP.name + "!", oppBarSpeed());
-      fast();
+      var timing;
+      if (iControl(rcv.pos)) {
+        slow();
+        timing = await timingBar("RECEIVE — " + RP.name + "!", oppBarSpeed());
+        fast();
+      } else {
+        timing = autoTiming(RP.rec);
+      }
       await flight;
       if (Math.random() < sp.errP * 1.3) { msg("THEIR SERVE IS OUT!"); feed(1, "...long! Service error."); return 0; }
       if (Math.random() < shankChance(RP)) { msg("SHANKED..."); feed(1, RP.name + " SHANKS it into the stands!", true); return 1; }
@@ -690,21 +732,46 @@
     }
 
     async function myOffense(grade) {
-      var opts = setOptions(me, grade);
-      msg(me.roster.S.name + " TO SET — PICK HITTER & BALL (" + GRADE_TXT[grade] + ")");
-      var choice = await buttons(opts.map(function (o) {
-        var HP = me.roster[o.hitter];
-        return { label: o.label + " · " + HP.name + (HP.skill ? " ★" : ""), value: o.id, disabled: o.disabled };
-      }));
-      var st = opts.find(function (o) { return o.id === choice; });
+      var opts = setOptions(me, grade), st = null;
+      var SN = me.roster.S.name;
+      if (iControl("S")) {
+        msg(SN + " TO SET — PICK HITTER & BALL (" + GRADE_TXT[grade] + ")");
+        var choice = await buttons(opts.map(function (o) {
+          var HP = me.roster[o.hitter];
+          return { label: o.label + " · " + HP.name + (HP.skill ? " ★" : ""), value: o.id, disabled: o.disabled };
+        }));
+        st = opts.find(function (o) { return o.id === choice; });
+      } else {
+        // one-role hitter: call for the ball you want; the setter usually listens
+        var mine = opts.filter(function (o) { return !o.disabled && !o.dump && o.hitter === myRole; });
+        if (mine.length) {
+          msg("CALL FOR THE BALL? (" + GRADE_TXT[grade] + ")");
+          var call = await buttons(mine.map(function (o) { return { label: "CALL " + o.label, value: o.id }; })
+            .concat([{ label: "LET " + SN + " DECIDE", value: "auto" }]));
+          if (call !== "auto") {
+            var want = mine.find(function (o) { return o.id === call; });
+            feed(0, me.roster[myRole].name + " (YOU) calls for a " + want.label.toLowerCase() + " ball!");
+            if (Math.random() < 0.6 + grade * 0.15) st = want;
+            else feed(0, SN + " goes elsewhere...");
+          }
+        } else {
+          await sleep(300);
+        }
+        if (!st) st = aiPickSet(me, grade);
+      }
       var hitter = st.hitter, HP = me.roster[hitter];
       if (st.dump) {
-        feed(0, me.roster.S.name + " shows set... DUMP on two!", true);
-        msg("DUMP — CLICK WHERE TO DROP IT!");
+        feed(0, SN + " shows set... DUMP on two!", true);
         var from0 = { x: me.pos.S.x, y: NET + 36 };
-        slow();
-        var t0 = await aimClick("top");
-        fast();
+        var t0;
+        if (iControl("S")) {
+          msg("DUMP — CLICK WHERE TO DROP IT!");
+          slow();
+          t0 = await aimClick("top");
+          fast();
+        } else {
+          t0 = aiTarget(opp, me.team.ovr);
+        }
         return await resolveAttack(me, opp, "S", st, t0, grade, true, from0.x);
       }
       var from = { x: st.x, y: st.pipe ? NET + ATK + 18 : NET + 42 };
@@ -712,38 +779,30 @@
       feed(0, me.roster.S.name + " gives a " + st.label.toLowerCase() + " ball to " + zoneName(0, st.x) + " for " + HP.name + (HP.skill === "spike" ? " ★" : "") + "...");
       // the block commits to a direction; on slow sets you can SEE the lean
       var guess = Math.random() < 0.5 ? "cross" : "line";
+      var aimMe = iControl(hitter);
       if (st.tempo >= 0.7) {
-        msg(st.label + " TO " + HP.name + " — BLOCK LEANS " + guess.toUpperCase() + "! AIM AWAY FROM IT!");
+        msg(st.label + " TO " + HP.name + " — BLOCK LEANS " + guess.toUpperCase() + (aimMe ? "! AIM AWAY FROM IT!" : "!"));
         feed(1, "their block is leaning " + guess + "...");
       } else {
-        msg(st.label + " TO " + HP.name + " — TOO FAST TO READ! CLICK WHERE TO SPIKE!");
+        msg(st.label + " TO " + HP.name + (aimMe ? " — TOO FAST TO READ! CLICK WHERE TO SPIKE!" : "!"));
       }
       var flight = flyBall(me.pos.S, from, 450 + st.tempo * 350, 1 + st.tempo * 1.4);
-      slow();
-      var target = await aimClick("top");
-      fast();
+      var target;
+      if (aimMe) {
+        slow();
+        target = await aimClick("top");
+        fast();
+      } else {
+        target = aiTarget(opp, me.team.ovr);
+      }
       await flight;
       return await resolveAttack(me, opp, hitter, st, target, grade, true, st.x, guess);
     }
 
     async function oppOffense(grade) {
-      var opts = setOptions(opp, grade).filter(function (o) { return !o.disabled; });
-      var st;
-      if (opp.roster.S.skill === "dump" && grade >= 1 && Math.random() < 0.08) {
-        st = opts.find(function (o) { return o.dump; });
-      }
-      if (!st) {
-        var nonDump = opts.filter(function (o) { return !o.dump; });
-        st = nonDump[Math.random() < opp.team.ovr / 140 ? 0 : nonDump.length - 1];
-        if (Math.random() < 0.5) st = nonDump[irnd(0, nonDump.length - 1)];
-      }
+      var st = aiPickSet(opp, grade);
       var hitter = st.hitter, HP = opp.roster[hitter];
-      var best = null, bestScore = -1;
-      for (var i = 0; i < 6; i++) {
-        var cand = { x: rnd(L + 25, R - 25), y: rnd(NET + 40, BOT - 20) };
-        var s = gapScore(me, cand) + rnd(0, (100 - opp.team.ovr) / 60);
-        if (s > bestScore) { bestScore = s; best = cand; }
-      }
+      var best = aiTarget(me, opp.team.ovr);
       if (st.dump) {
         feed(1, opp.roster.S.name + " DUMPS on two!", true);
         msg(opp.roster.S.name + " DUMP!");
@@ -759,8 +818,21 @@
       var guess2 = Math.random() < 0.5 ? "cross" : "line";
       var readP = clamp01((0.3 + myBlk / 300) * st.tempo);
       if (actualDir !== "angle" && Math.random() < readP) guess2 = actualDir;
-      if (st.tempo >= 0.7) feed(0, "your block leans " + guess2 + "...");
-      await flyBall(opp.pos.S, from, 450 + st.tempo * 350, 1 + st.tempo * 1.4);
+      var blocker = nearest(me, { x: st.x, y: NET + 40 }, frontRoles(me)).pos;
+      var setFlight = flyBall(opp.pos.S, from, 450 + st.tempo * 350, 1 + st.tempo * 1.4);
+      if (mode === "role" && blocker === myRole && st.tempo >= 0.7) {
+        slow();
+        msg("YOU'RE BLOCKING " + HP.name + " — LEAN WHICH WAY?");
+        guess2 = await buttons([
+          { label: "LEAN CROSS", value: "cross" },
+          { label: "LEAN LINE", value: "line" }
+        ]);
+        fast();
+        feed(0, me.roster[myRole].name + " (YOU) leans " + guess2 + "...");
+      } else if (st.tempo >= 0.7) {
+        feed(0, "your block leans " + guess2 + "...");
+      }
+      await setFlight;
       return await resolveAttack(opp, me, hitter, st, best, grade, false, st.x, guess2);
     }
 
@@ -780,10 +852,14 @@
       var digTiming = null;
       var dig = nearest(defSide, target), D = defSide.roster[dig.pos];
       if (!iAttack && !st.dump) {
-        await sleep(80);
-        slow();
-        digTiming = await timingBar("DIG — " + D.name + "!", oppBarSpeed() * 0.9);
-        fast();
+        if (iControl(dig.pos)) {
+          await sleep(80);
+          slow();
+          digTiming = await timingBar("DIG — " + D.name + "!", oppBarSpeed() * 0.9);
+          fast();
+        } else {
+          digTiming = autoTiming(D.def);
+        }
       }
       await flight;
 
@@ -860,7 +936,7 @@
     function saveTour() { try { localStorage.setItem(TOUR_KEY, JSON.stringify(tour)); } catch (e) {} }
     function loadTour() { try { return JSON.parse(localStorage.getItem(TOUR_KEY) || "null"); } catch (e) { return null; } }
 
-    function newTour(myId) {
+    function newTour(myId, playMode, role) {
       var others = TEAMS.filter(function (t) { return t.id !== myId; });
       // shuffle, take 7
       for (var i = others.length - 1; i > 0; i--) { var j = irnd(0, i); var t = others[i]; others[i] = others[j]; others[j] = t; }
@@ -868,7 +944,9 @@
       ids.sort(function (a, b) { return teamById(b).ovr - teamById(a).ovr; });   // seed
       var pools = [[ids[0], ids[3], ids[4], ids[7]], [ids[1], ids[2], ids[5], ids[6]]];
       tour = { myId: myId, pools: pools, round: 0, stage: "pool",
-               table: {}, semis: null, final: null, champion: null };
+               table: {}, semis: null, final: null, champion: null,
+               mode: playMode || "full", myRole: role || null };
+      mode = tour.mode; myRole = tour.myRole;
       ids.forEach(function (id) { tour.table[id] = { w: 0, l: 0, pf: 0, pa: 0 }; });
       saveTour();
     }
@@ -959,7 +1037,9 @@
 
     async function playMatch(foeId, label) {
       setupMatch(foeId);
-      $("stageLine").textContent = label;
+      $("stageLine").textContent = label + (mode === "role"
+        ? " • YOU ARE " + me.roster[myRole].name + " (" + ROLE_NAMES[myRole] + ")"
+        : " • FULL TEAM");
       score = [0, 0]; serving = Math.random() < 0.5 ? 0 : 1;
       me.rot = 0; opp.rot = 0;
       updateHud();
@@ -1088,19 +1168,25 @@
       return h + "</table>";
     }
 
-    function pickTeam(prompt) {
+    function pickFrom(prompt, items) {
       return new Promise(function (res) {
         $("pickPrompt").textContent = prompt;
         var grid = $("teamGrid"); grid.innerHTML = "";
-        TEAMS.forEach(function (t) {
+        items.forEach(function (it) {
           var b = document.createElement("button");
           b.className = "btn";
-          b.innerHTML = "<span>" + t.flag + " " + t.name + "</span><span class='stars'>" + stars(t.ovr) + "</span>";
-          b.addEventListener("click", function () { res(t); });
+          b.innerHTML = it.html;
+          b.addEventListener("click", function () { res(it.value); });
           grid.appendChild(b);
         });
         $("pickScreen").classList.remove("hidden");
       });
+    }
+
+    function pickTeam(prompt) {
+      return pickFrom(prompt, TEAMS.map(function (t) {
+        return { html: "<span>" + t.flag + " " + t.name + "</span><span class='stars'>" + stars(t.ovr) + "</span>", value: t };
+      }));
     }
 
     async function boot() {
@@ -1108,14 +1194,29 @@
       var saved = loadTour();
       if (saved && saved.stage !== "done") {
         tour = saved;
+        mode = tour.mode || "full"; myRole = tour.myRole || null;
         $("pickScreen").classList.add("hidden");
         feed(-1, "— TOURNAMENT RESUMED —");
         runTournament();
         return;
       }
       var mine = await pickTeam("CHOOSE YOUR NATION — 8-TEAM TOURNAMENT");
+      var playMode = await pickFrom("HOW DO YOU WANT TO PLAY?", [
+        { html: "<span>🎮 FULL TEAM</span><span class='stars'>CALL EVERYTHING</span>", value: "full" },
+        { html: "<span>🧍 ONE ROLE</span><span class='stars'>BE ONE PLAYER</span>", value: "role" }
+      ]);
+      var role = null;
+      if (playMode === "role") {
+        role = await pickFrom("PICK YOUR PLAYER — LOCKED FOR THE WHOLE TOURNAMENT", ROT_ORDER.map(function (r) {
+          var st = mine.stars[r];
+          return {
+            html: "<span>" + ROLE_NAMES[r] + "</span><span class='stars'>" + mine.players[r] + (st ? " ★" : "") + "</span>",
+            value: r
+          };
+        }));
+      }
       $("pickScreen").classList.add("hidden");
-      newTour(mine.id);
+      newTour(mine.id, playMode, role);
       await showTable("TOURNAMENT DRAW", "POOL PLAY: 3 MATCHES, TOP 2 ADVANCE TO THE SEMIS", "START POOL PLAY");
       runTournament();
     }
