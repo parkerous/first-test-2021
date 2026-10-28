@@ -1,41 +1,9 @@
-# Netlify settings for the Binsu Star static site.
-# Plain HTML/CSS/JS — no build step. Just publish the repo root as-is.
+# Netlify settings for the Retro Snake game.
+# Pure static HTML/CSS/JS — no build step. Publish this folder as-is.
 [build]
   publish = "."
 
-# The Cloudflare Worker source, its config, and the api/ folder only run on
-# Cloudflare — keep them off the public Netlify site.
-[[redirects]]
-  from = "/api-worker.js"
-  to = "/index.html"
-  status = 404
-  force = true
-
-[[redirects]]
-  from = "/wrangler.toml"
-  to = "/index.html"
-  status = 404
-  force = true
-
-[[redirects]]
-  from = "/api/*"
-  to = "/index.html"
-  status = 404
-  force = true
-
-# Always revalidate the app files so a new deploy shows immediately
-# (no hard-refresh needed). Netlify still returns 304 when unchanged.
 [[headers]]
-  for = "/*.html"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-
-[[headers]]
-  for = "/js/*"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-
-[[headers]]
-  for = "/css/*"
+  for = "/*"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
