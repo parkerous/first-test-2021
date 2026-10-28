@@ -31,21 +31,17 @@ graphics, CRT scanlines, and scores saved locally in your browser via
   unlocked endings persist locally (`retroCrush.endings`).
 
 ### 🏐 VNL Volley (`volley.html`)
-- Bird's-eye pixel-art volleyball vs real national teams — difficulty scales
-  with their real-world VNL strength (Poland ★★★★★ ... Korea ★).
-- Rosters are an arcade homage to each nation's stars (Leon, Kurek,
-  Giannelli, Ishikawa, N'Gapeth...), each with a randomly generated pixel
-  face/sprite in their kit colors — see them in the roster panel.
-- Proper **5-1 rotations**: P1–P6 slots, side-out rotations, the server is
-  whoever is in P1, and your set menu follows the front row (when your
-  opposite is back-row, MEDIUM becomes the PIPE).
-- The ball **slows down while you decide** (bullet-time sets, aims, digs),
-  and its shadow shrinks as it rises so you can read the height.
-- Choose float or topspin serves, call quick / slide / medium / high sets,
-  click exactly where to send every ball — aim for the gaps. Timing-bar
-  receives and digs sweep faster against better teams. A pixel crowd
-  bounces when a point drops.
-- First to 15, win by 2; win-loss record persists locally (`retroVNL.record`).
+- Bright VNL-style pixel volleyball: blue court, Mikasa-style ball, pixel
+  crowd, net with antennas and a referee on the stand.
+- **Tournament mode**: 8 teams, two pools of round robin, then semifinals
+  and a final. Other matches are simulated from real-world strength;
+  your tournament resumes after a page reload. Trophies are counted.
+- Rosters homage each nation's stars; every team has **2 star players**
+  with specials (SUPER SPIKE / SUPER BLOCK / SUPER RECEIVE / SETTER DUMP).
+- Proper 5-1 rotations; call the set by hitter AND ball type; the ball
+  slows down while you decide; live play-by-play commentary feed.
+- ~5-10% flat shank chance on receives and digs (halved for SUPER RECEIVE).
+- W-L record + trophies persist locally (`retroVNL.record`, `retroVNL.cups`).
 
 ### Menu (`index.html`)
 The arcade hub — a top menu bar on every page plus game cards showing your
