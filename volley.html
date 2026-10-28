@@ -596,8 +596,13 @@
       if (side === 1) { var t = left; left = right; right = t; }
       return left ? "the outside" : right ? "the right side" : "the middle";
     }
+    function shotDir(originX, target) {
+      var dx = Math.abs(target.x - originX);
+      return dx > 95 ? "cross" : dx < 40 ? "line" : "angle";
+    }
     function shotName(originX, target) {
-      return Math.abs(target.x - originX) > 95 ? "the cross" : Math.abs(target.x - originX) < 40 ? "straight down the line" : "the angle";
+      var d = shotDir(originX, target);
+      return d === "cross" ? "the cross" : d === "line" ? "straight down the line" : "the angle";
     }
 
     function setOptions(s, grade) {
@@ -705,13 +710,20 @@
       var from = { x: st.x, y: st.pipe ? NET + ATK + 18 : NET + 42 };
       me.pos[hitter] = { x: from.x, y: from.y + 14 };
       feed(0, me.roster.S.name + " gives a " + st.label.toLowerCase() + " ball to " + zoneName(0, st.x) + " for " + HP.name + (HP.skill === "spike" ? " ★" : "") + "...");
-      msg(st.label + " TO " + HP.name + " — CLICK WHERE TO SPIKE!");
+      // the block commits to a direction; on slow sets you can SEE the lean
+      var guess = Math.random() < 0.5 ? "cross" : "line";
+      if (st.tempo >= 0.7) {
+        msg(st.label + " TO " + HP.name + " — BLOCK LEANS " + guess.toUpperCase() + "! AIM AWAY FROM IT!");
+        feed(1, "their block is leaning " + guess + "...");
+      } else {
+        msg(st.label + " TO " + HP.name + " — TOO FAST TO READ! CLICK WHERE TO SPIKE!");
+      }
       var flight = flyBall(me.pos.S, from, 450 + st.tempo * 350, 1 + st.tempo * 1.4);
       slow();
       var target = await aimClick("top");
       fast();
       await flight;
-      return await resolveAttack(me, opp, hitter, st, target, grade, true, st.x);
+      return await resolveAttack(me, opp, hitter, st, target, grade, true, st.x, guess);
     }
 
     async function oppOffense(grade) {
@@ -741,11 +753,18 @@
       opp.pos[hitter] = { x: from.x, y: from.y - 14 };
       feed(1, opp.roster.S.name + " sets a " + st.label.toLowerCase() + " ball to " + zoneName(1, st.x) + " for " + HP.name + (HP.skill === "spike" ? " ★" : "") + "...");
       msg(opp.team.name + ": " + st.label + " TO " + HP.name + "!");
+      // my block commits too: slow sets are easier to read correctly
+      var actualDir = shotDir(st.x, best);
+      var myBlk = Math.max.apply(null, frontRoles(me).map(function (r) { return me.roster[r].blk; }));
+      var guess2 = Math.random() < 0.5 ? "cross" : "line";
+      var readP = clamp01((0.3 + myBlk / 300) * st.tempo);
+      if (actualDir !== "angle" && Math.random() < readP) guess2 = actualDir;
+      if (st.tempo >= 0.7) feed(0, "your block leans " + guess2 + "...");
       await flyBall(opp.pos.S, from, 450 + st.tempo * 350, 1 + st.tempo * 1.4);
-      return await resolveAttack(opp, me, hitter, st, best, grade, false, st.x);
+      return await resolveAttack(opp, me, hitter, st, best, grade, false, st.x, guess2);
     }
 
-    async function resolveAttack(atkSide, defSide, hitter, st, target, grade, iAttack, originX) {
+    async function resolveAttack(atkSide, defSide, hitter, st, target, grade, iAttack, originX, guess) {
       var A = atkSide.roster[hitter];
       var front = frontRoles(defSide);
       var mirror = { x: st.x, y: defSide.side === 0 ? NET + 40 : NET - 40 };
@@ -754,6 +773,7 @@
       var tempoDodge = 1 - st.tempo * 0.5;
       var setQ = grade === 2 ? 1 : grade === 1 ? 0.75 : 0.5;
       var shot = shotName(originX, target);
+      var dir = shotDir(originX, target);
 
       var flight = flyBall({ x: originX, y: atkSide.side === 0 ? NET + 30 : NET - 30 }, target, st.dump ? 500 : 420 - st.tempo * 60, st.dump ? 1.3 : 0.9);
 
@@ -789,16 +809,25 @@
         return iAttack ? 1 : 0;
       }
       var blockP = clamp01((B.blk / 230) * tempoDodge * (1.15 - setQ * 0.3) * (A.skill === "spike" ? 0.75 : 1) + (B.skill === "block" ? 0.1 : 0));
+      // block commitment: right read = much bigger block, wrong read = beaten
+      var killBonus = 0;
+      var readRight = guess && dir !== "angle" && guess === dir;
+      var readWrong = guess && dir !== "angle" && guess !== dir;
+      if (readRight) blockP = clamp01(blockP * (1 + 0.9 * st.tempo));
+      if (readWrong) { blockP *= (1 - 0.6 * st.tempo); killBonus = 0.1 * st.tempo; }
       if (Math.random() < blockP) {
         msg("ROOFED!!");
-        feed(defSide.side === 0 ? 0 : 1, B.name + (B.skill === "block" ? " ★ SUPER BLOCK" : " with the block") + " — stuffs " + A.name + "!", true);
+        feed(defSide.side === 0 ? 0 : 1,
+          B.name + (readRight ? " READ " + shot + " all the way" : B.skill === "block" ? " ★ SUPER BLOCK" : " with the block") + " — stuffs " + A.name + "!", true);
         return iAttack ? 1 : 0;
       }
       var gap = gapScore(defSide, target);
-      var killP = clamp01(0.3 + A.att / 260 + setQ * 0.18 + gap * 0.32 - D.def / 400 + (A.skill === "spike" ? 0.15 : 0));
+      var killP = clamp01(0.3 + A.att / 260 + setQ * 0.18 + gap * 0.32 - D.def / 400 + (A.skill === "spike" ? 0.15 : 0) + killBonus);
       if (Math.random() < killP) {
         msg("KILL!!"); cheerAt = performance.now();
-        feed(iAttack ? 0 : 1, "and " + A.name + (A.skill === "spike" ? " ★ CRUSHES " : " scores ") + shot + "!!", true);
+        feed(iAttack ? 0 : 1,
+          "and " + A.name + (A.skill === "spike" ? " ★ CRUSHES " : " scores ") + shot +
+          (readWrong ? " — the block bit on the " + guess + "!!" : "!!"), true);
         return iAttack ? 0 : 1;
       }
       if (defSide.side === 0) {
