@@ -161,6 +161,8 @@
     var gt = 0;                                                    // game clock (s), slowed in bullet time
     var cheerAt = -9999, refFlagSide = 0, refFlagAt = -9999, netShakeAt = -99;
     var crowd = [];
+    var flames = [];                                               // blue flow-state flame particles
+    var lastScorer = null;                                         // who earned the last point: { s, role }
     var tour = null;
     var mode = "full", myRole = null;                              // "full" team control, or one locked "role"
     function iControl(role) { return mode === "full" || role === myRole; }
@@ -229,6 +231,7 @@
         var skill = (team.stars || {})[role] || null;
         var Pl = {
           name: team.players[role], num: num, face: face, skill: skill, cd: 0, ph: rnd(0, Math.PI * 2),
+          streak: 0, flow: false, flowLeft: 0,
           sprite: makeSprite(role === "L" ? liberoKit : kit, face),
           srv: clamp(team.ovr + m.srv + irnd(-5, 5), 30, 99),
           rec: clamp(team.ovr + m.rec + irnd(-5, 5), 30, 99),
@@ -253,6 +256,43 @@
       [me, opp].forEach(function (s) {
         Object.keys(s.roster).forEach(function (r) { if (s.roster[r].cd > 0) s.roster[r].cd--; });
       });
+    }
+
+    // ---- flow state: 3 points by one player before the other team scores ----
+    function credit(s, role) {
+      lastScorer = role ? { s: s, role: role } : null;            // errors give the point with no scorer
+      return pointTo(s);
+    }
+    var FLOW_BOOST = 8, FLOW_ATTRS = ["srv", "rec", "set", "att", "blk", "def"];
+    function setFlow(s, role, on) {
+      var Pl = s.roster[role];
+      if (Pl.flow === on) return;
+      Pl.flow = on;
+      FLOW_ATTRS.forEach(function (a) { Pl[a] += on ? FLOW_BOOST : -FLOW_BOOST; });
+      if (on) {
+        Pl.cd = 0;
+        Pl.flowLeft = 2;
+        msg(Pl.name + " ENTERS THE FLOW STATE!");
+        feed(s.side, "🔵🔥 " + Pl.name + " is in the FLOW STATE — three straight points! Skills recharged.", true);
+        cheer();
+      } else {
+        feed(s.side, Pl.name + "'s flow fades...");
+      }
+    }
+    function updateStreaks(winner) {
+      var win = winner === 0 ? me : opp, lose = other(win);
+      Object.keys(lose.roster).forEach(function (r) {
+        var Pl = lose.roster[r];
+        Pl.streak = 0;
+        if (Pl.flow && --Pl.flowLeft <= 0) setFlow(lose, r, false);
+      });
+      if (lastScorer && lastScorer.s === win) {
+        var Pl = win.roster[lastScorer.role];
+        Pl.streak++;
+        if (Pl.flow) Pl.flowLeft = 2;                              // scoring again keeps the fire burning
+        else if (Pl.streak >= 3) setFlow(win, lastScorer.role, true);
+      }
+      lastScorer = null;
     }
 
     // ================== ROTATION & LINEUP ==================
@@ -499,6 +539,72 @@
       });
     }
 
+    // ---- arms: forearm platform for passes/digs, hands up for sets & blocks, full swing for spikes ----
+    function drawArms(kind, pr, x, y, skin) {
+      var Ls = { x: x - 9, y: y - 8 }, Rs = { x: x + 9, y: y - 8 }, Lh, Rh;
+      if (kind === "block") { Lh = { x: x - 11, y: y - 40 }; Rh = { x: x + 11, y: y - 40 }; }
+      else if (kind === "spike") {
+        if (pr < 0.45)      { Lh = { x: x - 5,  y: y - 40 }; Rh = { x: x + 17, y: y - 30 }; }   // reach up, cock the arm back
+        else if (pr < 0.65) { Lh = { x: x - 12, y: y - 22 }; Rh = { x: x + 5,  y: y - 46 }; }   // full extension at contact
+        else                { Lh = { x: x - 13, y: y - 2 };  Rh = { x: x - 7,  y: y + 4 }; }    // follow-through across the body
+      } else if (kind === "serve") {
+        if (pr < 0.5) { Lh = { x: x - 4, y: y - 34 }; Rh = { x: x + 14, y: y - 28 }; }
+        else          { Lh = { x: x - 12, y: y - 6 }; Rh = { x: x + 6, y: y - 42 }; }
+      } else if (kind === "set") { Lh = { x: x - 5, y: y - 35 }; Rh = { x: x + 5, y: y - 35 }; }
+      else if (kind === "pass" || kind === "dig") {
+        var hy = kind === "dig" ? y + 6 : y + 2;
+        Lh = { x: x - 2, y: hy }; Rh = { x: x + 2, y: hy };
+      } else return;
+      g.lineCap = "round";
+      [["rgba(10,20,40,0.45)", 6.5], [skin, 4]].forEach(function (st) {   // dark outline, then skin
+        g.strokeStyle = st[0]; g.lineWidth = st[1];
+        g.beginPath(); g.moveTo(Ls.x, Ls.y); g.lineTo(Lh.x, Lh.y); g.moveTo(Rs.x, Rs.y); g.lineTo(Rh.x, Rh.y); g.stroke();
+      });
+      g.lineCap = "butt";
+      g.fillStyle = skin;
+      if (kind === "pass" || kind === "dig") g.fillRect(Lh.x - 4, Lh.y - 1, 12, 4);   // joined forearms = the platform
+      if (kind === "block") { g.fillRect(Lh.x - 3, Lh.y - 4, 6, 5); g.fillRect(Rh.x - 3, Rh.y - 4, 6, 5); }
+      if (kind === "set") { g.fillRect(Lh.x - 3, Lh.y - 3, 5, 4); g.fillRect(Rh.x - 2, Rh.y - 3, 5, 4); }
+    }
+
+    // ---- blue flames for players in the flow state ----
+    // a flickering pixel-fire silhouette behind the player, plus embers rising off them
+    function drawFlameBody(x, yFeet, yTop) {
+      var layers = [["#1e6bff", 1.0, 0], ["#3cc8ff", 0.72, 0.25], ["#e3faff", 0.42, 0.55]];
+      for (var cx = -20; cx <= 20; cx += 4) {
+        var edge = 1 - Math.abs(cx) / 22;                         // tallest in the middle
+        var flick = 0.72 + 0.22 * Math.sin(gt * 13 + cx * 1.9) + 0.14 * Math.sin(gt * 27 + cx * 0.7);
+        var full = (yFeet - yTop + 30) * edge * flick;
+        layers.forEach(function (ly) {
+          if (edge < ly[2]) return;                                // inner colours only in the core
+          var hh = Math.round(full * ly[1]);
+          g.fillStyle = ly[0];
+          g.globalAlpha = 0.85;
+          g.fillRect(Math.round(x + cx - 2), Math.round(yFeet + 16 - hh), 4, hh);
+        });
+      }
+      g.globalAlpha = 1;
+    }
+    function spawnFlames(x, yFeet, yTop, dt) {
+      var n = Math.max(1, Math.round(dt * 140));
+      for (var i = 0; i < n; i++) {
+        flames.push({ x: x + rnd(-16, 16), y: rnd(yTop, yFeet + 12), vx: rnd(-10, 10), vy: rnd(-95, -45),
+                      life: 0, max: rnd(0.35, 0.75), sz: irnd(4, 7) });
+      }
+    }
+    function drawFlames(dt) {
+      var cols = ["#ffffff", "#9ff0ff", "#3cc8ff", "#1e6bff"];
+      flames = flames.filter(function (f) { return (f.life += dt) < f.max; });
+      flames.forEach(function (f) {
+        f.x += f.vx * dt; f.y += f.vy * dt;
+        var k = f.life / f.max, sz = Math.max(1, Math.round(f.sz * (1 - k * 0.6)));
+        g.globalAlpha = 1 - k;
+        g.fillStyle = cols[Math.min(3, Math.floor(k * 4))];
+        g.fillRect(Math.round(f.x), Math.round(f.y), sz, sz);
+      });
+      g.globalAlpha = 1;
+    }
+
     function pill(text, x, y, font, fg, bg) {
       g.font = font;
       var w = g.measureText(text).width + 8;
@@ -587,9 +693,9 @@
       list.sort(function (a, b) { return a.p.y - b.p.y; });
       list.forEach(function (it) {
         var s = it.s, p = it.p, Pl = s.roster[it.r], a = s.anim[it.r];
-        var lift = 0, kind = null;
+        var lift = 0, kind = null, pr = 0;
         if (a) {
-          var pr = (gt - a.t0) / a.dur;
+          pr = (gt - a.t0) / a.dur;
           if (pr >= 0 && pr <= 1) { lift = Math.sin(pr * Math.PI) * a.h; kind = a.kind; }
           else if (pr > 1) delete s.anim[it.r];
         }
@@ -606,31 +712,37 @@
         g.strokeStyle = isYou ? "#ffd21e" : mine ? "#0e9e45" : "#e0348a";
         g.lineWidth = isYou ? 3.5 : 2;
         g.beginPath(); g.ellipse(x, p.y + 17, isYou ? 16 : 13, isYou ? 6 : 5, 0, 0, Math.PI * 2); g.stroke();
-        g.fillStyle = Pl.face.skin;
-        if (kind === "block") { g.fillRect(x - 12, y - 36, 4, 14); g.fillRect(x + 8, y - 36, 4, 14); }
-        if (kind === "spike" || kind === "serve") { g.fillRect(x + 7, y - 38, 4, 16); }
+        if (Pl.flow) {                                             // pulsing blue aura at the feet
+          g.fillStyle = "rgba(60,200,255," + (0.3 + Math.sin(gt * 8) * 0.12) + ")";
+          g.beginPath(); g.ellipse(x, p.y + 17, 19, 7, 0, 0, Math.PI * 2); g.fill();
+          drawFlameBody(x, p.y, y - 24);
+          spawnFlames(x, p.y, y - 24, dt * timeScale);
+        }
         g.drawImage(Pl.sprite, Math.round(x - 15), Math.round(y - 24), 30, 40);
+        if (kind) drawArms(kind, pr, x, y, Pl.face.skin);
       });
+      drawFlames(dt * timeScale);
       // labels stack instead of overlapping when players bunch up (e.g. a triple block)
       var placed = [];
       function freeY(text, x, y, font, dir) {
         g.font = font;
         var w = g.measureText(text).width + 8;
-        for (var tries = 0; tries < 4 && placed.some(function (b) {
+        for (var tries = 0; tries < 2 && placed.some(function (b) {
           return Math.abs(b.x - x) < (b.w + w) / 2 && Math.abs(b.y - y) < 17;
         }); tries++) y += dir * 17;
         placed.push({ x: x, y: y, w: w });
         return y;
       }
-      list.forEach(function (it) {
+      // names: nearest (lowest) players claim their spot first, players behind get nudged up
+      list.slice().reverse().forEach(function (it) {
         var Pl = it.s.roster[it.r], mine = it.s.side === 0;
         var isYou = mine && mode === "role" && it.r === myRole;
         var nm = Pl.name.length > 11 ? Pl.name.slice(0, 10) + "." : Pl.name;
         var star = Pl.skill ? (Pl.cd ? " ★" + Pl.cd : " ★") : "";
-        var label = (isYou ? "YOU " : "") + nm + star;
+        var label = (isYou ? "YOU " : "") + (Pl.flow ? "FLOW " : "") + nm + star;
         pill(label, it.dx, freeY(label, it.dx, it.dy - 34, LABEL_FONT, -1), LABEL_FONT,
-             isYou ? "#13293f" : (Pl.skill && !Pl.cd) ? "#ffd21e" : "#ffffff",
-             isYou ? "#ffd21e" : "rgba(10,30,60,0.85)");
+             isYou ? "#13293f" : Pl.flow ? "#d8f7ff" : (Pl.skill && !Pl.cd) ? "#ffd21e" : "#ffffff",
+             isYou ? "#ffd21e" : Pl.flow ? "#0b49d6" : "rgba(10,30,60,0.85)");
       });
       list.forEach(function (it) {
         var Pl = it.s.roster[it.r], tag = it.r + " #" + Pl.num;
@@ -873,6 +985,7 @@
       score[winner]++; serving = winner;
       cheer(); refFlagAt = performance.now(); refFlagSide = winner;
       tickCooldowns();
+      updateStreaks(winner);
       updateHud();
       await sleep(800);
     }
@@ -930,7 +1043,7 @@
         netShakeAt = gt;
         await flyBall(netPt, { x: netPt.x, y: NET - dirR * 30 }, 260, { h0: 0.6, h1: 0 });
         msg("SERVE INTO THE NET!"); feed(srv.side, "...but it catches the net. Service error.");
-        return pointTo(rcv);
+        return credit(rcv);
       }
       if (errKind === "long") target = { x: target.x, y: dirR > 0 ? CB + 24 : CT - 24 };
 
@@ -950,8 +1063,9 @@
         timing = autoTiming(RP.rec);
       }
       await flight;
-      if (errKind === "long") { msg("LONG — OUT!"); feed(srv.side, "...long! Service error."); return pointTo(rcv); }
+      if (errKind === "long") { msg("LONG — OUT!"); feed(srv.side, "...long! Service error."); return credit(rcv); }
 
+      jump(rcv, rcvRole, 500, -3, "pass");                         // forearm platform on the serve
       var useRec = ready(RP, "rec") && (rcv !== me || iControl(rcvRole) || Math.random() < 0.7);
       if (useRec) useSkill(rcv, RP);
       var rq = rcv === me
@@ -965,7 +1079,7 @@
         await flyBall(target, away, 450, { peak: 0.9 });
         msg(shank ? "SHANKED!" : "ACE!!"); cheer();
         feed(srv.side, shank ? RP.name + " SHANKS the serve!" : "ACE! " + Sv.name + " is on fire.", true);
-        return pointTo(srv);
+        return credit(srv, sr);
       }
       feed(rcv.side, RP.name + " passes — " + GRADE_TXT[grade].toLowerCase() + ".");
       await toSetter(rcv, target, grade, "S");
@@ -1034,9 +1148,9 @@
         await flyBall(bp, { x: bp.x + rnd(-20, 20), y: NET + (atk.side === 0 ? 1 : -1) * 40 }, 260, { h0: 0.8, h1: 0 });
         msg("READ THE DUMP — STUFFED!"); cheer();
         feed(def.side, def.roster[mb].name + " reads the dump and stuffs it!", true);
-        return pointTo(def);
+        return credit(def, mb);
       }
-      return await defensePlay(def, atk, from, target, { type: "tip", dump: true, A: S, setQ: 1, st: { x: from.x, tempo: 0.3 } });
+      return await defensePlay(def, atk, from, target, { type: "tip", dump: true, A: S, hitterRole: "S", setQ: 1, st: { x: from.x, tempo: 0.3 } });
     }
 
     async function spikeAttack(atk, def, grade, st, setterRole) {
@@ -1062,6 +1176,7 @@
       }
       placeDefense(def, st.x, blockers, lean);
       feed(atk.side, SN + " gives a " + st.label.toLowerCase() + " ball to " + zoneName(atk.side, st.x) + " for " + A.name + (A.skill ? " ★" : "") + "...");
+      jump(atk, setterRole, 420, 2, "set");                        // hands up over the head
       var setFlight = flyBall(setFrom, contact, 380 + st.tempo * 420, { h0: 1.1, h1: 1.4, peak: st.peak });
       var blockInfo = BLOCK_TXT[n] + (n && st.tempo >= 0.7 ? ", LEANING " + lean.toUpperCase() : "");
 
@@ -1142,7 +1257,8 @@
       var dir = shotDir(st.x, target);
       var readRight = n && type === "spike" && dir !== "angle" && lean === dir;
       var readWrong = n && type === "spike" && dir !== "angle" && lean !== dir;
-      var Btouch = n ? (def.superBlocker ? def.roster[def.superBlocker] : Bs[irnd(0, n - 1)]) : null;
+      var BtouchRole = n ? (def.superBlocker || blockers[irnd(0, n - 1)]) : null;
+      var Btouch = n ? def.roster[BtouchRole] : null;
       var blockY = n ? def.tgt[blockers[0]].y - 24 : NET;          // where the ball meets the hands
       var blockPt = { x: bx, y: blockY };
       var shot = shotName(st.x, target);
@@ -1164,7 +1280,7 @@
           msg("OUT!");
           feed(atk.side, "and " + A.name + " sends " + shot + "... OUT!");
         }
-        return pointTo(def);
+        return credit(def);
       }
 
       // 2) does the block get a hand on it?
@@ -1196,21 +1312,21 @@
           msg((n === 3 ? "TRIPLE " : n === 2 ? "DOUBLE " : "") + "BLOCK — STUFFED!!"); cheer();
           feed(def.side, who + " STUFFS " + A.name + "!" + (readRight ? " Read it all the way." : "") +
                (n > 1 ? " (" + BLOCK_TXT[n].toLowerCase() + ")" : ""), true);
-          return pointTo(def);
+          return credit(def, BtouchRole);
         }
         if (outcome === "tool") {
           var sideOut = { x: bx < W / 2 ? CL - 28 : CR + 28, y: NET + dirD * rnd(70, 220) };
           await flyBall(blockPt, sideOut, 420, { h0: 0.6, h1: 0, peak: 0.5 });
           msg("OFF THE BLOCK — OUT!"); cheer();
           feed(atk.side, "and " + A.name + (type === "wipe" ? " WIPES it off " : " tools ") + Btouch.name + "'s hands — out!", true);
-          return pointTo(atk);
+          return credit(atk, hitter);
         }
         if (outcome === "offblock") {
           var deep = { x: clamp(target.x + rnd(-30, 30), CL + 10, CR - 10), y: NET + dirD * rnd(150, 250) };
           await flyBall(blockPt, deep, 300, { h0: 0.6, h1: 0 });
           msg("OFF THE BLOCK — KILL!"); cheer();
           feed(atk.side, "and " + A.name + " hits it off the block — nobody can reach it!", true);
-          return pointTo(atk);
+          return credit(atk, hitter);
         }
         if (outcome === "rebound") {
           var coverPt = clampHalf(atk, { x: bx + rnd(-50, 50), y: NET + dirA * rnd(80, 140) });
@@ -1219,9 +1335,10 @@
           msg("BLOCKED BACK — COVER!");
           feed(def.side, who + " blocks it back...");
           await flyBall(blockPt, coverPt, 520, { h0: 0.6, h1: 0.1, peak: 0.9 });
+          jump(atk, coverer, 500, -5, "dig");
           if (Math.random() < 0.25) {
             feed(atk.side, "...nobody covers. Block point!", true); cheer();
-            return pointTo(def);
+            return credit(def, BtouchRole);
           }
           feed(atk.side, atk.roster[coverer].name + " covers the block! Play on.");
           var sr = coverer === "S" ? altSetter(atk) : "S";
@@ -1232,12 +1349,12 @@
         var pop = clampHalf(def, { x: bx + rnd(-70, 70), y: NET + dirD * rnd(100, 170) });
         msg("ONE TOUCH!");
         feed(def.side, "ONE TOUCH by " + who + " — " + (def === me ? "we" : "they") + " can play it!");
-        return await defensePlay(def, atk, blockPt, pop, { soft: true, A: A, setQ: setQ, st: st, h0: 0.6 });
+        return await defensePlay(def, atk, blockPt, pop, { soft: true, A: A, hitterRole: hitter, setQ: setQ, st: st, h0: 0.6 });
       }
 
       // 3) past the block: the defense has to dig it
       return await defensePlay(def, atk, contact, target, {
-        type: type, A: A, setQ: setQ, st: st, superSpike: superSpike, readWrong: readWrong, h0: 1.4
+        type: type, A: A, hitterRole: hitter, setQ: setQ, st: st, superSpike: superSpike, readWrong: readWrong, h0: 1.4
       });
     }
 
@@ -1262,6 +1379,7 @@
         timing = autoTiming(D.def);
       }
       await flight;
+      jump(def, digRole, 500, o.soft ? -3 : -5, o.soft ? "pass" : "dig");
       var superDig = ready(D, "dig") && (def !== me || controlled || Math.random() < 0.7);
       if (superDig) useSkill(def, D);
 
@@ -1280,17 +1398,17 @@
           o.type === "tip" ? "and " + o.A.name + " TIPS it into the open court!" :
           "and " + o.A.name + (o.superSpike ? " ★ CRUSHES " : " scores ") + shotName(o.st.x, to) +
           (o.readWrong ? " — the block bit on the wrong side!!" : "!!"), true);
-        return pointTo(atk);
+        return credit(atk, o.hitterRole);
       }
       if (Math.random() < SHANK_P) {
         await flyBall(to, { x: clamp(to.x + rnd(-80, 80), CL - 30, CR + 30), y: to.y + (def.side === 0 ? 1 : -1) * rnd(50, 90) }, 420, { peak: 0.8 });
         msg("SHANKED!");
         feed(def.side, D.name + " shanks it away!");
-        return pointTo(atk);
+        return credit(atk, o.hitterRole);
       }
       var dq = clamp01(timing * 0.6 + D.def / 240 - 0.1 + (superDig ? 0.15 : 0) + (o.soft ? 0.2 : 0) + (o.type === "tip" ? 0.15 : 0));
       var dg = passGrade(dq);
-      if (dg < 0) { msg("NO CONTROL!"); feed(def.side, D.name + " can't control it."); return pointTo(atk); }
+      if (dg < 0) { msg("NO CONTROL!"); feed(def.side, D.name + " can't control it."); return credit(atk, o.hitterRole); }
       feed(def.side, D.name + " digs " + (o.soft ? "the touch" : o.type === "tip" ? "the tip" : shotName(o.st.x, to)) + "! Transition...");
       var sr = digRole === "S" ? altSetter(def) : "S";
       await toSetter(def, to, Math.min(dg, 1), sr);
