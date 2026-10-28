@@ -31,12 +31,20 @@ graphics, CRT scanlines, and scores saved locally in your browser via
   unlocked endings persist locally (`retroCrush.endings`).
 
 ### 🏐 VNL Volley (`volley.html`)
-- Bird's-eye volleyball vs real national teams — difficulty scales with
-  their real-world VNL strength (Poland ★★★★★ ... Korea ★).
+- Bird's-eye pixel-art volleyball vs real national teams — difficulty scales
+  with their real-world VNL strength (Poland ★★★★★ ... Korea ★).
+- Rosters are an arcade homage to each nation's stars (Leon, Kurek,
+  Giannelli, Ishikawa, N'Gapeth...), each with a randomly generated pixel
+  face/sprite in their kit colors — see them in the roster panel.
+- Proper **5-1 rotations**: P1–P6 slots, side-out rotations, the server is
+  whoever is in P1, and your set menu follows the front row (when your
+  opposite is back-row, MEDIUM becomes the PIPE).
+- The ball **slows down while you decide** (bullet-time sets, aims, digs),
+  and its shadow shrinks as it rises so you can read the height.
 - Choose float or topspin serves, call quick / slide / medium / high sets,
-  and click exactly where to send every serve and spike — aim for the gaps.
-- Timing-bar receives and digs (the bar sweeps faster vs better teams).
-- Every player has SRV/REC/SET/ATT/BLK/DEF attributes by position.
+  click exactly where to send every ball — aim for the gaps. Timing-bar
+  receives and digs sweep faster against better teams. A pixel crowd
+  bounces when a point drops.
 - First to 15, win by 2; win-loss record persists locally (`retroVNL.record`).
 
 ### Menu (`index.html`)
