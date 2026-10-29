@@ -23,6 +23,20 @@ build step, no server.
   ROLLING THUNDER, IRON WALL, GUESS BLOCK, SMALL GIANT...), and Karasuno and
   Inarizaki have combo sets (FREAK QUICK, TWIN QUICK). A fan homage.
 
+### 🏫 Haikyuu!! Story Mode
+- 3 save slots. Pick any of the 16 schools, your position, build, hair and
+  skin, then join as a first-year (OVR ~10 below the team).
+- Each year: April intro → practice match → Golden Week drills → Interhigh
+  qualifiers (+ simulated nationals) → Tokyo summer camp (extra practice with
+  Bokuto, Kuroo, Akaashi, Kenma, Yaku or Komi, who can teach you a named move)
+  → Spring qualifiers → Spring Nationals (5 knockout rounds).
+- You play only yourself. The coach starts the best players, weighted by coach
+  trust: good matches, drills and pinch serves raise it. Benched? You still
+  get a pinch-serve moment.
+- Third-years graduate (rivals too: Oikawa, Ushijima and Bokuto leave after
+  year 1), first-years arrive and teammates improve. A captaincy is possible in
+  year 3, and an ending depends on your final OVR and trophies.
+
 ### 🏟️ Club Career (SuperLega 🇮🇹 + SV.League 🇯🇵)
 - 3 save slots. Create a player: name, nationality, position (setter, outside,
   middle, opposite, libero) and build (tower, balanced, jumper).
@@ -47,6 +61,11 @@ build step, no server.
   one-touches, waterfalls, overpasses, joust battles, free balls, dolphin dives,
   no-touch kills, shanks; poor passes can land anywhere, and the libero sets
   when the setter can't get there.
+- Every team has a playstyle (FAST TEMPO, POWER ATTACK, IRON WALL, ACE-CENTRIC,
+  DEFENSIVE GRIND, SERVE & PRESSURE, CREATIVE, BALANCED) that shapes its set
+  choices, tips, serves, blocking and defence.
+- Famous players have recognisable pixel looks (hair style and colour, glasses,
+  beards, streaks) and heights scale the sprites.
 - Star skills with cooldowns, flow state (blue flames), float/topspin serves.
 - Home arenas in the home team's colours with a crowd, boards and jumbotron.
 - Rosters, heights and clubs are an arcade homage, not official data.
@@ -56,13 +75,15 @@ build step, no server.
   label: CLEAR, SEAM, TOOL ZONE / BLOCK EDGE or INTO THE BLOCK. The ball goes
   where you click; only swings into the hands get blocked. On slow sets the
   block can still slide toward your shot; deep swings clear short blocks.
-- Receive/dig timing bar: precise and punishing. The green zone shrinks for
+- One-player mode adds extra timing steps: serve toss, the setter's touch,
+  the hitter's approach jump and the blocker's jump timing.
+- Timing bar: a slow, steady marker. GOOD is fair; PERFECT is a narrow band. The green zone shrinks for
   harder serves and attacks and grows when your player out-rates the hitter.
 
 ## Files
 `index.html` (layout) · `style.css` · `js/data.js` (teams, clubs, players) ·
 `js/haikyuu.js` (Spring Nationals teams) · `js/ui.js` · `js/stats.js` (box scores, sims, awards) · `js/engine.js` (match
-engine + arena) · `js/vnl.js` (tournaments) · `js/career.js` · `js/main.js` (menu).
+engine + arena) · `js/vnl.js` (tournaments) · `js/story.js` (Haikyuu story) · `js/career.js` · `js/main.js` (menu).
 
 ## Deploy to Netlify
 The repo root is the site. Leave **Base directory** empty and **Publish

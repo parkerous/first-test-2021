@@ -387,3 +387,9 @@ table.standings tr.you td { background: #fff4d6; }
 .stats-body table { margin: 0 auto 14px; }
 .paused-tag { font-size: 9px; color: var(--pink); vertical-align: middle; margin-left: 8px; }
 #statsPanel .tabs { justify-content: flex-start; margin-top: 4px; }
+
+/* ---- story mode drill bar ---- */
+.drill { position: relative; height: 34px; background: #e8f1fb; border: 3px solid var(--blue-l); border-radius: 6px; margin: 10px 0; overflow: hidden; }
+.drill-g { position: absolute; top: 0; bottom: 0; background: #ffe27a; }
+.drill-p { position: absolute; top: 0; bottom: 0; background: #3ddc7a; }
+.drill-m { position: absolute; top: -2px; bottom: -2px; width: 4px; margin-left: -2px; background: var(--ink, #1b2a3a); box-shadow: 0 0 0 1px #fff; }

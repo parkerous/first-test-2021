@@ -73,7 +73,7 @@ window.VB = window.VB || {};
     ITA: ["ROSSI", "BIANCHI", "RICCI", "MARINO", "GRECO", "GALLO", "CONTI", "DE LUCA", "COSTA", "FONTANA", "CARUSO", "MANCINI", "RIZZO",
           "LOMBARDI", "MORETTI", "BARBIERI", "FERRARA", "SANTORO", "MARINI", "LEONE", "LONGO", "GENTILE", "MARTINELLI", "VITALE",
           "SERRA", "COPPOLA", "DE ANGELIS", "FERRI", "PELLEGRINI", "BELLINI", "CATTANEO", "ORLANDO", "PAGANI", "VOLPE"],
-    JPN: ["SATO", "SUZUKI", "TANAKA", "WATANABE", "ITO", "NAKAMURA", "KOBAYASHI", "KATO", "YOSHIDA", "YAMADA", "SASAKI",
+    JPN: ["SATO", "SUZUKI", "WATANABE", "ITO", "NAKAMURA", "KOBAYASHI", "KATO", "YOSHIDA", "YAMADA", "SASAKI",
           "YAMAGUCHI", "MATSUMOTO", "INOUE", "KIMURA", "HAYASHI", "SHIMIZU", "YAMAZAKI", "MORI", "ABE", "IKEDA", "HASHIMOTO",
           "ISHII", "OKADA", "MAEDA", "FUJITA", "GOTO", "MIYAZAKI", "NOGUCHI", "KUBO", "SAKAMOTO", "ENDO", "AOKI", "MURATA"],
     POL: ["NOWAK", "KOWALSKI", "WISNIEWSKI", "WOJCIK", "KAMINSKI", "LEWANDOWSKI", "ZIELINSKI", "SZYMANSKI", "WOZNIAK", "DABROWSKI"],
@@ -112,6 +112,74 @@ window.VB = window.VB || {};
     };
   };
 
+  // ---------- team playstyles: tendencies the AI leans on ----------
+  // tempo/pipe/middle: set-choice weights • ace: how often the star gets the ball • tip: tip rate
+  // wipe: block-use shots • spin: jump-serve share • serveRisk: extra serve errors (and pressure)
+  // block: chance of an extra blocker closing • defense: dig/cover bonus
+  VB.STYLES = {
+    balanced: { name: "BALANCED", tempo: 1, pipe: 1, middle: 1, ace: 1, tip: 0.10, wipe: 1, spin: 0.55, serveRisk: 0, block: 0.05, defense: 0 },
+    fast:     { name: "FAST TEMPO", tempo: 1.7, pipe: 1.3, middle: 1.4, ace: 0.9, tip: 0.09, wipe: 0.9, spin: 0.5, serveRisk: 0, block: 0.03, defense: 0 },
+    power:    { name: "POWER ATTACK", tempo: 0.8, pipe: 1, middle: 0.9, ace: 1.4, tip: 0.05, wipe: 1.2, spin: 0.75, serveRisk: 0.05, block: 0.1, defense: -0.02 },
+    wall:     { name: "IRON WALL", tempo: 0.9, pipe: 0.8, middle: 1.2, ace: 1, tip: 0.08, wipe: 0.8, spin: 0.45, serveRisk: -0.02, block: 0.3, defense: 0.02 },
+    ace:      { name: "ACE-CENTRIC", tempo: 0.8, pipe: 0.9, middle: 0.7, ace: 2.2, tip: 0.07, wipe: 1.3, spin: 0.6, serveRisk: 0.02, block: 0.08, defense: 0 },
+    defense:  { name: "DEFENSIVE GRIND", tempo: 1, pipe: 1, middle: 1, ace: 0.9, tip: 0.13, wipe: 1, spin: 0.35, serveRisk: -0.03, block: 0.04, defense: 0.07 },
+    serve:    { name: "SERVE & PRESSURE", tempo: 1, pipe: 1, middle: 1, ace: 1.2, tip: 0.08, wipe: 1, spin: 0.85, serveRisk: 0.08, block: 0.06, defense: 0 },
+    creative: { name: "CREATIVE", tempo: 1.3, pipe: 1.6, middle: 1.1, ace: 0.9, tip: 0.18, wipe: 1.4, spin: 0.5, serveRisk: 0.01, block: 0.04, defense: 0.02 }
+  };
+  VB.PLAY_OF = {
+    POL: "power", ITA: "fast", FRA: "creative", JPN: "defense", BRA: "serve", SLO: "creative", USA: "serve", ARG: "fast", GER: "power",
+    SRB: "power", IRI: "balanced", NED: "serve", CAN: "balanced", BUL: "power", TUR: "balanced", CHN: "wall", KOR: "defense",
+    KAR: "fast", AOB: "serve", SHI: "ace", INA: "fast", NEK: "defense", FUK: "ace", ITC: "balanced", KAM: "wall", DAT: "wall", MUJ: "ace",
+    NOH: "creative", JOH: "creative", KAK: "power", WAK: "defense", TSU: "balanced", UBU: "balanced",
+    PER: "power", TRE: "fast", LUB: "balanced", PIA: "serve", MOD: "creative", MIL: "balanced", VER: "power", MON: "defense",
+    OSB: "serve", SUN: "power", WOL: "ace", STI: "fast", TGB: "balanced", TOR: "defense", HIR: "creative", SAK: "defense"
+  };
+
+  // ---------- signature looks: skin index, hair colour, hair style, extras ----------
+  var BLK = "#17120d", BRN = "#3a2416", LBR = "#6b4423", BLD = "#e8d27a", GRY = "#a0a0a0", WHT = "#ececec";
+  VB.LOOKS = {
+    // real players (pixel homages)
+    LEON: { skin: 3, hair: BLK, style: "buzz" }, KUREK: { style: "bald" }, "N'GAPETH": { skin: 2, hair: BLK, style: "curly", ex: ["beard"] },
+    CHINENYEZE: { skin: 4, hair: BLK, style: "buzz" }, LEAL: { skin: 4, hair: BLK, style: "buzz" }, DARLAN: { skin: 3, hair: BLK, style: "flat" },
+    SIMON: { skin: 4, hair: BLK, style: "bald" }, KEITA: { skin: 4, hair: BLK, style: "buzz" }, "BEN TARA": { skin: 2, hair: BLK, style: "curly", ex: ["beard"] },
+    LUCARELLI: { skin: 2, hair: BLK, style: "buzz" }, LUCAO: { skin: 2, hair: BLK, style: "buzz", ex: ["beard"] },
+    TAKAHASHI: { hair: BRN, style: "fluffy" }, NISHIDA: { hair: BLK, style: "buzz" }, ISHIKAWA: { hair: BLK, style: "flat" },
+    MICHIELETTO: { hair: BRN, style: "flat" }, GIANNELLI: { hair: LBR, style: "flat", ex: ["beard"] }, ROMANO: { hair: BLK, style: "buzz" },
+    SEMENIUK: { hair: "#b8863b", style: "flat" }, JANUSZ: { hair: LBR, style: "buzz" }, ZATORSKI: { hair: BRN, style: "buzz" },
+    BRUNINHO: { skin: 1, hair: BLK, style: "flat", ex: ["beard"] }, RUSSELL: { hair: "#b8863b", style: "flat" }, DEFALCO: { hair: BRN, style: "flat" },
+    PATRY: { hair: BRN, style: "flat" }, BRIZARD: { hair: BRN, style: "flat", ex: ["beard"] }, GROZER: { style: "bald", ex: ["beard"] },
+    SHOJI: { skin: 1, hair: BLK, style: "flat" }, MUSERSKIY: { hair: BRN, style: "buzz" }, KAZIYSKI: { hair: BRN, style: "buzz", ex: ["beard"] },
+    // Haikyuu!!
+    HINATA: { hair: "#ff7a1a", style: "spiky" }, KAGEYAMA: { hair: BLK, style: "bowl" }, TSUKISHIMA: { hair: BLD, style: "fluffy", ex: ["glasses"] },
+    NISHINOYA: { hair: BLK, style: "spiky", hair2: BLD, ex: ["streak"] }, AZUMANE: { hair: BRN, style: "long", ex: ["beard"] },
+    TANAKA: { hair: "#4a4a4a", style: "bald" }, SAWAMURA: { hair: BLK, style: "buzz" },
+    OIKAWA: { hair: LBR, style: "fluffy" }, IWAIZUMI: { hair: BLK, style: "spiky" }, HANAMAKI: { hair: "#e39ac0", style: "flat" },
+    MATSUKAWA: { hair: BLK, style: "curly" }, KINDAICHI: { hair: BLK, style: "mohawk" }, KYOTANI: { hair: BLD, style: "mohawk", hair2: BLK, ex: ["streak"] },
+    WATARI: { hair: BLK, style: "buzz" },
+    USHIJIMA: { hair: "#4a4a2a", style: "flat" }, TENDO: { hair: "#e83a2a", style: "spiky" }, SHIRABU: { hair: LBR, style: "bowl" },
+    GOSHIKI: { hair: BLK, style: "bowl" }, KAWANISHI: { hair: LBR, style: "flat" },
+    ATSUMU: { hair: BLD, style: "fluffy" }, OSAMU: { hair: GRY, style: "flat" }, OJIRO: { skin: 4, hair: BLK, style: "buzz" },
+    SUNA: { hair: BRN, style: "flat" }, OMIMI: { hair: BLK, style: "buzz" },
+    KENMA: { hair: BLD, style: "long", hair2: BLK, ex: ["roots"] }, TAKETORA: { hair: "#d8a03a", style: "mohawk" },
+    KUROO: { hair: BLK, style: "bedhead" }, LEV: { hair: "#d8d8d8", style: "flat" }, YAKU: { hair: "#c8a070", style: "flat" }, KAI: { hair: BLK, style: "buzz" },
+    BOKUTO: { hair: GRY, style: "bedhead", hair2: BLK, ex: ["streak"] }, AKAASHI: { hair: BLK, style: "curly" }, KONOHA: { hair: BLD, style: "flat" },
+    SAKUSA: { hair: BLK, style: "curly" }, KOMORI: { hair: BRN, style: "flat" }, IIZUNA: { hair: BLK, style: "flat" },
+    HOSHIUMI: { hair: WHT, style: "spiky" }, HIRUGAMI: { hair: LBR, style: "flat" }, HAKUBA: { hair: BLK, style: "buzz" },
+    AONE: { hair: "#d8d8d8", style: "bald" }, KOGANEGAWA: { hair: BLD, style: "spiky" }, FUTAKUCHI: { hair: LBR, style: "flat" },
+    TERUSHIMA: { hair: BLD, style: "spiky", hair2: BLK, ex: ["roots"] }, DAISHO: { hair: BLK, style: "long" }, KIRYU: { hair: BLK, style: "buzz" },
+    HYAKUZAWA: { hair: BLK, style: "buzz" }, NAKASHIMA: { hair: BRN, style: "flat" }
+  };
+  VB.applyLook = function (p) {
+    var L = VB.LOOKS[p.name];
+    if (!L || !p.face) return p;
+    if (L.skin != null) p.face.skin = VB.SKINS[L.skin];
+    if (L.hair) p.face.hair = L.hair;
+    if (L.style) p.face.style = L.style;
+    if (L.hair2) p.face.hair2 = L.hair2;
+    if (L.ex) p.face.ex = L.ex.slice();
+    return p;
+  };
+
   // ---------- player records ----------
   var uidN = 0;
   VB.uid = function () { return "p" + Date.now().toString(36) + (uidN++).toString(36) + irnd(0, 999); };
@@ -129,6 +197,7 @@ window.VB = window.VB || {};
     };
     VB.ATTRS.forEach(function (a) { p[a] = clamp(Math.round(o.base + m[a] + rnd(-5, 5)), 25, 99); });
     if (p.skill) p[VB.SKILL_ATTR[p.skill]] = clamp(p[VB.SKILL_ATTR[p.skill]] + 5, 25, 99);
+    VB.applyLook(p);
     var ov = VB.ovr(p);
     p.pot = clamp(ov + (p.age < 23 ? irnd(5, 14) : p.age < 27 ? irnd(0, 6) : 0), 40, 99);
     return p;

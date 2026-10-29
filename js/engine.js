@@ -82,22 +82,36 @@
   }
 
   // ================== SPRITES ==================
+  var STYLE_IDX = ["buzz", "flat", "spiky", "bald"];
+  // face: { skin, hair, style (index or name), hair2?, ex?: ["glasses","beard","streak","roots"], mouth }
   function makeSprite(kit, face) {
     var c = document.createElement("canvas");
     c.width = 12; c.height = 16;
     var q = c.getContext("2d");
     function p(x, y, col) { q.fillStyle = col; q.fillRect(x, y, 1, 1); }
     function row(x1, x2, y, col) { q.fillStyle = col; q.fillRect(x1, y, x2 - x1 + 1, 1); }
-    if (face.style === 2) { for (var x = 2; x <= 9; x += 2) p(x, 0, face.hair); }
-    if (face.style !== 3) {
-      row(2, 9, 1, face.hair);
-      if (face.style === 1) row(2, 9, 2, face.hair);
-    }
-    var topFace = face.style === 1 ? 3 : 2;
+    var hs = typeof face.style === "string" ? face.style : STYLE_IDX[face.style || 0] || "buzz";
+    var H = face.hair, H2 = face.hair2 || mix(H, "#000000", 0.45), ex = face.ex || [];
+    var topFace = { flat: 3, long: 3, bowl: 3, bedhead: 3, fluffy: 3 }[hs] || 2;
+    if (hs === "long") { for (var yy = 2; yy <= 7; yy++) { p(2, yy, H); p(9, yy, H); } }
+    if (hs === "buzz") row(3, 8, 1, H);
+    if (hs === "flat" || hs === "long") { row(2, 9, 1, H); row(2, 9, 2, H); }
+    if (hs === "spiky") { for (var x = 2; x <= 9; x += 2) p(x, 0, H); row(2, 9, 1, H); }
+    if (hs === "bowl" || hs === "fluffy") { row(3, 8, 0, H); row(2, 9, 1, H); row(2, 9, 2, H); }
+    if (hs === "mohawk") { row(5, 6, 0, H); row(4, 7, 1, H); p(3, 1, mix(H, "#000000", 0.5)); p(8, 1, mix(H, "#000000", 0.5)); }
+    if (hs === "bedhead") { p(1, 0, H); p(4, 0, H); p(7, 0, H); p(10, 0, H); row(1, 10, 1, H); row(2, 9, 2, H); }
+    if (hs === "curly") { p(3, 0, H); p(5, 0, H); p(7, 0, H); row(2, 9, 1, H); }
     for (var y = topFace; y <= 5; y++) row(3, 8, y, face.skin);
-    if (face.style !== 3) { p(3, topFace, face.hair); p(8, topFace, face.hair); }
+    if (hs !== "bald" && hs !== "mohawk") { p(3, topFace, H); p(8, topFace, H); }
+    if (hs === "bowl") row(3, 8, 3, H);                                   // heavy fringe
+    if (hs === "fluffy" || hs === "long" || hs === "curly") { p(2, 3, H); p(9, 3, H); }
+    if (hs === "curly") { p(2, 2, H); p(9, 2, H); }
+    if (ex.indexOf("roots") >= 0) row(3, 8, 1, H2);                       // two-tone, dark roots
+    if (ex.indexOf("streak") >= 0) { p(5, 1, H2); p(6, 1, H2); p(6, 0, H2); }   // coloured fringe streak
     p(4, 4, "#17120d"); p(7, 4, "#17120d");
+    if (ex.indexOf("glasses") >= 0) { p(3, 4, "#2b2b2b"); p(5, 4, "#2b2b2b"); p(6, 4, "#2b2b2b"); p(8, 4, "#2b2b2b"); }
     row(5, 6, 5, face.mouth ? "#a33d4d" : face.skin);
+    if (ex.indexOf("beard") >= 0) { p(3, 5, H); p(4, 5, H); p(7, 5, H); p(8, 5, H); }
     for (var y2 = 6; y2 <= 11; y2++) row(2, 9, y2, kit);
     p(1, 7, face.skin); p(10, 7, face.skin);
     p(1, 8, face.skin); p(10, 8, face.skin);
@@ -147,6 +161,7 @@
   }
 
   // ================== SKILLS / FLOW ==================
+  function sty(s) { return VB.STYLES[(s && s.team && s.team.play) || "balanced"] || VB.STYLES.balanced; }
   function skillLabel(Pl) { return Pl.skillName || VB.SKILL_TXT[Pl.skill]; }
   function roleOf(s, Pl) { return ROLES.find(function (r) { return s.roster[r] === Pl; }); }
   function ready(Pl, kind) { return Pl.skill === kind && Pl.cd === 0; }
@@ -269,14 +284,20 @@
   function defenseFormation(s, ax, blockers) {
     var m = baseFormation(s);
     var tx = s.side === 0 ? ax : W - ax, lineRight = tx > W / 2;
+    var lineX = lineRight ? CR - 34 : CL + 34, crossX = lineRight ? CL + 64 : CR - 64, dirIn = lineRight ? -1 : 1;
     s.onCourt.forEach(function (r) {
       if (blockers.indexOf(r) >= 0) return;
       var bx = baseX(s, r);
-      if (isFront(s, r)) { m[r] = P(s.side, bx === XM ? XM : bx === XL ? CL + 50 : CR - 50, NET + ATK - 4); return; }
+      if (isFront(s, r)) {
+        // a front-rower not blocking: on the hitter's side they cover the short line/tip, otherwise the sharp cross
+        var onLineSide = lineRight ? bx === XR : bx === XL;
+        m[r] = onLineSide ? P(s.side, lineX + dirIn * 30, NET + 78) : P(s.side, bx === XM ? XM + dirIn * 30 : crossX + dirIn * 20, NET + ATK + 6);
+        return;
+      }
       var lineSide = lineRight ? bx === XR : bx === XL;
-      if (lineSide) m[r] = P(s.side, lineRight ? CR - 30 : CL + 30, NET + 172);
-      else if (bx === XM) m[r] = P(s.side, XM + (lineRight ? 22 : -22), NET + 235);
-      else m[r] = P(s.side, lineRight ? CL + 48 : CR - 48, NET + 160);
+      if (lineSide) m[r] = P(s.side, lineX, NET + 188);                       // line, deep-ish
+      else if (bx === XM) m[r] = P(s.side, XM - dirIn * 10, NET + 242);       // middle back, deep and central
+      else m[r] = P(s.side, crossX, NET + 172);                                // cross
     });
     return m;
   }
@@ -682,11 +703,12 @@
         drawFlameBody(x, p.y, y - 24);
         if (sdt > 0) spawnFlames(x, p.y, y - 24, sdt);
       }
+      var hsc = clamp((Pl.height || 195) / 195, 0.8, 1.12);              // taller players are drawn taller
       if (kind === "dive" || kind === "fall") {                    // dive: laid out toward the ball; fall: knocked over by a shank
         var fall = kind === "fall";
         var tilt = a.dir * (fall ? 1.55 : 1.3) * Math.sin(Math.min(1, pr * (fall ? 3 : 1.8)) * Math.PI / 2);
         g.save(); g.translate(x, p.y + 8); g.rotate(tilt);
-        g.drawImage(Pl.sprite, -15, -32, 30, 40);
+        g.drawImage(Pl.sprite, -15 * hsc, -32 * hsc, 30 * hsc, 40 * hsc);
         g.restore();
         g.strokeStyle = Pl.face.skin; g.lineWidth = 4; g.lineCap = "round";
         g.beginPath(); g.moveTo(x + a.dir * 8, p.y); g.lineTo(x + a.dir * 26, p.y + 6); g.stroke(); g.lineCap = "butt";
@@ -698,8 +720,9 @@
           }
         }
       } else {
-        g.drawImage(Pl.sprite, Math.round(x - 15), Math.round(y - 24), 30, 40);
-        if (kind) drawArms(kind, pr, x, y, Pl.face.skin, a && a.dir);
+        g.drawImage(Pl.sprite, Math.round(x - 15 * hsc), Math.round(y + 16 - 40 * hsc), Math.round(30 * hsc), Math.round(40 * hsc));
+        if (kind) { g.save(); g.translate(x, y + 16); g.scale(hsc, hsc); drawArms(kind, pr, 0, -16, Pl.face.skin, a && a.dir); g.restore(); }
+        it.dy = y + 40 * (1 - hsc);
       }
     });
     drawFlames(sdt);
@@ -777,8 +800,8 @@
   // goodW: width of the green zone (0..1 of the bar) — shrinks against fast balls and better opponents
   function timingBar(label, speedMs, goodW) {
     goodW = clamp(goodW || 0.28, 0.12, 0.42);
-    var perfW = goodW * 0.45;
-    speedMs *= 1.35;                                              // a calmer marker
+    var perfW = goodW * 0.26;                                     // GOOD is easy to hit, PERFECT is not
+    speedMs *= 1.8;                                               // a calm, readable marker
     return new Promise(function (res) {
       var wrap = $("timing"), mk = $("marker");
       $("timingLabel").textContent = label + "  [" + (goodW >= 0.32 ? "EASY" : goodW >= 0.24 ? "NORMAL" : goodW >= 0.17 ? "HARD" : "BRUTAL") + "]";
@@ -788,7 +811,7 @@
       function quality(p) {
         var d = Math.abs(p - center);
         if (d <= perfW / 2) return 1;
-        if (d <= goodW / 2) return 0.9 - 0.3 * (d - perfW / 2) / (goodW / 2 - perfW / 2);
+        if (d <= goodW / 2) return 0.85 - 0.3 * (d - perfW / 2) / (goodW / 2 - perfW / 2);
         return Math.max(0, 0.45 - (d - goodW / 2) * 2.5);           // near misses still count for something
       }
       wrap.classList.remove("hidden");
@@ -886,6 +909,7 @@
     return blockers.map(function (r) {
       var B = def.roster[r], x = def.tgt[r].x;
       var hw = 10 + B.blk / 30 + (B.height - 190) / 9 + (def.superBlocker === r ? 4 : 0);
+      if (def.jumpQ && def.jumpQ.role === r) hw *= 0.7 + 0.5 * def.jumpQ.q;   // your block jump timing
       return { lo: x - hw, hi: x + hw, r: r };
     }).sort(function (a, b) { return a.lo - b.lo; });
   }
@@ -952,10 +976,15 @@
     var nonDump = ok.filter(function (o) { return !o.dump; });
     if (!nonDump.length) return ok[0] || opts[opts.length - 1];
     var fastLove = Math.pow(s.team.ovr / 88, 3);
+    var bestAtt = nonDump.map(function (o) { return o.hitter; }).sort(function (a, b) { return s.roster[b].att - s.roster[a].att; })[0];
     var w = nonDump.map(function (o) {
       var P0 = s.roster[o.hitter];
       var x = o.tempo < 0.7 ? fastLove : 1;
-      if (o.pipe) x *= 0.6;
+      var ys = sty(s);
+      if (o.pipe) x *= 0.6 * ys.pipe;
+      if (o.tempo < 0.7) x *= ys.tempo;
+      if (VB.FAMILY[o.hitter] === "MB") x *= ys.middle;
+      if (o.hitter === bestAtt) x *= ys.ace;
       if (P0.skill === "spike" || P0.flow) x *= 1.6;
       x *= 0.6 + P0.att / 160;
       if (o.id === s.lastCall) x *= 0.5;
@@ -981,13 +1010,19 @@
     var r = Math.random(), type = "spike", pin = isPin(st);
     // pin hitters facing a block on an imperfect set look to wipe it off the hands
     var wipeP = pin && n >= 1 ? 0.06 + (setQ < 1 ? 0.07 : 0) + (n >= 2 ? 0.04 : 0) : 0;
-    if (r < 0.1) type = "tip";
-    else if (r < 0.1 + wipeP) type = "wipe";
+    var ys = sty(atk);
+    if (r < ys.tip) type = "tip";
+    else if (r < ys.tip + wipeP * ys.wipe) type = "wipe";
     if (type === "spike" && ready(A, "spike") && Math.random() < 0.7) type = "super";
     var target = type === "tip" ? tipTarget(def) : type === "wipe" ? null : aiSpikeTarget(atk, def, contact, blockers);
     return { type: type, target: target };
   }
-  function blockCount(st) {
+  function blockCount(st, def) {
+    var n = blockCount0(st);
+    if (n >= 1 && n < 3 && Math.random() < sty(def).block) n++;        // wall teams get an extra blocker up
+    return n;
+  }
+  function blockCount0(st) {
     var r = Math.random();
     if (st.tempo < 0.3) return r < 0.7 ? 0 : 1;
     if (st.tempo < 0.5) return r < 0.25 ? 0 : r < 0.85 ? 1 : 2;
@@ -1038,7 +1073,7 @@
   }
 
   async function serve(srv) {
-    var rcv = other(srv), sr = srv.lineup[1], Sv = srv.roster[sr], kind, target;
+    var rcv = other(srv), sr = srv.lineup[1], Sv = srv.roster[sr], kind, target, tossMod = null;
     if (srv === me && iControl(sr)) {
       msg(Sv.name + " TO SERVE — PICK THE SERVE");
       var o = [{ label: "FLOAT SERVE", value: "float" }, { label: "TOPSPIN SERVE", value: "spin" }];
@@ -1046,8 +1081,12 @@
       kind = await U.buttons(o);
       msg("CLICK WHERE TO SERVE");
       target = await aimClick("top");
+      if (mode === "role") {
+        var tossQ = await timingBar("TOSS & SERVE — " + Sv.name + "!", 1000, 0.24 + (Sv.srv - 70) / 300);
+        tossMod = tossQ;
+      }
     } else {
-      kind = ready(Sv, "serve") && Math.random() < 0.7 ? "super" : Math.random() < 0.45 ? "float" : "spin";
+      kind = ready(Sv, "serve") && Math.random() < 0.7 ? "super" : Math.random() < sty(srv).spin ? "spin" : "float";
       target = serveTarget(rcv, srv.team.ovr);
       msg(Sv.name + " — " + (kind === "float" ? "FLOAT" : kind === "super" ? "SUPER" : "TOPSPIN") + " SERVE!");
     }
@@ -1055,6 +1094,11 @@
     if (superServe) { kind = "spin"; useSkill(srv, Sv); }
     var sp = serveParams(kind, Sv.srv, srv === me ? 0.5 + Sv.srv / 250 : 0.4 + srv.team.ovr / 300);
     if (superServe) { sp.power = clamp01(sp.power + 0.25); sp.errP += 0.05; }
+    if (tossMod != null) {                                       // a clean toss hits harder; a bad one risks an error
+      sp.power = clamp01(sp.power * (0.85 + 0.3 * tossMod));
+      sp.errP = Math.max(0.02, sp.errP + (tossMod < 0.35 ? 0.1 : tossMod >= 1 ? -0.02 : 0));
+    }
+    if (!(srv === me && iControl(sr))) { sp.power = clamp01(sp.power + sty(srv).serveRisk); sp.errP = Math.max(0.02, sp.errP + sty(srv).serveRisk * 0.6); }
     target = clampHalf(rcv, { x: target.x + rnd(-1, 1) * sp.wobble * 90, y: target.y + rnd(-1, 1) * sp.wobble * 60 });
     if (!superServe) feed(srv.side, Sv.name + (kind === "spin" ? " rips a jump topspin!" : " floats one over..."));
 
@@ -1209,6 +1253,11 @@
         return { label: o.label + " · " + HP.name + (HP.skill === "spike" ? " ★" : ""), value: o.id, disabled: o.disabled };
       }));
       st = opts.find(function (o) { return o.id === choice; });
+      if (mode === "role" && !st.dump) {
+        var setTq = await timingBar("SET — SOFT HANDS, " + SN + "!", 1000, 0.24 + (me.roster.S.set - 70) / 300);
+        st = Object.assign({}, st, { setAdj: setTq >= 1 ? 0.12 : setTq >= 0.5 ? 0 : -0.18 });
+        if (setTq < 0.5) feed(0, SN + "'s set is a little off...");
+      }
     } else if (atk === me && mode === "role" && !emergency) {
       var mine = opts.filter(function (o) { return !o.disabled && !o.dump && o.hitter === myRole; });
       if (mine.length) {
@@ -1264,7 +1313,8 @@
 
     moveTo(atk, hitter, { x: contact.x, y: contact.y + dirA * 16 });
     coverHitter(atk, hitter, setterRole, contact);
-    var n = blockCount(st), blockers = chooseBlockers(def, st.x, n);
+    var n = blockCount(st, def), blockers = chooseBlockers(def, st.x, n);
+    def.jumpQ = null;
     var lean = Math.random() < 0.5 ? "cross" : "line";
     var spacing = 24 + (1 - st.tempo) * 20 + rnd(-3, 6);            // fast sets leave gaps in the block
     var bAx = st.x + (1 - st.tempo) * rnd(-22, 22);                 // ...and the block a step late
@@ -1290,7 +1340,12 @@
       if (A.skill === "spike") ch.push({ label: "★ " + skillLabel(A) + (A.cd ? " (" + A.cd + ")" : ""), value: "super", disabled: !ready(A, "spike") });
       ch.push({ label: "SPIKE", value: "spike" }, { label: "TIP", value: "tip" });
       if (n > 0) ch.push({ label: "WIPE OFF BLOCK", value: "wipe" });
-      var type = await U.buttons(ch), tgt = null;
+      var type = await U.buttons(ch), tgt = null, jumpQ = null;
+      if (mode === "role") {
+        fast();
+        jumpQ = await timingBar("APPROACH — JUMP, " + A.name + "!", 900, 0.22 + (A.att - 70) / 300 + (A.vert - 85) / 400);
+        slow();
+      }
       if (type !== "wipe") {
         msg(type === "tip" ? "CLICK WHERE TO TIP IT" :
             "AIM: GREEN = CLEAR • YELLOW = TOOL/EDGE • RED = INTO THE BLOCK" + (st.tempo >= 0.8 && n ? " (SLOW SET — THE BLOCK CAN STILL ADJUST)" : ""));
@@ -1299,7 +1354,7 @@
         aimCtx = null;
       }
       fast();
-      plan = { type: type, target: tgt };
+      plan = { type: type, target: tgt, jump: jumpQ };
     } else if (iAttack) msg(st.label + " TO " + A.name + " — " + blockInfo + "!");
     else msg(atk.team.name + ": " + st.label + " TO " + A.name + " — " + BLOCK_TXT[n] + "!");
 
@@ -1312,6 +1367,10 @@
         placeDefense(def, bAx, blockers, lean, spacing);
         feed(0, me.roster[myRole].name + " (YOU) leans " + lean + "...");
       } else if (st.tempo >= 0.7) feed(0, "your " + BLOCK_TXT[n].toLowerCase() + " leans " + lean + "...");
+      if (mode === "role" && blockers.indexOf(myRole) >= 0) {
+        var bq = await timingBar("BLOCK — TIME YOUR JUMP, " + me.roster[myRole].name + "!", 900, 0.22 + (me.roster[myRole].blk - 70) / 300 - (1 - st.tempo) * 0.06);
+        def.jumpQ = { role: myRole, q: bq };
+      }
       var sb = blockers.find(function (r) { return ready(def.roster[r], "block"); });
       if (sb && iControl(sb)) {
         slow(); msg("★ " + skillLabel(def.roster[sb]) + " WITH " + def.roster[sb].name + "?");
@@ -1337,7 +1396,7 @@
 
   async function resolveHit(atk, def, hitter, st, plan, blockers, lean, superBlock, grade, contact, setterRole) {
     var A = atk.roster[hitter], dirA = atk.side === 0 ? 1 : -1, dirD = -dirA, n = blockers.length;
-    var setQ = grade === 2 ? 1 : grade === 1 ? 0.75 : 0.5;
+    var setQ = clamp((grade === 2 ? 1 : grade === 1 ? 0.75 : 0.5) + (st.setAdj || 0), 0.4, 1.1);
     var Bs = blockers.map(function (r) { return def.roster[r]; });
     var blkAvg = n ? Bs.reduce(function (a, b) { return a + b.blk; }, 0) / n : 0;
     var superSpike = plan.type === "super", type = superSpike ? "spike" : plan.type, target = plan.target;
@@ -1361,13 +1420,14 @@
     // height & reach duel: spike reach vs the best block reach in front of the hitter
     var topBlock = n ? Bs.reduce(function (m, b) { return b.blockReach > m.blockReach ? b : m; }) : null;
     var reachDiff = n ? A.spikeReach - topBlock.blockReach : 0;
+    if (plan.jump != null) reachDiff += (plan.jump - 0.6) * 25;           // a late or early jump costs reach
     if (n && Math.abs(reachDiff) >= 12 && Math.random() < 0.45) {
       feed(-1, reachDiff > 0 ? A.name + " (" + A.spikeReach + "cm reach) is hitting over the block!"
                              : topBlock.name + "'s " + topBlock.blockReach + "cm block towers over " + A.name + "...");
     }
 
     // 1) attack error
-    var errP = 0.05 + (1 - setQ) * 0.08 + st.tempo * 0.02 - A.att / 1200 + (superSpike ? 0.03 : 0) + (type === "wipe" ? 0.05 : 0) - (type === "tip" ? 0.03 : 0);
+    var errP = (plan.jump != null ? (plan.jump < 0.35 ? 0.07 : plan.jump >= 1 ? -0.02 : 0) : 0) + 0.05 + (1 - setQ) * 0.08 + st.tempo * 0.02 - A.att / 1200 + (superSpike ? 0.03 : 0) + (type === "wipe" ? 0.05 : 0) - (type === "tip" ? 0.03 : 0);
     if (Math.random() < errP) {
       A.st.ae++;
       if (pin && dir === "line" && Math.random() < 0.35) {
@@ -1551,6 +1611,7 @@
     else killP = clamp01(0.3 + o.A.att / 280 + o.setQ * 0.15 + gap * 0.3 - D.def / 380 + (o.superSpike ? 0.12 : 0) +
                          (o.readWrong ? 0.08 * o.st.tempo : 0) + (o.seam ? 0.08 : 0) + (diving ? 0.08 : 0));
     if (superDig) killP -= 0.12;
+    killP -= sty(def).defense;
     if (controlled) killP *= (1.45 - timing * 0.9);
     if (Math.random() < clamp01(killP)) {
       if (!o.soft && o.type !== "tip") await bounce(from, to);
@@ -1568,7 +1629,7 @@
       msg("SHANKED!"); feed(def.side, D.name + " shanks it into the stands!");
       return credit(atk, o.hitterRole);
     }
-    var dq = clamp01(timing * 0.72 + D.def / 320 - 0.12 + (superDig ? 0.15 : 0) + (o.soft ? 0.2 : 0) + (o.type === "tip" ? 0.15 : 0) - (diving ? 0.1 : 0));
+    var dq = clamp01(timing * 0.72 + D.def / 320 - 0.12 + sty(def).defense + (superDig ? 0.15 : 0) + (o.soft ? 0.2 : 0) + (o.type === "tip" ? 0.15 : 0) - (diving ? 0.1 : 0));
     var dg = passGrade(dq);
     if (dg < 0) {
       o.A.st.k++; assist(atk, o.setterRole, o.hitterRole);
@@ -1674,6 +1735,7 @@
     }
     function tallest(s) { return ROLES.map(function (r) { return s.roster[r]; }).sort(function (a, b) { return b.height - a.height; })[0]; }
     feed(-1, "— " + c.mine.name + " vs " + c.foe.name + " —");
+    feed(-1, "Styles: " + c.mine.name + " " + sty(me).name + " • " + c.foe.name + " " + sty(opp).name);
     feed(0, "Stars: " + starList(me) + ". Libero: " + me.roster.L.name + ". Tallest: " + tallest(me).name + " " + tallest(me).height + "cm.");
     feed(1, "Stars: " + starList(opp) + ". Libero: " + opp.roster.L.name + ". Tallest: " + tallest(opp).name + " " + tallest(opp).height + "cm.");
 

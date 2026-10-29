@@ -12,6 +12,8 @@
           "<div class='muted'>" + (resume ? "Resume your tournament. " : "") + "16 national teams. Pools, playoffs, awards. Control the whole team or one player.</div></button>" +
         "<button class='card menu-card' data-act='hq'><div class='menu-icon'>🏐🔥</div><div class='pname'>HAIKYUU!! SPRING NATIONALS</div>" +
           "<div class='muted'>" + (VB.HQ.hasSave() ? "Resume your tournament. " : "") + "16 high schools: Karasuno, Nekoma, Inarizaki, Itachiyama... Freak quick, Killer Serve, Lefty Cannon and more.</div></button>" +
+        "<button class='card menu-card' data-act='story'><div class='menu-icon'>🏫</div><div class='pname'>HAIKYUU!! STORY MODE</div>" +
+          "<div class='muted'>Join Karasuno, Nekoma, Inarizaki or any school as a first-year. Three years to earn your spot and reach the orange court.</div></button>" +
         "<button class='card menu-card' data-act='career'><div class='menu-icon'>🏟️</div><div class='pname'>CLUB CAREER</div>" +
           "<div class='muted'>Create a player and live a career in SuperLega and SV.League: coaches, transfers, budgets, fresh faces.</div></button>" +
       "</div>" +
@@ -24,6 +26,7 @@
     var act = b.getAttribute("data-act");
     if (act === "vnl") { $("hub").onclick = null; await VB.VNL.start(); return menu(); }
     if (act === "hq") { $("hub").onclick = null; await VB.HQ.start(); return menu(); }
+    if (act === "story") { $("hub").onclick = null; await VB.Story.start(); return menu(); }
     if (act === "career") { $("hub").onclick = null; await VB.Career.start(); return menu(); }
     if (act === "resetVnl") {
       var ok = await U.modal("RESET TOURNAMENTS?", "<p>This clears your VNL and Spring Nationals records, trophies and any tournament in progress.</p>",

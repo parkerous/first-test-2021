@@ -161,7 +161,7 @@
   function keyOf(lineup, pid) { return VB.ROLES.find(function (r) { return lineup[r] && lineup[r].id === pid; }) || null; }
   function teamDef(clubId, lineup) {
     var cl = club(clubId);
-    return { id: cl.id, name: cl.short, short: cl.short, flag: lg(cl.league).flag, kit: cl.kit, kit2: cl.kit2, lineup: lineup };
+    return { id: cl.id, name: cl.short, short: cl.short, flag: lg(cl.league).flag, kit: cl.kit, kit2: cl.kit2, play: VB.PLAY_OF[cl.id], lineup: lineup };
   }
   function isLikelyStarter() {
     if (!C.club) return false;

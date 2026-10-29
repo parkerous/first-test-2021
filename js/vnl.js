@@ -19,7 +19,7 @@
 
     function teamDef(id) {
       var t = T(id);
-      return { id: id, name: t.name, short: t.short || t.name, flag: t.flag, kit: t.kit, kit2: t.kit2, ovr: t.ovr, combo: t.combo, lineup: tour.rosters[id] };
+      return { id: id, name: t.name, short: t.short || t.name, flag: t.flag, kit: t.kit, kit2: t.kit2, ovr: t.ovr, combo: t.combo, play: VB.PLAY_OF[id], lineup: tour.rosters[id] };
     }
 
     function newTour(myId, playMode, role) {
