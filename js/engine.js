@@ -38,7 +38,8 @@
   var me = null, opp = null, cfg = null;
   var score = [0, 0], serving = 0;
   var ball = { x: W / 2, y: H - 80, h: 0, visible: false, spin: 0, rot: 0 };
-  var aimPreview = null, timeScale = 1, gt = 0;
+  var aimPreview = null, aimCtx = null, timeScale = 1, gt = 0;
+  var popups = [], puffs = [];
   var cheerAt = -9999, refFlagSide = 0, refFlagAt = -9999, netShakeAt = -99;
   var flames = [], lastScorer = null, flowLog = [];
   var mode = "full", myRole = null;
@@ -120,7 +121,7 @@
       do { num = irnd(1, 24); } while (taken[num]); taken[num] = 1;
       var reach = VB.reach(rec);
       roster[role] = {
-        ref: rec, name: rec.name, num: num, face: rec.face, skill: rec.skill || null,
+        ref: rec, name: rec.name, num: num, face: rec.face, skill: rec.skill || null, skillName: rec.skillName || null,
         cd: 0, ph: rnd(0, Math.PI * 2), streak: 0, flow: false, flowLeft: 0,
         srv: rec.srv, rec: rec.rec, set: rec.set, att: rec.att, blk: rec.blk, def: rec.def,
         height: rec.height, vert: rec.vert, spikeReach: reach.spike, blockReach: reach.block,
@@ -133,10 +134,13 @@
   }
 
   // ================== SKILLS / FLOW ==================
+  function skillLabel(Pl) { return Pl.skillName || VB.SKILL_TXT[Pl.skill]; }
+  function roleOf(s, Pl) { return ROLES.find(function (r) { return s.roster[r] === Pl; }); }
   function ready(Pl, kind) { return Pl.skill === kind && Pl.cd === 0; }
   function useSkill(s, Pl) {
     Pl.cd = SKILL_CD[Pl.skill];
-    feed(s.side, "★ " + Pl.name + " — " + VB.SKILL_TXT[Pl.skill] + "!", true);
+    feed(s.side, "★ " + Pl.name + " — " + skillLabel(Pl) + "!", true);
+    popup(skillLabel(Pl) + "!", s.pos[roleOf(s, Pl)] || { x: W / 2, y: NET }, "#7fd8ff");
   }
   function tickCooldowns() {
     [me, opp].forEach(function (s) {
@@ -272,13 +276,13 @@
     });
     return [mb].concat(rest).slice(0, n);
   }
-  function placeDefense(s, ax, blockers, lean) {
+  function placeDefense(s, ax, blockers, lean, spacing) {
     var m = defenseFormation(s, ax, blockers), n = blockers.length;
     var lineDir = ax < W / 2 ? -1 : 1;
     var shift = n ? (lean === "line" ? 11 : -11) * lineDir : 0;
     var y = NET + (s.side === 0 ? 34 : -34);
     blockers.forEach(function (r, i) {
-      m[r] = { x: clamp(ax + shift + (i - (n - 1) / 2) * 26, CL + 12, CR - 12), y: y };
+      m[r] = { x: clamp(ax + shift + (i - (n - 1) / 2) * (spacing || 26), CL + 12, CR - 12), y: y };
     });
     setTargets(s, m);
     s.blockers = blockers.slice();
@@ -525,6 +529,37 @@
     g.globalAlpha = 1;
   }
 
+  // ---- popups & dust ----
+  function popup(text, at, col) { popups.push({ text: text, x: at.x, y: at.y, t0: gt, col: col || "#ffd21e" }); }
+  function puff(at, n, col) {
+    for (var i = 0; i < n; i++) {
+      puffs.push({ x: at.x + rnd(-5, 5), y: at.y + rnd(-5, 5), vx: rnd(-70, 70), vy: rnd(-80, -15), life: 0, max: rnd(0.4, 0.8),
+                   col: col || pick(["#ffffff", "#dfe7ef", "#c8d3df"]) });
+    }
+  }
+  function drawPuffs(dt) {
+    puffs = puffs.filter(function (f) { return (f.life += dt) < f.max; });
+    puffs.forEach(function (f) {
+      f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 140 * dt;
+      g.globalAlpha = 1 - f.life / f.max; g.fillStyle = f.col;
+      g.fillRect(Math.round(f.x), Math.round(f.y), 3, 3);
+    });
+    g.globalAlpha = 1;
+  }
+  function drawPopups() {
+    popups = popups.filter(function (q) { return gt - q.t0 < 1.3; });
+    popups.forEach(function (q) {
+      var k = (gt - q.t0) / 1.3, sc = k < 0.12 ? 0.6 + k / 0.12 * 0.55 : 1.15 - Math.min(0.15, k - 0.12);
+      g.save(); g.translate(q.x, q.y - 26 - k * 32); g.scale(sc, sc);
+      g.font = '13px "Press Start 2P", monospace'; g.textAlign = "center"; g.textBaseline = "middle";
+      g.globalAlpha = k > 0.75 ? (1 - k) / 0.25 : 1;
+      g.lineWidth = 5; g.strokeStyle = "#13293f"; g.strokeText(q.text, 0, 0);
+      g.fillStyle = q.col; g.fillText(q.text, 0, 0);
+      g.restore();
+    });
+    g.globalAlpha = 1;
+  }
+
   function pill(text, x, y, font, fg, bg2) {
     g.font = font;
     var w = g.measureText(text).width + 8;
@@ -584,6 +619,19 @@
       g.strokeStyle = "#ffd21e"; g.lineWidth = 2.5;
       g.beginPath(); g.moveTo(CR + 33, NET - 18); g.lineTo(CR + 41, NET - 18 + (refFlagSide === 0 ? 10 : -10)); g.stroke();
     }
+    if (aimPreview && aimCtx) {
+      // show where the swing crosses the net and whether that's into the hands, the edge, a seam or clear
+      var spans = handSpans(aimCtx.def, aimCtx.blockers), cxp = crossX(aimCtx.from, aimPreview), bz = blockZone(spans, cxp);
+      var hy = NET + (aimCtx.def.side === 0 ? 3 : -9);
+      g.fillStyle = "rgba(224,52,138,0.5)";
+      spans.forEach(function (sp2) { g.fillRect(sp2.lo, hy, sp2.hi - sp2.lo, 6); });
+      var zc = bz.zone === "in" ? "#ff3b3b" : bz.zone === "edge" ? "#ffb000" : "#3dff7a";
+      g.setLineDash([7, 5]); g.strokeStyle = zc; g.lineWidth = 2.5;
+      g.beginPath(); g.moveTo(aimCtx.from.x, aimCtx.from.y); g.lineTo(aimPreview.x, aimPreview.y); g.stroke(); g.setLineDash([]);
+      g.fillStyle = zc; g.beginPath(); g.arc(cxp, NET, 5, 0, Math.PI * 2); g.fill();
+      pill(bz.zone === "in" ? "INTO THE BLOCK" : bz.zone === "edge" ? (bz.outside ? "TOOL ZONE" : "BLOCK EDGE") : bz.zone === "seam" ? "SEAM" : "CLEAR",
+           aimPreview.x, aimPreview.y - 24, ROLE_FONT, "#13293f", zc);
+    }
     if (aimPreview) {
       g.strokeStyle = "rgba(255,221,0,0.95)"; g.lineWidth = 2;
       g.beginPath(); g.arc(aimPreview.x, aimPreview.y, 12, 0, Math.PI * 2); g.stroke();
@@ -619,20 +667,28 @@
         drawFlameBody(x, p.y, y - 24);
         spawnFlames(x, p.y, y - 24, dt * timeScale);
       }
-      if (kind === "dive") {                                       // dolphin dive: body laid out toward the ball
-        var tilt = a.dir * 1.3 * Math.sin(Math.min(1, pr * 1.8) * Math.PI / 2);
+      if (kind === "dive" || kind === "fall") {                    // dive: laid out toward the ball; fall: knocked over by a shank
+        var fall = kind === "fall";
+        var tilt = a.dir * (fall ? 1.55 : 1.3) * Math.sin(Math.min(1, pr * (fall ? 3 : 1.8)) * Math.PI / 2);
         g.save(); g.translate(x, p.y + 8); g.rotate(tilt);
         g.drawImage(Pl.sprite, -15, -32, 30, 40);
         g.restore();
         g.strokeStyle = Pl.face.skin; g.lineWidth = 4; g.lineCap = "round";
         g.beginPath(); g.moveTo(x + a.dir * 8, p.y); g.lineTo(x + a.dir * 26, p.y + 6); g.stroke(); g.lineCap = "butt";
         it.dy = p.y - 6;
+        if (fall && pr > 0.3) {
+          for (var k2 = 0; k2 < 3; k2++) {
+            var an = gt * 7 + k2 * 2.1;
+            g.fillStyle = "#ffd21e"; g.fillRect(Math.round(x + Math.cos(an) * 11), Math.round(p.y - 16 + Math.sin(an) * 3), 3, 3);
+          }
+        }
       } else {
         g.drawImage(Pl.sprite, Math.round(x - 15), Math.round(y - 24), 30, 40);
         if (kind) drawArms(kind, pr, x, y, Pl.face.skin, a && a.dir);
       }
     });
     drawFlames(dt * timeScale);
+    drawPuffs(dt * timeScale);
 
     var placed = [];
     function freeY(text, x, y, font, dir) {
@@ -668,6 +724,7 @@
       g.beginPath(); g.arc(ball.x, by, r * 0.62, ball.rot + Math.PI + 0.3, ball.rot + Math.PI + 1.8); g.stroke();
       g.strokeStyle = "#17408f"; g.lineWidth = 1; g.beginPath(); g.arc(ball.x, by, r, 0, Math.PI * 2); g.stroke();
     }
+    drawPopups();
     g.restore();
     requestAnimationFrame(draw);
   }
@@ -694,13 +751,30 @@
       cv.addEventListener("click", onClick);
     });
   }
-  function timingBar(label, speedMs) {
+  function timingPop(q) {
+    var el = $("timingPop");
+    el.textContent = q >= 1 ? "PERFECT!" : q >= 0.5 ? "GOOD" : q > 0 ? "OFF!" : "MISSED!";
+    el.style.color = q >= 1 ? "#3dff7a" : q >= 0.5 ? "#ffd21e" : "#ff4d4d";
+    el.classList.remove("hidden");
+    clearTimeout(timingPop.t);
+    timingPop.t = setTimeout(function () { el.classList.add("hidden"); }, 750);
+  }
+  // goodW: width of the green zone (0..1 of the bar) — shrinks against fast balls and better opponents
+  function timingBar(label, speedMs, goodW) {
+    goodW = clamp(goodW || 0.2, 0.06, 0.34);
+    var perfW = goodW * 0.34;
     return new Promise(function (res) {
       var wrap = $("timing"), mk = $("marker");
-      $("timingLabel").textContent = label;
-      var center = rnd(0.3, 0.7);
-      $("zoneG").style.left = (center - 0.15) * 100 + "%"; $("zoneG").style.width = "30%";
-      $("zoneP").style.left = (center - 0.05) * 100 + "%"; $("zoneP").style.width = "10%";
+      $("timingLabel").textContent = label + "  [" + (goodW >= 0.24 ? "EASY" : goodW >= 0.16 ? "NORMAL" : goodW >= 0.1 ? "HARD" : "BRUTAL") + "]";
+      var center = rnd(0.15 + goodW / 2, 0.85 - goodW / 2);
+      $("zoneG").style.left = (center - goodW / 2) * 100 + "%"; $("zoneG").style.width = goodW * 100 + "%";
+      $("zoneP").style.left = (center - perfW / 2) * 100 + "%"; $("zoneP").style.width = perfW * 100 + "%";
+      function quality(p) {
+        var d = Math.abs(p - center);
+        if (d <= perfW / 2) return 1;
+        if (d <= goodW / 2) return 0.85 - 0.35 * (d - perfW / 2) / (goodW / 2 - perfW / 2);
+        return Math.max(0, 0.3 - (d - goodW / 2) * 4);
+      }
       wrap.classList.remove("hidden");
       var t0 = performance.now(), done = false, raf;
       function pos(now) { return (1 - Math.cos(((now - t0) / speedMs) * Math.PI * 2)) / 2; }
@@ -710,12 +784,12 @@
         e.preventDefault(); cancelAnimationFrame(raf);
         document.removeEventListener("pointerdown", stop, true);
         document.removeEventListener("keydown", key, true);
-        var q = clamp01(1 - Math.abs(pos(performance.now()) - center) / 0.5);
-        wrap.classList.add("hidden"); res(q);
+        var q = quality(pos(performance.now()));
+        wrap.classList.add("hidden"); timingPop(q); res(q);
       }
       function key(e) { if (e.key === " ") stop(e); }
       setTimeout(function () { document.addEventListener("pointerdown", stop, true); document.addEventListener("keydown", key, true); }, 120);
-      setTimeout(function () { if (!done) { done = true; cancelAnimationFrame(raf); wrap.classList.add("hidden"); res(0.15); } }, speedMs * 2.4);
+      setTimeout(function () { if (!done) { done = true; cancelAnimationFrame(raf); wrap.classList.add("hidden"); timingPop(0); res(0); } }, speedMs * 2.4);
     });
   }
 
@@ -772,10 +846,47 @@
       opts.push({ id: c.id, label: c.label, say: c.say, hitter: hitter, tempo: c.tempo, needPass: c.needPass,
                   x: s.side === 0 ? c.x : W - c.x, pipe: !!c.back, peak: c.peak });
     });
+    var cb = s.team.combo;
+    if (cb && front.indexOf(cb.hitter) >= 0 && s.onCourt.indexOf(cb.hitter) >= 0) {
+      opts.unshift({ id: "combo", label: cb.label, say: cb.say, hitter: cb.hitter, tempo: cb.tempo, needPass: cb.needPass,
+                     x: s.side === 0 ? cb.x : W - cb.x, pipe: false, peak: cb.peak || 0.15, combo: true });
+    }
     if (s.roster.S.skill === "dump") {
       opts.push({ id: "dump", label: "DUMP", say: "a dump", hitter: "S", tempo: 0.3, needPass: 1, x: setterSpot(s.side).x, pipe: false, dump: true, notReady: s.roster.S.cd > 0 });
     }
     return opts.map(function (o) { o.disabled = grade < o.needPass || !!o.notReady; return o; });
+  }
+  // ---- block geometry: where the attack crosses the net vs. where the blockers' hands are ----
+  function handSpans(def, blockers) {
+    return blockers.map(function (r) {
+      var B = def.roster[r], x = def.tgt[r].x;
+      var hw = 10 + B.blk / 30 + (B.height - 190) / 9 + (def.superBlocker === r ? 4 : 0);
+      return { lo: x - hw, hi: x + hw, r: r };
+    }).sort(function (a, b) { return a.lo - b.lo; });
+  }
+  function crossX(from, to) {
+    var t = Math.abs(NET - from.y) / Math.max(1, Math.abs(to.y - from.y));
+    return from.x + (to.x - from.x) * clamp(t, 0, 1);
+  }
+  function blockZone(spans, cx) {
+    if (!spans.length) return { zone: "clear" };
+    var lo = spans[0].lo, hi = spans.reduce(function (m, sp) { return Math.max(m, sp.hi); }, -1e9);
+    var hit = spans.find(function (sp) { return cx >= sp.lo && cx <= sp.hi; });
+    if (hit) return { zone: "in", r: hit.r };
+    if (cx > lo && cx < hi) return { zone: "seam" };
+    if (cx >= lo - 12 && cx <= hi + 12) {
+      var outside = Math.abs(cx - CL) < Math.abs(CR - cx) ? cx < lo : cx > hi;   // the hand nearest the sideline
+      return { zone: "edge", outside: outside, r: cx < lo ? spans[0].r : spans[spans.length - 1].r };
+    }
+    return { zone: "clear" };
+  }
+  // on slower sets the blockers still have time to slide toward where the ball is going
+  function reactBlock(def, blockers, cx, tempo) {
+    blockers.forEach(function (r) {
+      var B = def.roster[r], x = def.tgt[r].x, d = cx - x;
+      var amt = clamp((B.blk - 50) / 45, 0, 1) * tempo * 14;
+      def.tgt[r] = { x: x + Math.sign(d) * Math.min(Math.abs(d), amt), y: def.tgt[r].y };
+    });
   }
   // attacking near a sideline: pin hitters, who tool the block off the outside hand
   function isPin(st) { return !st.dump && Math.min(Math.abs(st.x - CL), Math.abs(CR - st.x)) < 90; }
@@ -823,28 +934,37 @@
       if (P0.skill === "spike" || P0.flow) x *= 1.6;
       x *= 0.6 + P0.att / 160;
       if (o.id === s.lastCall) x *= 0.5;
+      if (o.combo) x *= 1.8;
       return x;
     });
     var sum = w.reduce(function (a, b) { return a + b; }, 0), r = Math.random() * sum;
     for (var i = 0; i < nonDump.length; i++) { r -= w[i]; if (r <= 0) { s.lastCall = nonDump[i].id; return nonDump[i]; } }
     return nonDump[0];
   }
-  function aiAttackPlan(atk, def, A, n, st, setQ) {
+  function aiSpikeTarget(atk, def, from, blockers) {
+    var spans = blockers.length ? handSpans(def, blockers) : [], best = null, bs = -1e9;
+    for (var i = 0; i < 8; i++) {
+      var c = P(def.side, rnd(CL + 25, CR - 25), NET + rnd(40, 250));
+      var z = blockZone(spans, crossX(from, c));
+      var sc = gapScore(def, c) + (z.zone === "clear" ? 0.45 : z.zone === "seam" ? 0.35 : z.zone === "edge" ? (z.outside ? 0.4 : 0.1) : -0.3) +
+               rnd(0, (100 - atk.team.ovr) / 35 + 0.25);
+      if (sc > bs) { bs = sc; best = c; }
+    }
+    return best;
+  }
+  function aiAttackPlan(atk, def, A, n, st, setQ, contact, blockers) {
     var r = Math.random(), type = "spike", pin = isPin(st);
     // pin hitters facing a block on an imperfect set look to wipe it off the hands
     var wipeP = pin && n >= 1 ? 0.06 + (setQ < 1 ? 0.07 : 0) + (n >= 2 ? 0.04 : 0) : 0;
     if (r < 0.1) type = "tip";
     else if (r < 0.1 + wipeP) type = "wipe";
     if (type === "spike" && ready(A, "spike") && Math.random() < 0.7) type = "super";
-    var target = type === "tip" ? tipTarget(def) : type === "wipe" ? null : aiTarget(def, atk.team.ovr);
-    // pins sometimes go straight at the outside hand on purpose
-    if (type !== "tip" && type !== "wipe" && pin && n && Math.random() < 0.25) {
-      target = clampHalf(def, { x: st.x + rnd(-18, 18), y: NET + (def.side === 0 ? 1 : -1) * rnd(120, 230) });
-    }
+    var target = type === "tip" ? tipTarget(def) : type === "wipe" ? null : aiSpikeTarget(atk, def, contact, blockers);
     return { type: type, target: target };
   }
   function blockCount(st) {
     var r = Math.random();
+    if (st.tempo < 0.3) return r < 0.7 ? 0 : 1;
     if (st.tempo < 0.5) return r < 0.25 ? 0 : r < 0.85 ? 1 : 2;
     if (st.tempo < 0.7) return r < 0.15 ? 0 : r < 0.7 ? 1 : 2;
     if (st.tempo < 0.9) return r < 0.25 ? 1 : r < 0.8 ? 2 : 3;
@@ -897,7 +1017,7 @@
     if (srv === me && iControl(sr)) {
       msg(Sv.name + " TO SERVE — PICK THE SERVE");
       var o = [{ label: "FLOAT SERVE", value: "float" }, { label: "TOPSPIN SERVE", value: "spin" }];
-      if (Sv.skill === "serve") o.push({ label: "★ SUPER SERVE" + (Sv.cd ? " (" + Sv.cd + ")" : ""), value: "super", disabled: !ready(Sv, "serve") });
+      if (Sv.skill === "serve") o.push({ label: "★ " + skillLabel(Sv) + (Sv.cd ? " (" + Sv.cd + ")" : ""), value: "super", disabled: !ready(Sv, "serve") });
       kind = await U.buttons(o);
       msg("CLICK WHERE TO SERVE");
       target = await aimClick("top");
@@ -935,7 +1055,8 @@
     var RP = rcv.roster[rcvRole], timing = null;
     if (!errKind && rcv === me && iControl(rcvRole)) {
       await sleep(150); slow();
-      timing = await timingBar("RECEIVE — " + RP.name + "!", barSpeed(srv));
+      timing = await timingBar("RECEIVE — " + RP.name + "!", barSpeed(srv),
+        0.2 + (RP.rec - Sv.srv) / 220 - sp.power * 0.1 - (superServe ? 0.04 : 0) - (kind === "float" ? 0.02 : 0));
       fast();
     } else if (rcv === me) timing = autoTiming(RP.rec);
     await flight;
@@ -943,16 +1064,20 @@
 
     var useRec = ready(RP, "rec") && (rcv !== me || iControl(rcvRole) || Math.random() < 0.7);
     if (useRec) useSkill(rcv, RP);
-    var rq = rcv === me ? clamp01(timing * 0.55 + RP.rec / 220 - sp.power * 0.35 + rnd(-0.05, 0.1))
+    var rq = rcv === me ? clamp01(timing * 0.72 + RP.rec / 320 - sp.power * 0.28 + rnd(-0.04, 0.06))
                         : clamp01(RP.rec / 110 - sp.power * 0.45 + rnd(-0.12, 0.18));
     if (useRec) rq = clamp01(rq + 0.15);
     var shank = Math.random() < (useRec ? SHANK_P / 2 : SHANK_P);
     var grade = shank ? -1 : passGrade(rq);
     RP.st.rc++;
     if (grade < 0) {
-      jump(rcv, rcvRole, 520, -3, "shank");
-      var away = { x: target.x + (target.x < W / 2 ? -1 : 1) * rnd(90, 160), y: target.y + dirR * rnd(60, 120) };
-      await flyBall(target, away, 520, { peak: 1.2, spin: 30 });
+      if (shank) await shankFx(rcv, rcvRole, target);
+      else {
+        jump(rcv, rcvRole, 520, -3, "shank");
+        var away = { x: target.x + (target.x < W / 2 ? -1 : 1) * rnd(90, 160), y: target.y + dirR * rnd(60, 120) };
+        await flyBall(target, away, 520, { peak: 1.2, spin: 30 });
+        popup("ACE!", target, "#ffd21e");
+      }
       Sv.st.ace++; RP.st.re++;
       msg(shank ? "SHANKED INTO THE STANDS!" : "ACE!!"); cheer();
       feed(srv.side, shank ? RP.name + " SHANKS the serve into the crowd!" : "ACE! " + Sv.name + " is on fire.", true);
@@ -964,6 +1089,19 @@
     if (grade === 0 && Math.random() < 0.12) return await overpass(rcv, target);
     var setter = await toSetter(rcv, target, grade, rcvRole);
     return await offense(rcv, grade, setter);
+  }
+
+  // a shank: the ball cannons off the arms into the stands and the passer goes down
+  async function shankFx(s, role, at) {
+    var dir = at.x < W / 2 ? -1 : 1;
+    jump(s, role, 1000, -2, "fall", -dir);
+    popup("SHANK!", at, "#ff4d4d");
+    puff(at, 10);
+    var land = { x: dir < 0 ? rnd(-62, -32) : W + rnd(32, 62), y: clamp(at.y + rnd(-90, 120), 30, H - 30) };
+    await flyBall(at, land, 900, { peak: 2.4, spin: 45, skew: 0.45 });
+    puff(land, 16, "#ffd21e");
+    popup(pick(["INTO THE STANDS!", "OOF!", "WHOOPS!"]), land, "#ffffff");
+    cheer();
   }
 
   // the serve clips the tape and trickles over — a "waterfall"
@@ -1041,7 +1179,7 @@
     if (atk === me && !emergency && iControl("S")) {
       msg(SN + " TO SET — PICK HITTER & BALL (" + GRADE_TXT[grade] + ")");
       var choice = await U.buttons(opts.map(function (o) {
-        if (o.dump) return { label: "★ DUMP" + (me.roster.S.cd ? " (" + me.roster.S.cd + ")" : ""), value: o.id, disabled: o.disabled };
+        if (o.dump) return { label: "★ " + skillLabel(me.roster.S) + (me.roster.S.cd ? " (" + me.roster.S.cd + ")" : ""), value: o.id, disabled: o.disabled };
         var HP = me.roster[o.hitter];
         return { label: o.label + " · " + HP.name + (HP.skill === "spike" ? " ★" : ""), value: o.id, disabled: o.disabled };
       }));
@@ -1103,14 +1241,16 @@
     coverHitter(atk, hitter, setterRole, contact);
     var n = blockCount(st), blockers = chooseBlockers(def, st.x, n);
     var lean = Math.random() < 0.5 ? "cross" : "line";
+    var spacing = 24 + (1 - st.tempo) * 20 + rnd(-3, 6);            // fast sets leave gaps in the block
+    var bAx = st.x + (1 - st.tempo) * rnd(-22, 22);                 // ...and the block a step late
+    placeDefense(def, bAx, blockers, lean, spacing);
     var controlled = iAttack && iControl(hitter);
-    var plan = controlled ? null : aiAttackPlan(atk, def, A, n, st, grade === 2 ? 1 : grade === 1 ? 0.75 : 0.5);
+    var plan = controlled ? null : aiAttackPlan(atk, def, A, n, st, grade === 2 ? 1 : grade === 1 ? 0.75 : 0.5, contact, blockers);
     if (!iAttack && n && plan.target) {
       var actual = shotDir(st.x, plan.target);
       var myBlk = blockers.reduce(function (a, r) { return a + me.roster[r].blk; }, 0) / n;
-      if (actual !== "angle" && Math.random() < clamp01((0.3 + myBlk / 300) * st.tempo)) lean = actual;
+      if (actual !== "angle" && Math.random() < clamp01((0.3 + myBlk / 300) * st.tempo)) { lean = actual; placeDefense(def, bAx, blockers, lean, spacing); }
     }
-    placeDefense(def, st.x, blockers, lean);
     feed(atk.side, SN + " sets " + st.say + " for " + A.name + (A.skill ? " ★" : "") + "...");
     if (n === 0 && st.tempo < 0.6) feed(def.side, "...the middle is late — nobody up to block!");
     jump(atk, setterRole, 420, 2, "set");
@@ -1122,11 +1262,17 @@
       slow();
       msg(st.label + " TO " + A.name + " — " + blockInfo + "!");
       var ch = [];
-      if (A.skill === "spike") ch.push({ label: "★ SUPER SPIKE" + (A.cd ? " (" + A.cd + ")" : ""), value: "super", disabled: !ready(A, "spike") });
+      if (A.skill === "spike") ch.push({ label: "★ " + skillLabel(A) + (A.cd ? " (" + A.cd + ")" : ""), value: "super", disabled: !ready(A, "spike") });
       ch.push({ label: "SPIKE", value: "spike" }, { label: "TIP", value: "tip" });
       if (n > 0) ch.push({ label: "WIPE OFF BLOCK", value: "wipe" });
       var type = await U.buttons(ch), tgt = null;
-      if (type !== "wipe") { msg(type === "tip" ? "CLICK WHERE TO TIP IT" : "CLICK WHERE TO HIT IT"); tgt = await aimClick("top"); }
+      if (type !== "wipe") {
+        msg(type === "tip" ? "CLICK WHERE TO TIP IT" :
+            "AIM: GREEN = CLEAR • YELLOW = TOOL/EDGE • RED = INTO THE BLOCK" + (st.tempo >= 0.8 && n ? " (SLOW SET — THE BLOCK CAN STILL ADJUST)" : ""));
+        aimCtx = type === "tip" || !n ? null : { from: contact, def: def, blockers: blockers };
+        tgt = await aimClick("top");
+        aimCtx = null;
+      }
       fast();
       plan = { type: type, target: tgt };
     } else if (iAttack) msg(st.label + " TO " + A.name + " — " + blockInfo + "!");
@@ -1138,13 +1284,13 @@
         msg("YOU'RE IN THE " + BLOCK_TXT[n] + " ON " + A.name + " — LEAN WHICH WAY?");
         lean = await U.buttons([{ label: "LEAN CROSS", value: "cross" }, { label: "LEAN LINE", value: "line" }]);
         fast();
-        placeDefense(def, st.x, blockers, lean);
+        placeDefense(def, bAx, blockers, lean, spacing);
         feed(0, me.roster[myRole].name + " (YOU) leans " + lean + "...");
       } else if (st.tempo >= 0.7) feed(0, "your " + BLOCK_TXT[n].toLowerCase() + " leans " + lean + "...");
       var sb = blockers.find(function (r) { return ready(def.roster[r], "block"); });
       if (sb && iControl(sb)) {
-        slow(); msg("★ SUPER BLOCK WITH " + def.roster[sb].name + "?");
-        superBlock = await U.buttons([{ label: "★ SUPER BLOCK", value: true }, { label: "NORMAL BLOCK", value: false }]);
+        slow(); msg("★ " + skillLabel(def.roster[sb]) + " WITH " + def.roster[sb].name + "?");
+        superBlock = await U.buttons([{ label: "★ " + skillLabel(def.roster[sb]), value: true }, { label: "NORMAL BLOCK", value: false }]);
         fast();
       } else if (sb) superBlock = Math.random() < 0.6;
       if (superBlock) useSkill(def, def.roster[sb]);
@@ -1179,6 +1325,7 @@
     var BtouchRole = n ? (def.superBlocker || blockers[irnd(0, n - 1)]) : null;
     var Btouch = n ? def.roster[BtouchRole] : null;
     var blockPt = { x: bx, y: n ? def.tgt[blockers[0]].y - 24 : NET };
+    if (type === "spike") target = { x: target.x + rnd(-1, 1) * (1 - setQ) * 16, y: target.y + rnd(-1, 1) * (1 - setQ) * 16 };
     var shot = shotName(st.x, target);
     var pin = isPin(st), quickMB = VB.FAMILY[hitter] === "MB" && st.tempo < 0.6;
     A.st.att++;
@@ -1218,22 +1365,29 @@
       return credit(def);
     }
 
-    // 2) through the seam between two blockers?
-    var seam = false;
-    if (n >= 2 && type === "spike") {
-      var xs = blockers.map(function (r) { return def.tgt[r].x; });
-      var lo = Math.min.apply(null, xs), hi = Math.max.apply(null, xs);
-      var cross = contact.x + (target.x - contact.x) * clamp(34 / Math.max(60, Math.abs(target.y - contact.y)), 0.1, 0.5);
-      if (cross > lo - 4 && cross < hi + 4 && Math.random() < 0.3 + (st.tempo < 0.6 ? 0.25 : 0) + (readWrong ? 0.1 : 0)) seam = true;
+    // 2) where does the ball cross the net relative to the blockers' hands?
+    var geo = { zone: "clear" }, cx = crossX(contact, target);
+    if (n && type === "spike") {
+      reactBlock(def, blockers, cx, st.tempo);
+      geo = blockZone(handSpans(def, blockers), cx);
+      if (geo.r) {
+        BtouchRole = def.superBlocker && geo.zone === "in" ? def.superBlocker : geo.r;
+        Btouch = def.roster[BtouchRole];
+      }
+      blockPt = { x: clamp(cx, CL - 10, CR + 10), y: blockPt.y };
     }
+    var seam = geo.zone === "seam";
 
-    // 3) does the block get a hand on it?
+    // 3) does the block get a hand on it? Into the hands: likely. Edge: maybe. Seam/clear: rarely.
     var pTouch = 0, stuffAdj = 0;
     if (n && type === "spike") {
-      pTouch = [0, 0.42, 0.58, 0.7][n] * (0.7 + blkAvg / 330) * (readRight ? 1.25 : readWrong ? 0.6 : 1) * (superSpike ? 0.85 : 1) + (superBlock ? 0.12 : 0);
-      pTouch *= clamp(1 - reachDiff / 120, 0.55, 1.45);
+      var depth = clamp01(Math.abs(target.y - NET) / 270);
+      var common = (0.62 + blkAvg / 280) * clamp(1 - reachDiff / 110, 0.5, 1.45) * (superSpike ? 0.85 : 1) *
+                   (1 - 0.25 * depth * clamp01((reachDiff + 15) / 30));         // deep swings clear a short block
+      pTouch = geo.zone === "in" ? 0.82 * common + (superBlock ? 0.12 : 0)
+             : geo.zone === "edge" ? 0.5 * common + (superBlock ? 0.1 : 0)
+             : geo.zone === "seam" ? 0.14 : 0.04;
       stuffAdj = clamp(-reachDiff / 250, -0.15, 0.15);
-      if (seam) pTouch *= 0.25;
     }
     if (n && type === "tip") pTouch = 0.1;
     if (n && type === "wipe") pTouch = 0.95;
@@ -1246,19 +1400,25 @@
         outcome = r < wipeP ? "tool" : r < wipeP + 0.3 ? "stuff" : "soft";
       } else if (type === "tip") outcome = "soft";
       else {
-        var stuffP = clamp(0.18 + (blkAvg - A.att) / 250 + (n - 1) * 0.05 + (superBlock ? 0.15 : 0) - (superSpike ? 0.1 : 0) + stuffAdj, 0.08, 0.5);
+        var zone = geo.zone;
+        var stuffP = zone === "in" ? clamp(0.19 + (blkAvg - A.att) / 250 + (n - 1) * 0.04 + (superBlock ? 0.15 : 0) - (superSpike ? 0.1 : 0) + stuffAdj, 0.1, 0.55)
+                   : zone === "edge" ? 0.07 : 0.03;
         var toolP = (quickMB ? 0.04 : pin ? 0.16 : 0.08) +
-                    (pin && dir === "line" ? 0.06 : 0) +             // swinging into the outside hand
                     (A.att - blkAvg) / 400 +
                     clamp(reachDiff / 250, -0.06, 0.08) +           // hitting off high hands
                     (n === 1 ? 0.03 : 0) - (readRight ? 0.04 : 0);
         toolP = clamp(toolP, 0.03, 0.34);
-        outcome = r < stuffP ? "stuff" : r < stuffP + toolP ? "tool" : r < stuffP + toolP + 0.12 ? "offblock" : Math.random() < 0.25 ? "rebound" : "soft";
+        if (zone === "edge") toolP = geo.outside ? clamp(toolP + 0.22, 0.25, 0.5) : toolP + 0.03;   // off the outside hand
+        else if (zone !== "in") toolP = 0.12;
+        var offP = zone === "in" ? 0.07 : 0.14, rebP = zone === "in" ? 0.08 : 0.03;
+        outcome = r < stuffP ? "stuff" : r < stuffP + toolP ? "tool" : r < stuffP + toolP + offP ? "offblock" :
+                  r < stuffP + toolP + offP + rebP ? "rebound" : "soft";
       }
       var who = Btouch.name + (superBlock ? " ★" : "");
       if (outcome === "stuff") {
         await flyBall(blockPt, { x: bx + rnd(-25, 25), y: NET + dirA * rnd(25, 70) }, 280, { h0: 0.6, h1: 0 });
         A.st.bk++; Btouch.st.blk++;
+        popup("STUFF BLOCK!", blockPt, "#ff6fb0");
         msg((n === 3 ? "TRIPLE " : n === 2 ? "DOUBLE " : "") + "BLOCK — STUFFED!!"); cheer();
         feed(def.side, who + " STUFFS " + A.name + "!" + (readRight ? " Read it all the way." : "") + (n > 1 ? " (" + BLOCK_TXT[n].toLowerCase() + ")" : ""), true);
         return credit(def, BtouchRole);
@@ -1270,6 +1430,7 @@
         await flyBall(blockPt, toolPt, outside ? 420 : 520, { h0: 0.6, h1: 0, peak: outside ? 0.5 : 1.2, spin: 20 });
         A.st.k++; assist(atk, setterRole, hitter);
         msg(type === "wipe" ? "WIPED OFF THE BLOCK!" : "TOOLED!"); cheer();
+        popup(type === "wipe" ? "WIPED!" : "TOOLED!", blockPt, "#ffd21e");
         feed(atk.side, "and " + A.name + (type === "wipe" ? " WIPES it off " + Btouch.name + "'s hands — out!"
                        : outside ? " TOOLS it off " + Btouch.name + "'s outside hand — out!"
                        : " TOOLS it off " + Btouch.name + "'s fingertips into the stands!"), true);
@@ -1304,6 +1465,7 @@
       var pop = waterfall ? clampHalf(def, { x: bx + rnd(-20, 20), y: NET + dirD * rnd(16, 34) })
                           : clampHalf(def, { x: bx + rnd(-70, 70), y: NET + dirD * rnd(100, 170) });
       msg(waterfall ? "WATERFALL OFF THE BLOCK!" : "ONE TOUCH!");
+      popup(waterfall ? "WATERFALL!" : "ONE TOUCH!", blockPt, "#7fd8ff");
       feed(def.side, waterfall ? "It dribbles off " + who + "'s fingers and trickles down the net — WATERFALL!"
                                : "ONE TOUCH by " + who + " — " + (def === me ? "we" : "they") + " can play it!");
       return await defensePlay(def, atk, blockPt, pop, { soft: true, waterfall: waterfall, A: A, hitterRole: hitter, setterRole: setterRole, setQ: setQ, st: st, h0: 0.6 });
@@ -1311,6 +1473,7 @@
 
     // 4) past the block
     if (seam) feed(-1, A.name + " goes right through the seam of the block!");
+    else if (n && type === "spike" && geo.zone === "clear") feed(-1, A.name + " hits around the block.");
     return await defensePlay(def, atk, contact, target, {
       type: type, A: A, hitterRole: hitter, setterRole: setterRole, setQ: setQ, st: st, superSpike: superSpike, readWrong: readWrong, seam: seam, h0: 1.4
     });
@@ -1334,7 +1497,9 @@
     if (controlled) {
       await sleep(60); slow();
       timing = await timingBar((o.soft ? "PLAY THE TOUCH — " : o.type === "tip" ? "CHASE THE TIP — " : "DIG — ") + D.name + "!",
-                               barSpeed(atk) * (o.soft ? 1.25 : o.type === "tip" ? 1.1 : 0.9));
+                               barSpeed(atk) * (o.soft ? 1.25 : o.type === "tip" ? 1.1 : 0.9),
+                               0.18 + (D.def - o.A.att) / 220 - (o.superSpike ? 0.04 : 0) - (o.type === "spike" ? (1 - o.st.tempo) * 0.05 : 0) +
+                               (o.soft ? 0.08 : 0) + (o.type === "tip" ? 0.05 : 0));
       fast();
     } else timing = autoTiming(D.def);
     await flight;
@@ -1342,6 +1507,7 @@
     function killed(text, txtMsg) {
       o.A.st.k++; assist(atk, o.setterRole, o.hitterRole);
       msg(txtMsg); cheer();
+      popup(txtMsg.replace(/!+$/, "!"), to, "#ffd21e");
       feed(atk.side, text, true);
       return credit(atk, o.hitterRole);
     }
@@ -1360,7 +1526,7 @@
     else killP = clamp01(0.3 + o.A.att / 280 + o.setQ * 0.15 + gap * 0.3 - D.def / 380 + (o.superSpike ? 0.12 : 0) +
                          (o.readWrong ? 0.08 * o.st.tempo : 0) + (o.seam ? 0.08 : 0) + (diving ? 0.08 : 0));
     if (superDig) killP -= 0.12;
-    if (controlled) killP *= (1.3 - timing * 0.7);
+    if (controlled) killP *= (1.45 - timing * 0.9);
     if (Math.random() < clamp01(killP)) {
       if (!o.soft && o.type !== "tip") await bounce(from, to);
       return killed(
@@ -1372,13 +1538,12 @@
         o.soft ? "IT DROPS!" : o.type === "tip" ? (o.dump ? "DUMP KILL!" : "TIP KILL!") : "KILL!!");
     }
     if (Math.random() < SHANK_P) {
-      jump(def, digRole, 500, -3, "shank");
-      await flyBall(to, { x: to.x + (to.x < W / 2 ? -1 : 1) * rnd(80, 150), y: to.y + (def.side === 0 ? 1 : -1) * rnd(50, 110) }, 460, { peak: 1.0, spin: 30 });
+      await shankFx(def, digRole, to);
       o.A.st.k++; assist(atk, o.setterRole, o.hitterRole);
       msg("SHANKED!"); feed(def.side, D.name + " shanks it into the stands!");
       return credit(atk, o.hitterRole);
     }
-    var dq = clamp01(timing * 0.6 + D.def / 240 - 0.1 + (superDig ? 0.15 : 0) + (o.soft ? 0.2 : 0) + (o.type === "tip" ? 0.15 : 0) - (diving ? 0.1 : 0));
+    var dq = clamp01(timing * 0.72 + D.def / 320 - 0.12 + (superDig ? 0.15 : 0) + (o.soft ? 0.2 : 0) + (o.type === "tip" ? 0.15 : 0) - (diving ? 0.1 : 0));
     var dg = passGrade(dq);
     if (dg < 0) {
       o.A.st.k++; assist(atk, o.setterRole, o.hitterRole);
@@ -1426,7 +1591,7 @@
     ROLES.forEach(function (role) {
       var r = s.roster[role];
       h += "<tr><td><img src='" + r.sprite.toDataURL() + "' alt=''/>" + role + " " + U.esc(r.name) +
-        (r.skill ? " <span class='star'>★" + VB.SKILL_TXT[r.skill] + "</span>" : "") +
+        (r.skill ? " <span class='star'>★" + skillLabel(r) + "</span>" : "") +
         "</td><td>" + r.height + "</td><td>" + r.vert + "</td><td>" + r.spikeReach + "/" + r.blockReach + "</td><td>" + r.srv + "</td><td>" + r.rec + "</td><td>" + r.set +
         "</td><td>" + r.att + "</td><td>" + r.blk + "</td><td>" + r.def + "</td></tr>";
     });
@@ -1456,7 +1621,7 @@
     $("stageLine").textContent = c.label + (mode === "role" ? " • YOU ARE " + me.roster[myRole].name + " (" + VB.FAMILY_NAMES[VB.FAMILY[myRole]] + ")" : " • FULL TEAM") +
       " • " + (c.homeSide === 1 ? "AWAY AT " + (c.foe.short || c.foe.name) : "HOME");
     function starList(s) {
-      return ROLES.filter(function (r) { return s.roster[r].skill; }).map(function (r) { return s.roster[r].name + " (" + VB.SKILL_TXT[s.roster[r].skill] + ")"; }).join(", ") || "none";
+      return ROLES.filter(function (r) { return s.roster[r].skill; }).map(function (r) { return s.roster[r].name + " (" + skillLabel(s.roster[r]) + ")"; }).join(", ") || "none";
     }
     function tallest(s) { return ROLES.map(function (r) { return s.roster[r]; }).sort(function (a, b) { return b.height - a.height; })[0]; }
     feed(-1, "— " + c.mine.name + " vs " + c.foe.name + " —");

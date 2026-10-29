@@ -189,10 +189,11 @@
   function grow(p, rating) {
     var age = p.age, ageF = age < 23 ? 1.4 : age < 27 ? 1 : age < 31 ? 0.5 : 0.15;
     var room = clamp((p.pot - ovr(p)) / 10, 0, 1.2);
-    var amt = Math.max(0, rating - 5) * 0.24 * ageF * (0.3 + room);
+    // only good performances grow you, and gains shrink as you near your potential
+    var amt = Math.max(0, rating - 6) * 0.11 * ageF * (0.2 + room * 0.8);
     var gains = {};
     FOCUS[p.role].forEach(function (a) {
-      var w = a === C.focus ? 2.2 : 1;
+      var w = (a === C.focus ? 1.8 : 1) * (a === "vert" ? 1 : clamp((99 - p[a]) / 40, 0.15, 1));   // high attributes are harder to raise
       if (a === "vert") { if (C.focus !== "vert" || C.vertGain >= 12) return; w = 0.6; }
       C.prog[a] = (C.prog[a] || 0) + amt * w * rnd(0.5, 1.2);
       while (C.prog[a] >= 1) {
@@ -221,7 +222,7 @@
       addSeason(s.stats);
       C.recent.push(null);
       C.form = clamp(C.form * 0.85 - 0.15, -3, 3);
-      var tg = C.injured > 0 ? {} : grow(you(), 5.8);
+      var tg = C.injured > 0 ? {} : grow(you(), 6.5);
       var tgt = Object.keys(tg).filter(function (k) { return k !== "skill"; }).map(function (k) { return "+" + tg[k] + " " + ATTR_TXT[k]; }).join(", ");
       var rival = myLine[VB.ROLES.find(function (r) { return VB.FAMILY[r] === you().role; })];
       var why = C.injured > 0 ? "You're injured and watch from the stands." :

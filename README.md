@@ -15,6 +15,14 @@ build step, no server.
   blockers, best opposite, best libero, plus top scorer / server / blocker /
   digger.
 
+### 🏐🔥 Haikyuu!! Spring Nationals
+- 16 high schools (Karasuno, Aoba Johsai, Shiratorizawa, Inarizaki, Nekoma,
+  Fukurodani, Itachiyama, Kamomedai, Date Tech and more) in 4 pools, then
+  quarterfinals, semifinals and a final, with awards.
+- Famous players have named signature moves (KILLER SERVE, LEFTY CANNON,
+  ROLLING THUNDER, IRON WALL, GUESS BLOCK, SMALL GIANT...), and Karasuno and
+  Inarizaki have combo sets (FREAK QUICK, TWIN QUICK). A fan homage.
+
 ### 🏟️ Club Career (SuperLega 🇮🇹 + SV.League 🇯🇵)
 - 3 save slots. Create a player: name, nationality, position (setter, outside,
   middle, opposite, libero) and build (tower, balanced, jumper).
@@ -25,7 +33,8 @@ build step, no server.
   you, release you (performance or budget) or trade you; other clubs make
   offers based on your form. AI players transfer, and fresh faces arrive from
   outside both leagues.
-- Training focus, match-rating-based growth and a signature skill at OVR 78.
+- Training focus, match-rating-based growth (slow: only good matches grow you,
+  and high attributes rise slowly) and a signature skill at OVR 78.
 
 ## Gameplay
 - 5-1 rotations, libero swaps, home/base formations, perimeter defense.
@@ -42,10 +51,18 @@ build step, no server.
 - Home arenas in the home team's colours with a crowd, boards and jumbotron.
 - Rosters, heights and clubs are an arcade homage, not official data.
 
+## Aiming, timing and the block
+- While aiming a spike you see the path, the blockers' hands at the net and a
+  label: CLEAR, SEAM, TOOL ZONE / BLOCK EDGE or INTO THE BLOCK. The ball goes
+  where you click; only swings into the hands get blocked. On slow sets the
+  block can still slide toward your shot; deep swings clear short blocks.
+- Receive/dig timing bar: precise and punishing. The green zone shrinks for
+  harder serves and attacks and grows when your player out-rates the hitter.
+
 ## Files
 `index.html` (layout) · `style.css` · `js/data.js` (teams, clubs, players) ·
-`js/ui.js` · `js/stats.js` (box scores, sims, awards) · `js/engine.js` (match
-engine + arena) · `js/vnl.js` · `js/career.js` · `js/main.js` (menu).
+`js/haikyuu.js` (Spring Nationals teams) · `js/ui.js` · `js/stats.js` (box scores, sims, awards) · `js/engine.js` (match
+engine + arena) · `js/vnl.js` (tournaments) · `js/career.js` · `js/main.js` (menu).
 
 ## Deploy to Netlify
 The repo root is the site. Leave **Base directory** empty and **Publish

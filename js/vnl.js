@@ -1,215 +1,233 @@
-// VNL mode: 8 national teams, two pools, semifinals, final, then individual awards.
+// Tournaments: pools of four (round robin), then knockout rounds and an awards ceremony.
+// Used for the VNL (8 national teams) and Haikyuu!! Spring Nationals (16 high schools).
 (function (VB) {
   "use strict";
-  var U = VB.ui, $ = U.$, irnd = VB.irnd, clamp = VB.clamp;
-  var KEY = "retroVNL.tour2", REC_KEY = "retroVNL.record", CUP_KEY = "retroVNL.cups";
-  var tour = null;
+  var U = VB.ui, $ = U.$, clamp = VB.clamp;
 
-  function record() { try { return JSON.parse(localStorage.getItem(REC_KEY) || '{"w":0,"l":0}'); } catch (e) { return { w: 0, l: 0 }; } }
-  function cups() { return Number(localStorage.getItem(CUP_KEY)) || 0; }
-  function showRecord() { var r = record(); $("recordLine").textContent = "🏆 ×" + cups() + "   RECORD " + r.w + "W-" + r.l + "L"; }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(tour)); } catch (e) {} }
-  function load() { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { return null; } }
-  function T(id) { return VB.nationalById(id); }
   function stars(ovr) { var n = clamp(Math.round((ovr - 60) / 8), 1, 5); return "★★★★★".slice(0, n) + "☆☆☆☆☆".slice(0, 5 - n); }
+  var KO_NAMES = { 4: "QUARTERFINAL", 2: "SEMIFINAL", 1: "FINAL" };
 
-  function teamDef(id) {
-    var t = T(id);
-    return { id: id, name: t.name, short: t.name, flag: t.flag, kit: t.kit, kit2: t.kit2, ovr: t.ovr, lineup: tour.rosters[id] };
-  }
+  // cfg: { key, recKey, cupKey, title, short, league, size, teams, pickTitle }
+  function makeTournament(cfg) {
+    var tour = null;
+    function T(id) { return cfg.teams.find(function (t) { return t.id === id; }); }
+    function record() { try { return JSON.parse(localStorage.getItem(cfg.recKey) || '{"w":0,"l":0}'); } catch (e) { return { w: 0, l: 0 }; } }
+    function cups() { return Number(localStorage.getItem(cfg.cupKey)) || 0; }
+    function showRecord() { var r = record(); $("recordLine").textContent = "🏆 ×" + cups() + "   RECORD " + r.w + "W-" + r.l + "L"; }
+    function save() { try { localStorage.setItem(cfg.key, JSON.stringify(tour)); } catch (e) {} }
+    function load() { try { var t = JSON.parse(localStorage.getItem(cfg.key) || "null"); return t && t.ko ? t : null; } catch (e) { return null; } }
 
-  function newTour(myId, playMode, role) {
-    var others = VB.shuffle(VB.NATIONAL.filter(function (t) { return t.id !== myId; }));
-    var ids = [myId].concat(others.slice(0, 7).map(function (t) { return t.id; }));
-    ids.sort(function (a, b) { return T(b).ovr - T(a).ovr; });
-    tour = { myId: myId, pools: [[ids[0], ids[3], ids[4], ids[7]], [ids[1], ids[2], ids[5], ids[6]]], round: 0, stage: "pool",
-             table: {}, semis: null, final: null, champion: null, mode: playMode, myRole: role,
-             rosters: {}, stats: {}, info: {} };
-    ids.forEach(function (id) {
+    function teamDef(id) {
       var t = T(id);
-      tour.table[id] = { w: 0, l: 0, pf: 0, pa: 0 };
-      tour.rosters[id] = VB.nationalLineup(t);
-      VB.ROLES.forEach(function (r) {
-        var p = tour.rosters[id][r];
-        tour.info[p.id] = { name: p.name, fam: p.role, team: t.name, teamId: id, flag: t.flag, kit: r === "L" ? "#ffd21e" : t.kit, face: p.face,
-                            you: id === myId && playMode === "role" && r === role };
-      });
-    });
-    save();
-  }
-
-  function addStats(stats) {
-    Object.keys(stats).forEach(function (pid) {
-      if (!tour.info[pid]) return;
-      tour.stats[pid] = VB.Stats.addInto(tour.stats[pid] || VB.Stats.newLine(), stats[pid]);
-    });
-  }
-  function applyResult(a, b, sa, sb) {
-    var ta = tour.table[a], tb = tour.table[b];
-    if (sa > sb) { ta.w++; tb.l++; } else { tb.w++; ta.l++; }
-    ta.pf += sa; ta.pa += sb; tb.pf += sb; tb.pa += sa;
-  }
-  function simGame(a, b) { var s = VB.Stats.sim(teamDef(a), teamDef(b)); addStats(s.stats); return [s.a, s.b]; }
-  function poolPairs(pool, r) {
-    return [[[pool[0], pool[3]], [pool[1], pool[2]]], [[pool[0], pool[2]], [pool[3], pool[1]]], [[pool[0], pool[1]], [pool[2], pool[3]]]][r];
-  }
-  function poolRank(pool) {
-    return pool.slice().sort(function (a, b) {
-      var A = tour.table[a], B = tour.table[b];
-      return (B.w - A.w) || ((B.pf - B.pa) - (A.pf - A.pa));
-    });
-  }
-
-  function standingsHTML() {
-    var h = "";
-    tour.pools.forEach(function (pool, pi) {
-      h += "<table class='standings'><tr><th>POOL " + (pi ? "B" : "A") + "</th><th>W</th><th>L</th><th>+/-</th></tr>";
-      poolRank(pool).forEach(function (id, idx) {
-        var s = tour.table[id], cls = (id === tour.myId ? "you " : "") + (tour.stage !== "pool" && idx < 2 ? "q" : "");
-        h += "<tr class='" + cls + "'><td>" + T(id).flag + " " + T(id).name + "</td><td>" + s.w + "</td><td>" + s.l + "</td><td>" + (s.pf - s.pa) + "</td></tr>";
-      });
-      h += "</table>";
-    });
-    if (tour.semis) {
-      h += "<table class='standings'><tr><th>PLAYOFFS</th><th></th></tr>";
-      tour.semis.forEach(function (m) { h += "<tr><td>SF: " + T(m[0]).name + " vs " + T(m[1]).name + "</td><td>" + (m[2] != null ? m[2] + ":" + m[3] : "") + "</td></tr>"; });
-      if (tour.final) h += "<tr><td>FINAL: " + T(tour.final[0]).name + " vs " + T(tour.final[1]).name + "</td><td>" + (tour.final[2] != null ? tour.final[2] + ":" + tour.final[3] : "") + "</td></tr>";
-      h += "</table>";
+      return { id: id, name: t.name, short: t.short || t.name, flag: t.flag, kit: t.kit, kit2: t.kit2, ovr: t.ovr, combo: t.combo, lineup: tour.rosters[id] };
     }
-    if (Object.keys(tour.stats).length) h += "<div style='width:100%'><h3 class='mini'>TOURNAMENT LEADERS</h3>" + VB.Stats.leadersHTML(tour.stats, tour.info, 3) + "</div>";
-    return h;
-  }
-  function showTable(title, note, btnLabel) {
-    return new Promise(function (res) {
-      $("tableTitle").textContent = title;
-      $("tableBody").innerHTML = standingsHTML();
-      $("tableNote").textContent = note || "";
-      var b = $("nextBtn");
-      b.textContent = btnLabel || "NEXT MATCH";
-      $("tableScreen").classList.remove("hidden");
-      b.onclick = function () { $("tableScreen").classList.add("hidden"); res(); };
-    });
-  }
 
-  async function playMine(foeId, label) {
-    var myFirst = Math.random() < 0.5;
-    var res = await VB.Engine.playMatch({
-      mine: teamDef(tour.myId), foe: teamDef(foeId), homeSide: myFirst ? 0 : 1,
-      mode: tour.mode, myRole: tour.myRole, label: label, league: "VNL"
-    });
-    addStats(res.stats);
-    var r = record(); if (res.won) r.w++; else r.l++;
-    localStorage.setItem(REC_KEY, JSON.stringify(r));
-    showRecord();
-    return res;
-  }
-
-  async function ceremony() {
-    var bonus = {};
-    (tour.semis || []).forEach(function (m) { bonus[m[0]] = 3; bonus[m[1]] = 3; });
-    if (tour.final) { bonus[tour.final[0]] = 8; bonus[tour.final[1]] = 8; }
-    if (tour.champion) bonus[tour.champion] = 15;
-    var list = VB.Stats.awards(tour.stats, tour.info, bonus);
-    var champ = T(tour.champion);
-    await U.modal("🏆 VNL AWARDS",
-      "<p class='center'>CHAMPIONS: <b>" + champ.flag + " " + champ.name + "</b></p>" + VB.Stats.awardsHTML(list) +
-      "<h3 class='mini'>TOURNAMENT LEADERS</h3>" + VB.Stats.leadersHTML(tour.stats, tour.info, 5),
-      [{ label: "BACK TO MENU", value: true }]);
-  }
-
-  async function run() {
-    while (tour.stage === "pool") {
-      var r = tour.round, myMatch = null, sims = [];
-      tour.pools.forEach(function (pool) {
-        poolPairs(pool, r).forEach(function (pair) {
-          if (pair[0] === tour.myId || pair[1] === tour.myId) myMatch = pair; else sims.push(pair);
+    function newTour(myId, playMode, role) {
+      var others = VB.shuffle(cfg.teams.filter(function (t) { return t.id !== myId; }));
+      var ids = [myId].concat(others.slice(0, cfg.size - 1).map(function (t) { return t.id; }));
+      ids.sort(function (a, b) { return T(b).ovr - T(a).ovr; });
+      var np = cfg.size / 4, pools = [];
+      for (var k = 0; k < np; k++) pools.push([ids[k], ids[2 * np - 1 - k], ids[2 * np + k], ids[4 * np - 1 - k]]);   // snake seeding
+      tour = { myId: myId, pools: pools, round: 0, stage: "pool", table: {}, ko: [], koRound: 0, champion: null,
+               mode: playMode, myRole: role, rosters: {}, stats: {}, info: {} };
+      var taken = {};
+      ids.forEach(function (id) {
+        var t = T(id);
+        tour.table[id] = { w: 0, l: 0, pf: 0, pa: 0 };
+        tour.rosters[id] = VB.teamLineup(t, taken);
+        VB.ROLES.forEach(function (r) {
+          var p = tour.rosters[id][r];
+          tour.info[p.id] = { name: p.name, fam: p.role, team: t.name, teamId: id, flag: t.flag, kit: r === "L" ? "#ffd21e" : t.kit, face: p.face,
+                              you: id === myId && playMode === "role" && r === role };
         });
       });
-      var foeId = myMatch[0] === tour.myId ? myMatch[1] : myMatch[0];
-      var res = await playMine(foeId, "VNL POOL • ROUND " + (r + 1) + "/3");
-      applyResult(tour.myId, foeId, res.score[0], res.score[1]);
-      sims.forEach(function (pair) { var s = simGame(pair[0], pair[1]); applyResult(pair[0], pair[1], s[0], s[1]); });
-      tour.round++;
-      if (tour.round >= 3) {
-        tour.stage = "semi";
-        var A = poolRank(tour.pools[0]), B = poolRank(tour.pools[1]);
-        tour.semis = [[A[0], B[1], null, null], [B[0], A[1], null, null]];
-      }
       save();
-      await showTable("STANDINGS", tour.stage === "semi" ? "TOP 2 OF EACH POOL ADVANCE" : "ROUND " + (tour.round + 1) + " OF 3 UP NEXT",
-                      tour.stage === "semi" ? "TO THE PLAYOFFS" : "NEXT MATCH");
     }
-    if (tour.stage === "semi") {
-      var mySemi = tour.semis.find(function (m) { return m[0] === tour.myId || m[1] === tour.myId; });
-      tour.semis.forEach(function (m) {
-        if (m === mySemi) return;
-        var s = simGame(m[0], m[1]); m[2] = s[0]; m[3] = s[1];
+
+    function addStats(stats) {
+      Object.keys(stats).forEach(function (pid) {
+        if (!tour.info[pid]) return;
+        tour.stats[pid] = VB.Stats.addInto(tour.stats[pid] || VB.Stats.newLine(), stats[pid]);
       });
-      if (mySemi) {
-        var foe2 = mySemi[0] === tour.myId ? mySemi[1] : mySemi[0];
-        var rs = await playMine(foe2, "VNL SEMIFINAL");
-        mySemi[2] = mySemi[0] === tour.myId ? rs.score[0] : rs.score[1];
-        mySemi[3] = mySemi[0] === tour.myId ? rs.score[1] : rs.score[0];
-      }
-      tour.final = tour.semis.map(function (m) { return m[2] > m[3] ? m[0] : m[1]; }).concat([null, null]);
-      tour.stage = "final"; save();
-      var inFinal = tour.final[0] === tour.myId || tour.final[1] === tour.myId;
-      await showTable(inFinal ? "YOU'RE IN THE FINAL!" : (mySemi ? "OUT IN THE SEMIS" : "ELIMINATED IN POOLS"),
-                      inFinal ? "ONE MATCH FOR THE TROPHY" : "THE FINAL WILL BE SIMULATED", inFinal ? "PLAY THE FINAL" : "SEE THE FINAL");
     }
-    if (tour.stage === "final") {
-      var f = tour.final;
-      if (f[0] === tour.myId || f[1] === tour.myId) {
-        var foeF = f[0] === tour.myId ? f[1] : f[0];
-        var rf = await playMine(foeF, "VNL FINAL");
-        f[2] = f[0] === tour.myId ? rf.score[0] : rf.score[1];
-        f[3] = f[0] === tour.myId ? rf.score[1] : rf.score[0];
-        if (rf.won) localStorage.setItem(CUP_KEY, String(cups() + 1));
+    function applyResult(a, b, sa, sb) {
+      var ta = tour.table[a], tb = tour.table[b];
+      if (sa > sb) { ta.w++; tb.l++; } else { tb.w++; ta.l++; }
+      ta.pf += sa; ta.pa += sb; tb.pf += sb; tb.pa += sa;
+    }
+    function simGame(a, b) { var s = VB.Stats.sim(teamDef(a), teamDef(b)); addStats(s.stats); return [s.a, s.b]; }
+    function poolPairs(pool, r) {
+      return [[[pool[0], pool[3]], [pool[1], pool[2]]], [[pool[0], pool[2]], [pool[3], pool[1]]], [[pool[0], pool[1]], [pool[2], pool[3]]]][r];
+    }
+    function poolRank(pool) {
+      return pool.slice().sort(function (a, b) {
+        var A = tour.table[a], B = tour.table[b];
+        return (B.w - A.w) || ((B.pf - B.pa) - (A.pf - A.pa));
+      });
+    }
+    function winner(m) { return m[2] > m[3] ? m[0] : m[1]; }
+    function letter(i) { return "ABCD"[i]; }
+
+    function standingsHTML() {
+      var h = "";
+      tour.pools.forEach(function (pool, pi) {
+        h += "<table class='standings'><tr><th>POOL " + letter(pi) + "</th><th>W</th><th>L</th><th>+/-</th></tr>";
+        poolRank(pool).forEach(function (id, idx) {
+          var s = tour.table[id], cls = (id === tour.myId ? "you " : "") + (tour.stage !== "pool" && idx < 2 ? "q" : "");
+          h += "<tr class='" + cls + "'><td>" + T(id).flag + " " + T(id).name + "</td><td>" + s.w + "</td><td>" + s.l + "</td><td>" + (s.pf - s.pa) + "</td></tr>";
+        });
+        h += "</table>";
+      });
+      if (tour.ko.length) {
+        h += "<table class='standings'><tr><th>KNOCKOUT</th><th></th></tr>";
+        tour.ko.forEach(function (round) {
+          round.forEach(function (m) {
+            h += "<tr" + (m[0] === tour.myId || m[1] === tour.myId ? " class='you'" : "") + "><td>" + KO_NAMES[round.length].slice(0, 5) + ": " +
+                 T(m[0]).name + " vs " + T(m[1]).name + "</td><td>" + (m[2] != null ? m[2] + ":" + m[3] : "") + "</td></tr>";
+          });
+        });
+        h += "</table>";
+      }
+      if (Object.keys(tour.stats).length) h += "<div style='width:100%'><h3 class='mini'>TOURNAMENT LEADERS</h3>" + VB.Stats.leadersHTML(tour.stats, tour.info, 3) + "</div>";
+      return h;
+    }
+    function showTable(title, note, btnLabel) {
+      return new Promise(function (res) {
+        $("tableTitle").textContent = title;
+        $("tableBody").innerHTML = standingsHTML();
+        $("tableNote").textContent = note || "";
+        var b = $("nextBtn");
+        b.textContent = btnLabel || "NEXT MATCH";
+        $("tableScreen").classList.remove("hidden");
+        b.onclick = function () { $("tableScreen").classList.add("hidden"); res(); };
+      });
+    }
+
+    async function playMine(foeId, label) {
+      var res = await VB.Engine.playMatch({
+        mine: teamDef(tour.myId), foe: teamDef(foeId), homeSide: Math.random() < 0.5 ? 0 : 1,
+        mode: tour.mode, myRole: tour.myRole, label: label, league: cfg.league
+      });
+      addStats(res.stats);
+      var r = record(); if (res.won) r.w++; else r.l++;
+      localStorage.setItem(cfg.recKey, JSON.stringify(r));
+      showRecord();
+      return res;
+    }
+
+    function firstKnockout() {
+      var R = tour.pools.map(poolRank);
+      tour.ko = [R.length === 2 ? [[R[0][0], R[1][1], null, null], [R[1][0], R[0][1], null, null]]
+                                : [[R[0][0], R[1][1], null, null], [R[2][0], R[3][1], null, null],
+                                   [R[1][0], R[0][1], null, null], [R[3][0], R[2][1], null, null]]];
+      tour.koRound = 0;
+      tour.stage = "ko";
+    }
+
+    async function ceremony() {
+      var bonus = {}, last = tour.ko[tour.ko.length - 1][0];
+      tour.ko.forEach(function (round) { round.forEach(function (m) { bonus[m[0]] = (bonus[m[0]] || 0) + 2; bonus[m[1]] = (bonus[m[1]] || 0) + 2; }); });
+      bonus[tour.champion] = (bonus[tour.champion] || 0) + 10;
+      var list = VB.Stats.awards(tour.stats, tour.info, bonus);
+      var champ = T(tour.champion);
+      await U.modal("🏆 " + cfg.title + " AWARDS",
+        "<p class='center'>CHAMPIONS: <b>" + champ.flag + " " + champ.name + "</b> • FINAL " + T(last[0]).name + " " + last[2] + ":" + last[3] + " " + T(last[1]).name + "</p>" +
+        VB.Stats.awardsHTML(list) + "<h3 class='mini'>TOURNAMENT LEADERS</h3>" + VB.Stats.leadersHTML(tour.stats, tour.info, 5),
+        [{ label: "BACK TO MENU", value: true }]);
+    }
+
+    async function run() {
+      while (tour.stage === "pool") {
+        var r = tour.round, myMatch = null, sims = [];
+        tour.pools.forEach(function (pool) {
+          poolPairs(pool, r).forEach(function (pair) {
+            if (pair[0] === tour.myId || pair[1] === tour.myId) myMatch = pair; else sims.push(pair);
+          });
+        });
+        var foeId = myMatch[0] === tour.myId ? myMatch[1] : myMatch[0];
+        var res = await playMine(foeId, cfg.short + " POOL • ROUND " + (r + 1) + "/3");
+        applyResult(tour.myId, foeId, res.score[0], res.score[1]);
+        sims.forEach(function (pair) { var s = simGame(pair[0], pair[1]); applyResult(pair[0], pair[1], s[0], s[1]); });
+        tour.round++;
+        if (tour.round >= 3) firstKnockout();
+        save();
+        var inKo = tour.stage === "ko" && tour.ko[0].some(function (m) { return m[0] === tour.myId || m[1] === tour.myId; });
+        await showTable("STANDINGS", tour.stage === "ko" ? (inKo ? "YOU'RE THROUGH! TOP 2 OF EACH POOL ADVANCE" : "ELIMINATED — THE KNOCKOUTS WILL BE SIMULATED") : "ROUND " + (tour.round + 1) + " OF 3 UP NEXT",
+                        tour.stage === "ko" ? "TO THE KNOCKOUTS" : "NEXT MATCH");
+      }
+      while (tour.stage === "ko") {
+        var round = tour.ko[tour.koRound], name = KO_NAMES[round.length];
+        for (var i = 0; i < round.length; i++) {
+          var m = round[i];
+          if (m[0] === tour.myId || m[1] === tour.myId) {
+            var foe = m[0] === tour.myId ? m[1] : m[0];
+            var rs = await playMine(foe, cfg.short + " " + name);
+            m[2] = m[0] === tour.myId ? rs.score[0] : rs.score[1];
+            m[3] = m[0] === tour.myId ? rs.score[1] : rs.score[0];
+            if (name === "FINAL" && rs.won) localStorage.setItem(cfg.cupKey, String(cups() + 1));
+          } else {
+            var s = simGame(m[0], m[1]); m[2] = s[0]; m[3] = s[1];
+          }
+        }
+        if (round.length === 1) {
+          tour.champion = winner(round[0]);
+          tour.stage = "done"; save(); showRecord();
+          var won = tour.champion === tour.myId;
+          await showTable(won ? "🏆 CHAMPIONS!!" : T(tour.champion).name + " ARE CHAMPIONS", won ? T(tour.myId).name + " WIN THE " + cfg.title + "!" : "", "AWARDS CEREMONY");
+          await ceremony();
+          localStorage.removeItem(cfg.key);
+          tour = null;
+          return;
+        }
+        var next = [];
+        for (var k = 0; k < round.length; k += 2) next.push([winner(round[k]), winner(round[k + 1]), null, null]);
+        tour.ko.push(next); tour.koRound++;
+        save();
+        var alive = next.some(function (mm) { return mm[0] === tour.myId || mm[1] === tour.myId; });
+        var nextName = KO_NAMES[next.length];
+        await showTable(name + " RESULTS", alive ? "ON TO THE " + nextName + "!" : "YOU'RE OUT — THE REST WILL BE SIMULATED", alive ? "PLAY THE " + nextName : "CONTINUE");
+      }
+    }
+
+    async function start() {
+      U.showView("match");
+      showRecord();
+      $("stageLine").textContent = cfg.title;
+      var saved = load();
+      if (saved && saved.stage !== "done") {
+        tour = saved;
+        U.feed(-1, "— TOURNAMENT RESUMED —");
       } else {
-        var sf = simGame(f[0], f[1]); f[2] = sf[0]; f[3] = sf[1];
+        U.msg("PICK YOUR TEAM");
+        var mine = await U.pickFrom("CHOOSE YOUR TEAM — " + cfg.size + "-TEAM TOURNAMENT", cfg.teams.map(function (t) {
+          return { html: "<span>" + t.flag + " " + t.name + "</span><span class='stars'>" + stars(t.ovr) + "</span>", value: t };
+        }), cfg.pickTitle);
+        var playMode = await U.pickFrom("HOW DO YOU WANT TO PLAY?", [
+          { html: "<span>🎮 FULL TEAM</span><span class='stars'>CALL IT ALL</span>", value: "full" },
+          { html: "<span>🧍 ONE ROLE</span><span class='stars'>BE 1 PLAYER</span>", value: "role" }
+        ], cfg.pickTitle);
+        var role = null;
+        if (playMode === "role") {
+          role = await U.pickFrom("PICK YOUR PLAYER — LOCKED FOR THE WHOLE TOURNAMENT", VB.ROLES.map(function (r) {
+            var nm = (mine.players || {})[r];
+            return { html: "<span>" + VB.FAMILY_NAMES[VB.FAMILY[r]] + "</span><span class='stars'>" + (nm || "SQUAD PLAYER") + ((mine.stars || {})[r] ? " ★" : "") + "</span>", value: r };
+          }), cfg.pickTitle);
+        }
+        newTour(mine.id, playMode, role);
+        await showTable("TOURNAMENT DRAW", "POOL PLAY: 3 MATCHES, TOP 2 OF EACH POOL ADVANCE", "START POOL PLAY");
       }
-      tour.champion = f[2] > f[3] ? f[0] : f[1];
-      tour.stage = "done"; save(); showRecord();
-      var won = tour.champion === tour.myId;
-      await showTable(won ? "🏆 CHAMPIONS!!" : T(tour.champion).name + " WINS THE VNL", won ? T(tour.myId).name + " WINS THE VNL!" : "", "AWARDS CEREMONY");
-      await ceremony();
-      localStorage.removeItem(KEY);
-      tour = null;
+      await run();
     }
+
+    return {
+      start: start,
+      hasSave: function () { var s = load(); return !!(s && s.stage !== "done"); },
+      reset: function () { localStorage.removeItem(cfg.key); localStorage.removeItem(cfg.recKey); localStorage.removeItem(cfg.cupKey); }
+    };
   }
 
-  async function start() {
-    U.showView("match");
-    showRecord();
-    $("stageLine").textContent = "VOLLEYBALL NATIONS LEAGUE";
-    var saved = load();
-    if (saved && saved.stage !== "done" && saved.rosters) {
-      tour = saved;
-      U.feed(-1, "— TOURNAMENT RESUMED —");
-    } else {
-      U.msg("PICK YOUR NATION");
-      var mine = await U.pickFrom("CHOOSE YOUR NATION — 8-TEAM TOURNAMENT", VB.NATIONAL.map(function (t) {
-        return { html: "<span>" + t.flag + " " + t.name + "</span><span class='stars'>" + stars(t.ovr) + "</span>", value: t };
-      }), "VNL VOLLEY");
-      var playMode = await U.pickFrom("HOW DO YOU WANT TO PLAY?", [
-        { html: "<span>🎮 FULL TEAM</span><span class='stars'>CALL IT ALL</span>", value: "full" },
-        { html: "<span>🧍 ONE ROLE</span><span class='stars'>BE 1 PLAYER</span>", value: "role" }
-      ], "VNL VOLLEY");
-      var role = null;
-      if (playMode === "role") {
-        role = await U.pickFrom("PICK YOUR PLAYER — LOCKED FOR THE WHOLE TOURNAMENT", VB.ROLES.map(function (r) {
-          return { html: "<span>" + VB.FAMILY_NAMES[VB.FAMILY[r]] + "</span><span class='stars'>" + mine.players[r] + (mine.stars[r] ? " ★" : "") + "</span>", value: r };
-        }), "VNL VOLLEY");
-      }
-      newTour(mine.id, playMode, role);
-      await showTable("TOURNAMENT DRAW", "POOL PLAY: 3 MATCHES, TOP 2 ADVANCE TO THE SEMIS", "START POOL PLAY");
-    }
-    await run();
-  }
-
-  VB.VNL = {
-    start: start,
-    hasSave: function () { var s = load(); return !!(s && s.stage !== "done" && s.rosters); },
-    reset: function () { localStorage.removeItem(KEY); localStorage.removeItem(REC_KEY); localStorage.removeItem(CUP_KEY); }
-  };
+  VB.VNL = makeTournament({ key: "retroVNL.tour3", recKey: "retroVNL.record", cupKey: "retroVNL.cups", title: "VNL", short: "VNL",
+                            league: "VNL", size: 8, teams: VB.NATIONAL, pickTitle: "VNL VOLLEY" });
+  VB.HQ = makeTournament({ key: "retroHQ.tour", recKey: "retroHQ.record", cupKey: "retroHQ.cups", title: "SPRING NATIONALS", short: "SPRING NATS",
+                           league: "HARUKO", size: 16, teams: VB.HQ_TEAMS, pickTitle: "HAIKYUU!! SPRING NATIONALS" });
 })(window.VB);

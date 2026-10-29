@@ -122,9 +122,9 @@ window.VB = window.VB || {};
     var p = {
       id: o.id || VB.uid(), name: o.name, nat: o.nat, role: fam,
       age: o.age || irnd(21, 31),
-      height: o.height || (known ? known[0] : irnd(VB.HEIGHT[fam][0], VB.HEIGHT[fam][1])),
+      height: o.height || (known ? known[0] : irnd(VB.HEIGHT[fam][0], VB.HEIGHT[fam][1]) + (o.heightAdj || 0)),
       vert: o.vert || (known ? known[1] : irnd(VB.VERT[fam][0], VB.VERT[fam][1])),
-      skill: o.skill || null,
+      skill: o.skill || null, skillName: o.skillName || null,
       face: o.face || VB.makeFace(o.nat)
     };
     VB.ATTRS.forEach(function (a) { p[a] = clamp(Math.round(o.base + m[a] + rnd(-5, 5)), 25, 99); });
@@ -169,16 +169,23 @@ window.VB = window.VB || {};
   VB.NATIONAL.forEach(function (t) { t.flag = VB.FLAGS[t.id] || ""; });
   VB.nationalById = function (id) { return VB.NATIONAL.find(function (t) { return t.id === id; }); };
 
-  // seven player records for a national team, rebuilt each tournament
-  VB.nationalLineup = function (t) {
-    var lineup = {};
+  // seven player records for a team, rebuilt each tournament. Optional per-role overrides:
+  // skillNames, hair colours, skin tone index, hair style, and generated names for unnamed slots.
+  VB.teamLineup = function (t, taken) {
+    var nat = t.nat || t.id, lineup = {};
+    taken = taken || {};
     VB.ROLES.forEach(function (r) {
-      var p = VB.makePlayer({ id: t.id + "-" + r, name: t.players[r], nat: t.id, role: VB.FAMILY[r],
-                              base: t.ovr, skill: (t.stars || {})[r], age: irnd(23, 32) });
-      lineup[r] = p;
+      var face = VB.makeFace(nat);
+      if (t.hair && t.hair[r]) face.hair = t.hair[r];
+      if (t.skin && t.skin[r] != null) face.skin = VB.SKINS[t.skin[r]];
+      if (t.style && t.style[r] != null) face.style = t.style[r];
+      lineup[r] = VB.makePlayer({ id: t.id + "-" + r, name: (t.players || {})[r] || VB.genName(nat, taken), nat: nat, role: VB.FAMILY[r],
+                                  base: t.ovr, skill: (t.stars || {})[r], skillName: (t.skillNames || {})[r],
+                                  age: t.ages ? irnd(t.ages[0], t.ages[1]) : irnd(23, 32), face: face, heightAdj: t.heightAdj || 0 });
     });
     return lineup;
   };
+  VB.nationalLineup = function (t) { return VB.teamLineup(t); };
 
   // ---------- clubs (career mode) ----------
   VB.LEAGUES = {
