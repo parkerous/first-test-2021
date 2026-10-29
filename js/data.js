@@ -20,35 +20,40 @@ window.VB = window.VB || {};
   VB.FAMILY = { S: "S", OH1: "OH", OH2: "OH", MB1: "MB", MB2: "MB", OP: "OP", L: "L" };
   VB.FAMILY_NAMES = { S: "SETTER", OH: "OUTSIDE HITTER", MB: "MIDDLE BLOCKER", OP: "OPPOSITE", L: "LIBERO" };
   // men = mental (composure in tight moments, confidence), tec = technique (clean contacts, fewer shanks, better sets)
-  VB.ATTRS = ["srv", "rec", "set", "att", "blk", "def", "men", "tec"];
+  VB.ATTRS = ["srv", "rec", "set", "att", "blk", "def", "men", "tec", "spd"];   // spd = speed: court coverage, reaching passes and digs
   VB.MODS = {
-    S:  { srv: -2,  rec: -4,  set: 9,   att: -18, blk: -4,  def: 3,   men: 1, tec: 6 },
-    OH: { srv: 1.5, rec: 6,   set: -9,  att: 3,   blk: 0,   def: 3.5, men: 0, tec: 1 },
-    MB: { srv: -4,  rec: -14, set: -14, att: 5.5, blk: 9.5, def: -7,  men: 0, tec: -2 },
-    OP: { srv: 4,   rec: -9,  set: -11, att: 8,   blk: 3,   def: -2,  men: 1, tec: 0 },
-    L:  { srv: -30, rec: 12,  set: -4,  att: -40, blk: -40, def: 12,  men: 2, tec: 4 }
+    S:  { srv: -2,  rec: -4,  set: 9,   att: -18, blk: -4,  def: 3,   men: 1, tec: 6,  spd: 2 },
+    OH: { srv: 1.5, rec: 6,   set: -9,  att: 3,   blk: 0,   def: 3.5, men: 0, tec: 1,  spd: 2 },
+    MB: { srv: -4,  rec: -14, set: -14, att: 5.5, blk: 9.5, def: -7,  men: 0, tec: -2, spd: -5 },
+    OP: { srv: 4,   rec: -9,  set: -11, att: 8,   blk: 3,   def: -2,  men: 1, tec: 0,  spd: -2 },
+    L:  { srv: -30, rec: 12,  set: -4,  att: -40, blk: -40, def: 12,  men: 2, tec: 4,  spd: 8 }
   };
   var OVR_W = {
-    S:  { set: .4, def: .13, srv: .09, blk: .09, rec: .09, att: .08, men: .05, tec: .07 },
-    OH: { att: .27, rec: .23, def: .13, srv: .13, blk: .13, men: .05, tec: .06 },
-    MB: { blk: .37, att: .32, srv: .13, def: .08, men: .05, tec: .05 },
-    OP: { att: .41, srv: .18, blk: .18, def: .13, men: .05, tec: .05 },
-    L:  { rec: .4, def: .4, set: .08, men: .06, tec: .06 }
+    S:  { set: .4, def: .13, srv: .09, blk: .09, rec: .09, att: .08, men: .05, tec: .07, spd: .04 },
+    OH: { att: .27, rec: .23, def: .13, srv: .13, blk: .13, men: .05, tec: .06, spd: .05 },
+    MB: { blk: .37, att: .32, srv: .13, def: .08, men: .05, tec: .05, spd: .03 },
+    OP: { att: .41, srv: .18, blk: .18, def: .13, men: .05, tec: .05, spd: .03 },
+    L:  { rec: .4, def: .4, set: .08, men: .06, tec: .06, spd: .09 }
   };
+  Object.keys(OVR_W).forEach(function (f) {                           // weights always sum to 1
+    var t = 0; Object.keys(OVR_W[f]).forEach(function (a) { t += OVR_W[f][a]; });
+    Object.keys(OVR_W[f]).forEach(function (a) { OVR_W[f][a] /= t; });
+  });
   var OVR_OFF = {};                                                   // keeps ovr ≈ the base it was built from
   Object.keys(OVR_W).forEach(function (f) { var o = 0; Object.keys(OVR_W[f]).forEach(function (a) { o += OVR_W[f][a] * VB.MODS[f][a]; }); OVR_OFF[f] = o; });
   // older saves: players made before mental/technique existed get values from their skill level
   VB.fillAttrs = function (p) {
-    if (p.men != null && p.tec != null) return p;
+    if (p.men != null && p.tec != null && p.spd != null) return p;
     var w = OVR_W[p.role], s = 0, n = 0;
     ["srv", "rec", "set", "att", "blk", "def"].forEach(function (a) { if (w[a]) { s += p[a] - VB.MODS[p.role][a]; n++; } });
     var base = n ? s / n : 70;
     if (p.men == null) p.men = clamp(Math.round(base + VB.MODS[p.role].men), 25, 99);
     if (p.tec == null) p.tec = clamp(Math.round(base + VB.MODS[p.role].tec), 25, 99);
+    if (p.spd == null) p.spd = clamp(Math.round(base + VB.MODS[p.role].spd - ((p.height || 195) - 196) * 0.3), 25, 99);
     return p;
   };
   VB.ovr = function (p) {
-    if (p.men == null || p.tec == null) VB.fillAttrs(p);
+    if (p.men == null || p.tec == null || p.spd == null) VB.fillAttrs(p);
     var w = OVR_W[p.role], s = 0;
     Object.keys(w).forEach(function (a) { s += p[a] * w[a]; });
     return Math.round(s - OVR_OFF[p.role]);
@@ -226,6 +231,9 @@ window.VB = window.VB || {};
       face: o.face || VB.makeFace(o.nat)
     };
     VB.ATTRS.forEach(function (a) { p[a] = clamp(Math.round(o.base + m[a] + rnd(-5, 5)), 25, 99); });
+    // tall players are a step slower; short ones quicker
+    var hMid = (VB.HEIGHT[fam][0] + VB.HEIGHT[fam][1]) / 2 + (o.heightAdj || 0);
+    p.spd = clamp(Math.round(p.spd - (p.height - hMid) * 0.35), 25, 99);
     if (p.skill) p[VB.SKILL_ATTR[p.skill]] = clamp(p[VB.SKILL_ATTR[p.skill]] + 5, 25, 99);
     VB.applyLook(p);
     var ov = VB.ovr(p);

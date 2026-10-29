@@ -292,7 +292,7 @@
       roster[role] = {
         ref: rec, name: rec.name, num: num, face: rec.face, skill: rec.skill || null, skillName: rec.skillName || null,
         cd: 0, ph: rnd(0, Math.PI * 2), streak: 0, flow: false, flowLeft: 0,
-        srv: rec.srv, rec: rec.rec, set: rec.set, att: rec.att, blk: rec.blk, def: rec.def, men: rec.men || 70, tec: rec.tec || 70,
+        srv: rec.srv, rec: rec.rec, set: rec.set, att: rec.att, blk: rec.blk, def: rec.def, men: rec.men || 70, tec: rec.tec || 70, spd: rec.spd || 70,
         height: rec.height, vert: rec.vert, spikeReach: reach.spike, blockReach: reach.block,
         sprite: makeSprite(role === "L" ? libKit : kit, rec.face, role === "L" ? kit : (kit === team.kit ? team.kit2 : team.kit), kitPattern(team.id)),
         st: newStat()
@@ -307,10 +307,14 @@
   function skillLabel(Pl) { return Pl.skillName || VB.SKILL_TXT[Pl.skill]; }
   function roleOf(s, Pl) { return ROLES.find(function (r) { return s.roster[r] === Pl; }); }
   function ready(Pl, kind) { return Pl.skill === kind && Pl.cd === 0; }
+  // a signature move is a real weapon: big banner, flash, and a much bigger effect than before
   function useSkill(s, Pl) {
     Pl.cd = SKILL_CD[Pl.skill];
+    var at = s.pos[roleOf(s, Pl)] || { x: W / 2, y: NET };
     feed(s.side, "★ " + Pl.name + " — " + skillLabel(Pl) + "!", true);
-    popup(skillLabel(Pl) + "!", s.pos[roleOf(s, Pl)] || { x: W / 2, y: NET }, "#7fd8ff");
+    banner("★ " + skillLabel(Pl), Pl.name + " unleashes a signature move", s.side === 0 ? "#7fd8ff" : "#ff9ad5", 1.1);
+    ring(at, "#7fd8ff", 46, 0.5); puff(at, 12, "#bff0ff");
+    popup(skillLabel(Pl) + "!", at, "#7fd8ff");
   }
   function tickCooldowns() {
     [me, opp].forEach(function (s) {
@@ -692,7 +696,8 @@
       Object.keys(s.pos).forEach(function (r) {
         var p = s.pos[r], t = s.tgt[r];
         if (!t) return;
-        var kk = s.rush[r] ? kr : k;
+        var sp = clamp(0.8 + ((s.roster[r] && s.roster[r].spd || 70) - 70) / 80, 0.6, 1.3);      // faster players get there sooner
+        var kk = 1 - Math.pow(1 - (s.rush[r] ? kr : k), sp);
         p.x += (t.x - p.x) * kk; p.y += (t.y - p.y) * kk;
         if (s.rush[r] && dist(p, t) < 3) delete s.rush[r];
       });
@@ -1363,7 +1368,7 @@
     var superServe = kind === "super";
     if (superServe) { kind = "spin"; useSkill(srv, Sv); }
     var sp = serveParams(kind, Sv.srv, srv === me ? 0.5 + Sv.srv / 250 : 0.4 + srv.team.ovr / 300);
-    if (superServe) { sp.power = clamp01(sp.power + 0.25); sp.errP += 0.05; }
+    if (superServe) { sp.power = clamp01(sp.power + 0.4); sp.errP += 0.02; }
     if (tossMod != null) {                                       // a clean toss hits harder; a bad one risks an error
       sp.power = clamp01(sp.power * (0.85 + 0.3 * tossMod));
       sp.errP = Math.max(0.02, sp.errP + (tossMod < 0.35 ? 0.1 : tossMod >= 1 ? -0.02 : 0));
@@ -1406,7 +1411,7 @@
       await sleep(150); slow();
       timing = await timingBar("RECEIVE — " + RP.name + " vs " + Sv.name + " (SRV " + Sv.srv + ")!",
         duelSpeed(Sv.srv + (kind === "spin" ? sp.power * 12 : 0), RP.rec, superServe || Sv.flow),
-        0.28 + (RP.rec - Sv.srv) / 250 - sp.power * 0.08 - (superServe ? 0.04 : 0) - (kind === "float" ? 0.02 : 0) + clutchAdj(RP));
+        0.28 + (RP.rec - Sv.srv) / 250 - sp.power * 0.08 - (superServe ? 0.07 : 0) - (kind === "float" ? 0.02 : 0) + clutchAdj(RP));
       fast();
     } else if (rcv === me) timing = autoTiming(RP.rec);
     await flight;
@@ -1416,8 +1421,10 @@
     if (useRec) useSkill(rcv, RP);
     var rq = rcv === me ? clamp01(timing * 0.72 + RP.rec / 320 - sp.power * 0.28 + rnd(-0.04, 0.06) + edge(rcv) * 0.4 + mom[rcv.side])
                         : clamp01(RP.rec / 110 - sp.power * 0.45 + rnd(-0.12, 0.18) + edge(rcv) * 0.8 + mom[rcv.side]);
-    if (useRec) rq = clamp01(rq + 0.15);
-    var shank = Math.random() < (useRec ? SHANK_P / 2 : SHANK_P) * techShank(RP);
+    if (useRec) rq = clamp01(rq + 0.35);
+    rq = clamp01(rq + ((RP.spd || 70) - 70) / 500);                  // quick feet get behind the ball
+    if (superServe && rcv !== me) rq = clamp01(rq - 0.12);
+    var shank = !useRec && Math.random() < SHANK_P * techShank(RP) * (superServe ? 2 : 1);
     var grade = shank ? -1 : passGrade(rq);
     RP.st.rc++;
     if (grade < 0) {
@@ -1450,7 +1457,7 @@
   // a shank: the ball cannons off the arms into the stands and the passer goes down
   // shanks come in flavours — returns how it went, for the commentary
   async function shankFx(s, role, at) {
-    var dir = at.x < W / 2 ? -1 : 1, back = s.side === 0 ? 1 : -1, v = pick(["stands", "face", "roof", "ref", "chase", "collide"]);
+    var dir = at.x < W / 2 ? -1 : 1, back = s.side === 0 ? 1 : -1, v = (function (r) { return r < 0.38 ? "stands" : r < 0.74 ? "chase" : r < 0.86 ? "face" : r < 0.96 ? "collide" : "roof"; })(Math.random());   // realistic mix
     puff(at, 10);
     if (v === "face") {
       jump(s, role, 1100, -2, "fall", -dir);
@@ -1661,7 +1668,7 @@
     jump(atk, "S", 380, 9, "spike");
     S.st.att++;
     var mb = frontRoles(def).find(function (r) { return r.indexOf("MB") === 0; });
-    var read = Math.random() < 0.22;
+    var read = Math.random() < 0.1;                                   // a signature dump is hard to read
     if (read) jump(def, mb, 420, 10, "block");
     await sleep(170);
     var from = ballPos();
@@ -1813,7 +1820,7 @@
     }
 
     // 1) attack error
-    var errP = (plan.jump != null ? (plan.jump < 0.35 ? 0.07 : plan.jump >= 1 ? -0.02 : 0) : 0) + 0.05 + (1 - setQ) * 0.08 + st.tempo * 0.02 - A.att / 1200 + (superSpike ? 0.03 : 0) + (type === "wipe" ? 0.05 : 0) - (type === "tip" ? 0.03 : 0);
+    var errP = (plan.jump != null ? (plan.jump < 0.35 ? 0.07 : plan.jump >= 1 ? -0.02 : 0) : 0) + 0.05 + (1 - setQ) * 0.08 + st.tempo * 0.02 - A.att / 1200 + (type === "wipe" ? 0.05 : 0) - (type === "tip" ? 0.03 : 0);
     if (Math.random() < errP) {
       A.st.ae++;
       if (pin && dir === "line" && Math.random() < 0.35) {
@@ -1853,10 +1860,10 @@
     var pTouch = 0, stuffAdj = 0;
     if (n && type === "spike") {
       var depth = clamp01(Math.abs(target.y - NET) / 270);
-      var common = (0.62 + blkAvg / 280) * clamp(1 - reachDiff / 110, 0.5, 1.45) * (superSpike ? 0.85 : 1) *
+      var common = (0.62 + blkAvg / 280) * clamp(1 - reachDiff / 110, 0.5, 1.45) * (superSpike ? 0.6 : 1) *
                    (1 - 0.25 * depth * clamp01((reachDiff + 15) / 30));         // deep swings clear a short block
-      pTouch = geo.zone === "in" ? 0.82 * common + (superBlock ? 0.12 : 0)
-             : geo.zone === "edge" ? 0.5 * common + (superBlock ? 0.1 : 0)
+      pTouch = geo.zone === "in" ? 0.82 * common + (superBlock ? 0.3 : 0)
+             : geo.zone === "edge" ? 0.5 * common + (superBlock ? 0.25 : 0)
              : geo.zone === "seam" ? 0.14 : 0.04;
       stuffAdj = clamp(-reachDiff / 250, -0.15, 0.15);
     }
@@ -1872,7 +1879,7 @@
       } else if (type === "tip") outcome = "soft";
       else {
         var zone = geo.zone;
-        var stuffP = zone === "in" ? clamp(0.19 + (blkAvg - A.att) / 250 + (n - 1) * 0.04 + (superBlock ? 0.15 : 0) - (superSpike ? 0.1 : 0) + stuffAdj, 0.1, 0.55)
+        var stuffP = zone === "in" ? clamp(0.19 + (blkAvg - A.att) / 250 + (n - 1) * 0.04 + (superBlock ? 0.3 : 0) - (superSpike ? 0.2 : 0) + stuffAdj, 0.05, 0.7)
                    : zone === "edge" ? 0.07 : 0.03;
         var toolP = (quickMB ? 0.04 : pin ? 0.16 : 0.08) +
                     (A.att - blkAvg) / 400 +
@@ -1974,7 +1981,7 @@
     var controlled = def === me && iControl(digRole);
     var startDist = dist(def.pos[digRole], to), diveDir = Math.sign(to.x - def.pos[digRole].x) || 1;
     var noTouch = !o.soft && o.type === "spike" && !controlled && gap > 0.5 && Math.random() < 0.4;
-    var diving = !noTouch && !o.soft && startDist > 70;
+    var diving = !noTouch && !o.soft && startDist > 70 + ((D.spd || 70) - 70) * 1.2;          // quick defenders reach it on their feet
     if (!noTouch) { moveTo(def, digRole, to); if (diving) def.rush[digRole] = true; }
     var ms = o.soft ? (o.waterfall ? 600 : 700) : o.type === "tip" ? 650 : 380 - o.st.tempo * 40;
     var fo = o.soft ? (o.waterfall ? { h0: 0.6, h1: 0, peak: 0.2 } : { h0: o.h0, h1: 0, peak: 1.1 })
@@ -1985,7 +1992,7 @@
       await sleep(60); slow();
       timing = await timingBar((o.soft ? "PLAY THE TOUCH — " : o.type === "tip" ? "CHASE THE TIP — " : "DIG — ") + D.name + " vs " + o.A.name + " (ATT " + o.A.att + ")!",
                                duelSpeed(o.A.att, D.def, o.superSpike || o.A.flow) * (o.soft ? 1.25 : o.type === "tip" ? 1.1 : 0.9),
-                               0.26 + (D.def - o.A.att) / 250 - (o.superSpike ? 0.03 : 0) - (o.type === "spike" ? (1 - o.st.tempo) * 0.05 : 0) +
+                               0.26 + (D.def - o.A.att) / 250 - (o.superSpike ? 0.07 : 0) - (o.type === "spike" ? (1 - o.st.tempo) * 0.05 : 0) +
                                (o.soft ? 0.08 : 0) + (o.type === "tip" ? 0.05 : 0) + clutchAdj(D));
       fast();
     } else timing = autoTiming(D.def);
@@ -2022,11 +2029,12 @@
     var killP;
     if (o.soft) killP = o.waterfall ? 0.3 : 0.12;
     else if (o.type === "tip") killP = clamp01(0.12 + gap * 0.55 - D.def / 600 + (o.dump ? 0.15 : 0));
-    else killP = clamp01(0.3 + o.A.att / 280 + o.setQ * 0.15 + gap * 0.3 - D.def / 380 + (o.superSpike ? 0.12 : 0) +
+    else killP = clamp01(0.3 + o.A.att / 280 + o.setQ * 0.15 + gap * 0.3 - D.def / 380 + (o.superSpike ? 0.28 : 0) +
                          (o.readWrong ? 0.08 * o.st.tempo : 0) + (o.seam ? 0.08 : 0) + (diving ? 0.08 : 0));
-    if (superDig) killP -= 0.12;
+    if (superDig) killP -= 0.35;
     killP -= sty(def).defense;
     killP += edge(atk) * 0.9 + mom[atk.side];                     // class and momentum
+    killP -= ((D.spd || 70) - 70) / 400 * clamp01(startDist / 120); // speed covers ground
     if (controlled) killP *= (1.45 - timing * 0.9);
     if (Math.random() < clamp01(killP)) {
       if (!o.soft && o.type !== "tip") await bounce(from, to);
@@ -2044,7 +2052,7 @@
       msg("SHANKED!"); feed(def.side, D.name + " shanks it " + how);
       return credit(atk, o.hitterRole);
     }
-    var dq = clamp01(timing * 0.72 + D.def / 320 - 0.12 + edge(def) * 0.5 + mom[def.side] * 0.5 + sty(def).defense + (superDig ? 0.15 : 0) + (o.soft ? 0.2 : 0) + (o.type === "tip" ? 0.15 : 0) - (diving ? 0.1 : 0));
+    var dq = clamp01(timing * 0.72 + D.def / 320 - 0.12 + edge(def) * 0.5 + mom[def.side] * 0.5 + sty(def).defense + (superDig ? 0.3 : 0) + (o.soft ? 0.2 : 0) + (o.type === "tip" ? 0.15 : 0) - (diving ? 0.1 : 0));
     var dg = passGrade(dq);
     if (dg < 0) {
       o.A.st.k++; assist(atk, o.setterRole, o.hitterRole);
@@ -2089,13 +2097,13 @@
 
   function rosterTable(s) {
     var h = "<table class='roster'><tr><th>" + U.esc((s.team.flag || "") + " " + s.team.name) +
-      "</th><th>HT</th><th>VERT</th><th>REACH</th><th>SRV</th><th>REC</th><th>SET</th><th>ATT</th><th>BLK</th><th>DEF</th><th>MEN</th><th>TEC</th></tr>";
+      "</th><th>HT</th><th>VERT</th><th>REACH</th><th>SRV</th><th>REC</th><th>SET</th><th>ATT</th><th>BLK</th><th>DEF</th><th>MEN</th><th>TEC</th><th>SPD</th></tr>";
     ROLES.forEach(function (role) {
       var r = s.roster[role];
       h += "<tr><td><img src='" + r.sprite.toDataURL() + "' alt=''/>" + role + " " + U.esc(r.name) +
         (r.skill ? " <span class='star'>★" + skillLabel(r) + "</span>" : "") +
         "</td><td>" + r.height + "</td><td>" + r.vert + "</td><td>" + r.spikeReach + "/" + r.blockReach + "</td><td>" + r.srv + "</td><td>" + r.rec + "</td><td>" + r.set +
-        "</td><td>" + r.att + "</td><td>" + r.blk + "</td><td>" + r.def + "</td><td>" + r.men + "</td><td>" + r.tec + "</td></tr>";
+        "</td><td>" + r.att + "</td><td>" + r.blk + "</td><td>" + r.def + "</td><td>" + r.men + "</td><td>" + r.tec + "</td><td>" + r.spd + "</td></tr>";
     });
     return h + "</table>";
   }
@@ -2152,7 +2160,7 @@
   // play it, or quick-sim it (a little worse without you calling the shots: ~5-10% lower win chance)
   async function quickSim(c) {
     var mine = Object.assign({}, c.mine), bo = c.bestOf || 1;
-    mine.ovr = VB.Stats.teamOvr(c.mine) - (bo > 1 ? 1 : 1.5);
+    mine.ovr = VB.Stats.teamOvr(c.mine) - (bo > 1 ? 0.8 : 1.2);
     var s = VB.Stats.simSets(mine, c.foe, bo), won = s.a > s.b;
     var coins = VB.Gacha ? VB.Gacha.earn(won ? 1000 : 500) : 0;
     var top = Object.keys(s.stats).filter(function (id) { return VB.ROLES.some(function (r) { return c.mine.lineup[r] && c.mine.lineup[r].id === id; }); })

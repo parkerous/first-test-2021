@@ -53,6 +53,7 @@ build step, no server.
 ### 🎴 Gacha & Showroom (Haikyuu!!)
 - 500 free pulls to start. Every match pays: a win = 10 pulls, a loss = 5 pulls
   (any mode), plus story events and a daily gift. Pull ×1 (100) or ×10 (900).
+- Pull ×1, ×10 or ×100 (a summary with a rarity tally, rarest first).
 - Rarities: Common, Rare, Epic, Legendary, Mythic. Limited variants include
   Christmas Bokuto/Nishinoya/Hinata/Kenma and Festival Oikawa (Legendary),
   Halloween (Witch Kenma, Vampire Kuroo, Guess Monster Tendo, Black Cat Lev,
@@ -70,7 +71,8 @@ build step, no server.
   plant) where up to 8 cards live; the rest wait in storage. They pick things
   to do on their own — pass a ball, spike from the cart, sweep, write on the
   whiteboard, read, nap, dance, chat, say their catchphrase — or tap one and
-  choose an action.
+  choose an action. One-tap BEST 8 / NEWEST 8 / RANDOM 8 / EMPTY ROOM, and a
+  full room swaps automatically with the selected student.
 
 ### 🏅 Award ceremonies
 - Tournaments and club seasons end with a podium (gold, silver, bronze teams),
@@ -79,11 +81,28 @@ build step, no server.
   the Year, Fighting Spirit) and a podium when you win Spring Nationals.
 
 ### 🏟️ Player Career (8 leagues: 🇮🇹 SuperLega, 🇯🇵 SV.League, 🇵🇱 PlusLiga, 🇹🇷 Efeler Ligi, 🇧🇷 Superliga, 🇫🇷 Ligue A, 🇩🇪 Bundesliga, 🇰🇷 V-League)
-- FIFA-style: pick an archetype (Powerhouse, The Wall, Maestro, Guardian, Serve
-  Bomber), earn XP from matches and weekly training drills, level up and spend
+- ACADEMY YEARS (ages 14-18): five choices, no matches — where you start,
+  your growth-spurt summer, youth national trials, which country's academy you
+  join (decides your first league) and your pathway: sign pro at 18, university
+  first (pro at 21) or a pro academy contract.
+- Choose your exact HEIGHT (taller = more reach and block, less jump and speed)
+  and one of 18 position-specific ARCHETYPES (e.g. Six-Rotation All-Rounder,
+  Reception Anchor, Quick Attacker, Read Blocker, Tempo Setter, Jump Setter &
+  Dumper, Power Opposite, Back-Row Cannon, Defensive Wall, Floor General, Pure
+  Athlete), each with strengths, a weakness and faster-growing attributes.
+- FIFA-style: earn XP from matches and weekly training drills, level up and spend
   skill points, and chase three manager objectives each season (they raise your
   manager rating, which earns more starts, salary and coins).
 - Eight leagues of 8 clubs; older saves get the new leagues automatically.
+- Season calendar: league + playoffs → CLUB WORLD CUP (the eight league
+  champions) → summer VNL with your national team if you're good enough (starter
+  or squad player) → next season.
+- Retire from 33 (forced at 35) and become a HEAD COACH: coaching offers based on
+  your legacy, full-team matches, a transfer market where fees follow OVR and
+  age, wages vs budget, selling players, and a board that sets targets and can
+  sack you.
+- Trophy cabinet with counters (e.g. SV.LEAGUE CHAMPION ×5) for trophies,
+  individual awards and coaching titles.
 - 3 save slots. Create a player: name, nationality, position (setter, outside,
   middle, opposite, libero) and build (tower, balanced, jumper).
 - You control only yourself; coaches pick lineups from form and ratings.
@@ -127,8 +146,13 @@ build step, no server.
 - Setter menu: up to four plain options (QUICK / OUTSIDE / RIGHT SIDE / BACK
   ROW → hitter) with the setter's 👍 pick; MORE CALLS opens the full playbook.
 - Ratings scale: elite pros sit around 80-85 OVR, high schoolers below that.
-- Two new attributes: MENTAL (composure in tight moments: a wider window at the
-  end of close sets) and TECHNIQUE (cleaner contacts: fewer shanks, better sets).
+- Attributes include MENTAL (composure in tight moments), TECHNIQUE (cleaner
+  contacts: fewer shanks, better sets) and SPEED (players reach balls sooner,
+  better passes, fewer desperate dives; tall players are a step slower).
+- Signature ★ moves are real weapons now (much bigger effects, a banner and a
+  flash); the attribute bonus stars carry is their passive side power.
+- Shanks are realistic: mostly into the stands or off the shoulder, rarely
+  anything stranger.
 - Every match starts with a choice: ▶ PLAY or ⏩ QUICK SIM (instant result, about
   5-10% lower win chance without you calling the shots).
 - 15 realistic haircuts (buzz, crew, side part, fringe, middle part, undercut,

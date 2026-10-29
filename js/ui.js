@@ -63,6 +63,22 @@
       window.scrollTo(0, v === "match" ? Math.max(0, $("matchView").getBoundingClientRect().top + window.scrollY - 8) : 0);
     },
 
+    // trophy cabinet with counters; items like "3 SV.LEAGUE CHAMPION (BLUETEON)" or "Y2 INTERHIGH CHAMPIONS"
+    cabinet: function (list, icon) {
+      var groups = {}, order = [];
+      (list || []).forEach(function (t) {
+        var m = String(t).match(/^(?:S|Y)?(\d+)\s+(.*?)(?:\s+\(([^)]*)\))?$/), key = m ? m[2] : t, when = m ? m[1] : "";
+        if (!groups[key]) { groups[key] = { n: 0, when: [], extra: {} }; order.push(key); }
+        groups[key].n++; if (when) groups[key].when.push(when); if (m && m[3]) groups[key].extra[m[3]] = 1;
+      });
+      if (!order.length) return "<p class='muted'>None yet.</p>";
+      return "<div class='trophy-case'>" + order.sort(function (a, b) { return groups[b].n - groups[a].n; }).map(function (k) {
+        var g = groups[k];
+        return "<div class='cab-item'><span class='cab-icon'>" + (icon || "🏆") + "</span><b>" + esc(k) + "</b> <span class='cab-n'>×" + g.n + "</span>" +
+          "<div class='muted'>" + (g.when.length ? "seasons " + g.when.join(", ") : "") + (Object.keys(g.extra).length ? " • " + esc(Object.keys(g.extra).join(", ")) : "") + "</div></div>";
+      }).join("") + "</div>";
+    },
+
     // page-level dialog; btns: [{ label, value, cls }] → resolves with the chosen value
     modal: function (title, html, btns) {
       return new Promise(function (res) {

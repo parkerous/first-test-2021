@@ -6,11 +6,11 @@
 
   var SLOT_KEY = "vnlCareer.slot", SLOTS = 3;
   var COMP = { S: 2, OH: 4, MB: 3, OP: 2, L: 1 };                       // a 12-player squad
-  var CAL = ["window-pre", "R1", "R2", "R3", "window-mid", "R4", "R5", "R6", "R7", "SF", "F", "end"];
-  var CAL_TXT = { "window-pre": "PRE-SEASON TRANSFER WINDOW", "window-mid": "MID-SEASON TRANSFER WINDOW", SF: "PLAYOFF SEMIFINALS", F: "PLAYOFF FINAL", end: "SEASON REVIEW" };
-  var FOCUS = { S: ["set", "def", "srv", "blk", "tec", "men", "vert"], OH: ["att", "rec", "def", "srv", "blk", "tec", "men", "vert"], MB: ["blk", "att", "srv", "tec", "men", "vert"],
-                OP: ["att", "srv", "blk", "def", "tec", "men", "vert"], L: ["rec", "def", "set", "tec", "men"] };
-  var ATTR_TXT = { srv: "SERVE", rec: "RECEIVE", set: "SET", att: "ATTACK", blk: "BLOCK", def: "DEFENCE", vert: "VERTICAL", men: "MENTAL", tec: "TECHNIQUE" };
+  var CAL = ["window-pre", "R1", "R2", "R3", "window-mid", "R4", "R5", "R6", "R7", "SF", "F", "CWC", "VNL", "end"];
+  var CAL_TXT = { "window-pre": "PRE-SEASON TRANSFER WINDOW", "window-mid": "MID-SEASON TRANSFER WINDOW", SF: "PLAYOFF SEMIFINALS", F: "PLAYOFF FINAL", CWC: "CLUB WORLD CUP", VNL: "SUMMER: VOLLEYBALL NATIONS LEAGUE", end: "SEASON REVIEW" };
+  var FOCUS = { S: ["set", "def", "srv", "blk", "tec", "men", "spd", "vert"], OH: ["att", "rec", "def", "srv", "blk", "tec", "men", "spd", "vert"], MB: ["blk", "att", "srv", "tec", "men", "spd", "vert"],
+                OP: ["att", "srv", "blk", "def", "tec", "men", "spd", "vert"], L: ["rec", "def", "set", "tec", "men", "spd"] };
+  var ATTR_TXT = { srv: "SERVE", rec: "RECEIVE", set: "SET", att: "ATTACK", blk: "BLOCK", def: "DEFENCE", vert: "VERTICAL", men: "MENTAL", tec: "TECHNIQUE", spd: "SPEED" };
 
   var C = null, exitCareer = null, busy = false, tab = "news";
   // season storylines fit the club's stature
@@ -65,6 +65,45 @@
   }
   function genPlayer(nat, fam, base, age) {
     return VB.makePlayer({ name: VB.genName(nat, C.taken), nat: nat, role: fam, base: base, age: age });
+  }
+
+  // ================== ACADEMY YEARS (choices only, ages 14-18) ==================
+  var COUNTRY = { SL: ["ITALY", "🇮🇹", { tec: 2, set: 1 }], SV: ["JAPAN", "🇯🇵", { rec: 2, def: 2 }], PL: ["POLAND", "🇵🇱", { att: 2, srv: 1 }], SB: ["BRAZIL", "🇧🇷", { spd: 2, att: 1 }],
+                  EF: ["TÜRKIYE", "🇹🇷", { srv: 2, men: 1 }], LA: ["FRANCE", "🇫🇷", { tec: 1, spd: 1, set: 1 }], BL: ["GERMANY", "🇩🇪", { blk: 2, men: 1 }], VL: ["KOREA", "🇰🇷", { def: 2, spd: 1 }] };
+  async function academy(st) {
+    st.mods = {}; st.potAdj = 0; st.story = []; st.baseAdj = 0; st.spdAdj = 0;
+    function add(o) { Object.keys(o).forEach(function (a) { st.mods[a] = (st.mods[a] || 0) + o[a]; }); }
+    function txt(o) { return Object.keys(o).map(function (a) { return (o[a] > 0 ? "+" : "") + o[a] + " " + ATTR_TXT[a]; }).join(" • "); }
+    async function year(age, title, body, opts) {
+      var k = await U.modal("🎓 AGE " + age + " — " + title, "<p>" + body + "</p>", opts.map(function (o, i) { return { label: o[0], value: i }; }));
+      var o = opts[k], res = o[1]();
+      st.story.push("Age " + age + ": " + o[0] + " — " + res);
+      await U.modal("🎓 AGE " + age, "<p class='center'>" + esc(res) + "</p>", [{ label: "CONTINUE", value: 1 }]);
+    }
+    await U.modal("🎓 THE ACADEMY YEARS", "<p>Before you ever sign a pro contract there are five years of choices. No matches here — just the decisions that make you.</p>", [{ label: "BEGIN AT AGE 14", value: 1 }]);
+    await year(14, "WHERE DO YOU START?", "You've fallen in love with volleyball. Where do you play?", [
+      ["SCHOOL CLUB", function () { var o = { rec: 2, def: 2 }; add(o); return "Lots of games, lots of passing. " + txt(o); }],
+      ["CITY ACADEMY", function () { var o = { tec: 3, set: 1 }; add(o); st.potAdj += 1; return "Proper coaching from day one. " + txt(o) + " • +1 POTENTIAL"; }],
+      ["BEACH VOLLEYBALL", function () { var o = { spd: 3, def: 1, men: 1 }; add(o); return "Sand, wind and two-player grit. " + txt(o); }]]);
+    var spurt = irnd(-2, 6);
+    await year(15, "GROWTH SPURT SUMMER", "You grew " + (spurt > 0 ? spurt + "cm" : "barely at all") + " this year. What's your focus?", [
+      ["STRENGTH & JUMP TRAINING", function () { var o = { att: 2, blk: 1, vert: 3 }; add(o); st.height += spurt; return "Heavier legs, higher jump. " + txt(o); }],
+      ["TECHNIQUE CAMP", function () { var o = { tec: 3, set: 1, rec: 1 }; add(o); st.height += spurt; return "Clean contacts all summer. " + txt(o); }],
+      ["REST AND GROW", function () { st.height += spurt + irnd(1, 3); st.potAdj += 2; return "You let your body catch up — and grow a little more. +2 POTENTIAL"; }]]);
+    await year(16, "NATIONAL YOUTH TRIALS", "The youth national team is holding trials.", [
+      ["TRY OUT", function () {
+        if (Math.random() < 0.55) { var o = { men: 2, att: 1, srv: 1 }; add(o); st.potAdj += 2; st.story.push("Youth national team call-up"); return "You make the squad! Youth national team. " + txt(o) + " • +2 POTENTIAL"; }
+        var o2 = { men: 1 }; add(o2); return "Cut on the final day. It stings — and it drives you. " + txt(o2); }],
+      ["FOCUS ON SCHOOL & CLUB", function () { var o = { men: 1, tec: 1, rec: 1 }; add(o); return "Steady progress, fewer nerves. " + txt(o); }]]);
+    var leagues = shuffle(Object.keys(COUNTRY)).slice(0, 3);
+    await year(17, "ACADEMY OFFERS", "Three pro academies want you. Where do you move?", leagues.map(function (id) {
+      var c = COUNTRY[id];
+      return [c[1] + " " + c[0], function () { add(c[2]); st.prefLeague = id; return "You move to " + c[0] + ". " + txt(c[2]) + " • First pro offers will come from the " + VB.LEAGUES[id].name + "."; }];
+    }));
+    await year(18, "YOUR PATHWAY", "The academy wants an answer.", [
+      ["SIGN PRO NOW (age 18)", function () { st.age = 18; st.baseAdj = -2; st.potAdj += 3; return "Youngest in the dressing room. Lower OVR, higher ceiling."; }],
+      ["UNIVERSITY FIRST (turn pro at 21)", function () { st.age = 21; st.baseAdj = 4; st.potAdj -= 2; st.offerTier = "high"; return "A degree and three seasons of college volleyball. Ready now — better clubs call."; }],
+      ["PRO ACADEMY CONTRACT (age 19)", function () { st.age = 19; st.potAdj += 1; return "The balanced route: one more year of academy, then a pro contract."; }]]);
   }
 
   // ================== WORLD CREATION ==================
@@ -135,13 +174,32 @@
   }
 
   // ================== PLAYER CAREER (archetypes, XP & skill points, objectives) ==================
+  // archetypes: position-specific, each with strengths, growth bias and a real weakness
   var ARCH = {
-    power:    { name: "POWERHOUSE", desc: "Big swings and big serves.", boost: { att: 4, srv: 2 }, vert: 3, grow: ["att", "srv"] },
-    wall:     { name: "THE WALL", desc: "Owns the net.", boost: { blk: 5, att: 1 }, height: 2, grow: ["blk"] },
-    maestro:  { name: "MAESTRO", desc: "Hands like silk, sees everything.", boost: { set: 4, def: 2 }, grow: ["set", "def"] },
-    guardian: { name: "GUARDIAN", desc: "Nothing hits the floor.", boost: { rec: 4, def: 3 }, grow: ["rec", "def"] },
-    bomber:   { name: "SERVE BOMBER", desc: "Every serve is a weapon.", boost: { srv: 6 }, grow: ["srv"] }
+    allround:  { fam: ["OH"], name: "SIX-ROTATION ALL-ROUNDER", desc: "Passes, defends and attacks in every rotation.", boost: { rec: 3, def: 3, att: 2, spd: 2 }, minus: { srv: -2 }, grow: ["rec", "def", "att"] },
+    scorer:    { fam: ["OH"], name: "POINT SCORER", desc: "The go-to swing when the set is ugly.", boost: { att: 6, srv: 2, men: 2 }, minus: { rec: -4, def: -2 }, grow: ["att", "srv"] },
+    pipe:      { fam: ["OH"], name: "BACK-ROW WEAPON", desc: "Explosive jumper who kills the pipe.", boost: { att: 3, spd: 4 }, vert: 6, minus: { blk: -3 }, grow: ["att", "spd"] },
+    anchor:    { fam: ["OH"], name: "RECEPTION ANCHOR", desc: "Takes the hardest serves so others can swing.", boost: { rec: 6, def: 3, tec: 2 }, minus: { att: -3 }, grow: ["rec", "tec"] },
+    quick:     { fam: ["MB"], name: "QUICK ATTACKER", desc: "First-tempo specialist, gone before the block arrives.", boost: { att: 5, spd: 4 }, minus: { blk: -2 }, grow: ["att", "spd"] },
+    readblk:   { fam: ["MB"], name: "READ BLOCKER", desc: "Reads the setter, closes every seam.", boost: { blk: 6, men: 3, tec: 1 }, height: 2, minus: { att: -3, spd: -2 }, grow: ["blk", "men"] },
+    srvmb:     { fam: ["MB"], name: "SERVING MIDDLE", desc: "A middle with a jump serve that wins runs.", boost: { srv: 6, blk: 2 }, minus: { att: -2 }, grow: ["srv", "blk"] },
+    tempo:     { fam: ["S"], name: "TEMPO SETTER", desc: "Fast, flat sets that leave blockers behind.", boost: { set: 5, spd: 3, tec: 2 }, minus: { blk: -3 }, grow: ["set", "spd"] },
+    dumper:    { fam: ["S"], name: "JUMP SETTER & DUMPER", desc: "A setter who scores too. Unlocks the dump sooner.", boost: { set: 3, att: 6 }, vert: 4, minus: { def: -3 }, grow: ["set", "att"] },
+    defset:    { fam: ["S"], name: "DEFENSIVE SETTER", desc: "Digs like a libero, sets like a setter.", boost: { def: 5, set: 2, spd: 2 }, minus: { srv: -2 }, grow: ["def", "set"] },
+    general:   { fam: ["S", "OH", "OP", "MB", "L"], name: "FLOOR GENERAL", desc: "Composed, vocal, the captain everyone listens to.", boost: { men: 7, tec: 2, set: 1 }, minus: { att: -2 }, grow: ["men", "tec"] },
+    power:     { fam: ["OP"], name: "POWER OPPOSITE", desc: "Big swings, big blocks.", boost: { att: 6, blk: 2 }, height: 2, minus: { spd: -3, def: -2 }, grow: ["att", "blk"] },
+    bomber:    { fam: ["OP", "OH"], name: "SERVE BOMBER", desc: "Every serve is a weapon.", boost: { srv: 7, men: 1 }, minus: { rec: -2 }, grow: ["srv"] },
+    backrow:   { fam: ["OP"], name: "BACK-ROW CANNON", desc: "Just as dangerous from behind the 3m line.", boost: { att: 3, def: 2, spd: 2 }, vert: 4, minus: { blk: -2 }, grow: ["att", "def"] },
+    passer:    { fam: ["L"], name: "RECEPTION SPECIALIST", desc: "Perfect passes, every serve.", boost: { rec: 7, tec: 2 }, minus: { def: -2 }, grow: ["rec", "tec"] },
+    digger:    { fam: ["L"], name: "DEFENSIVE WALL", desc: "Flies for everything.", boost: { def: 7, spd: 3 }, minus: { rec: -2 }, grow: ["def", "spd"] },
+    libset:    { fam: ["L"], name: "LIBERO PLAYMAKER", desc: "Sets the second ball like a setter.", boost: { set: 6, rec: 2 }, minus: { def: -1 }, grow: ["set", "rec"] },
+    athlete:   { fam: ["S", "OH", "OP", "MB", "L"], name: "PURE ATHLETE", desc: "Fast and bouncy — the technique will come.", boost: { spd: 6 }, vert: 6, minus: { tec: -3 }, grow: ["spd", "tec"] },
+    // older careers
+    wall:      { fam: [], name: "THE WALL", desc: "Owns the net.", boost: { blk: 5, att: 1 }, grow: ["blk"] },
+    maestro:   { fam: [], name: "MAESTRO", desc: "Hands like silk.", boost: { set: 4, def: 2 }, grow: ["set", "def"] },
+    guardian:  { fam: [], name: "GUARDIAN", desc: "Nothing hits the floor.", boost: { rec: 4, def: 3 }, grow: ["rec", "def"] }
   };
+  function archsFor(fam) { return Object.keys(ARCH).filter(function (k) { return ARCH[k].fam.indexOf(fam) >= 0; }); }
   function xpNeed() { return 120 + (C.lvl - 1) * 20; }
   function gainXP(n) {
     C.xp += Math.round(n);
@@ -166,22 +224,28 @@
   function objDone(o) { return objProgress(o) >= o.target && (o.k !== "avg" || (C.srat || []).length >= 3); }
   function setupCareer(setup) {
     var fam = setup.role, h = VB.HEIGHT[fam], v = VB.VERT[fam], b = setup.build;
-    var height = b === "tower" ? h[1] + irnd(0, 4) : b === "jumper" ? h[0] + irnd(0, 3) : Math.round((h[0] + h[1]) / 2) + irnd(-2, 2);
-    var vert = b === "tower" ? v[0] + irnd(0, 4) : b === "jumper" ? v[1] + irnd(2, 8) : Math.round((v[0] + v[1]) / 2) + irnd(-2, 2);
-    var me = VB.makePlayer({ id: "you", name: setup.name, nat: setup.nat, role: fam, base: 64, age: 19, height: height, vert: vert });
+    // your chosen height; every cm above the middle costs a little jump and speed
+    var height = setup.height || Math.round((h[0] + h[1]) / 2), hd = height - (h[0] + h[1]) / 2;
+    var vert = Math.round((v[0] + v[1]) / 2 - hd * 0.5 + (b === "jumper" ? 6 : b === "tower" ? -4 : 0));
+    var me = VB.makePlayer({ id: "you", name: setup.name, nat: setup.nat, role: fam, base: 64 + (setup.baseAdj || 0), age: setup.age || 19, height: height, vert: vert });
+    me.spd = clamp(me.spd + (setup.spdAdj || 0), 25, 99);
     if (b === "jumper") me.def = clamp(me.def + 3, 25, 99);
     if (b === "tower") me.blk = clamp(me.blk + 3, 25, 99);
-    me.pot = irnd(84, 93);
+    me.pot = clamp(irnd(84, 93) + (setup.potAdj || 0), 70, 97);
+    Object.keys(setup.mods || {}).forEach(function (a) { if (a === "vert") me.vert += setup.mods[a]; else me[a] = clamp(me[a] + setup.mods[a], 25, 99); });
     me.build = b;
-    var ar = ARCH[setup.arch] || ARCH.power;
+    var ar = ARCH[setup.arch] || ARCH.allround;
     Object.keys(ar.boost).forEach(function (a) { me[a] = clamp(me[a] + ar.boost[a], 25, 99); });
+    Object.keys(ar.minus || {}).forEach(function (a) { me[a] = clamp(me[a] + ar.minus[a], 25, 99); });
+    if (setup.arch === "dumper") me.skill = "dump";
     if (ar.vert) me.vert += ar.vert;
     if (ar.height) me.height += ar.height;
     C.arch = setup.arch || "power"; C.mgr = 50; C.lvl = 1; C.xp = 0; C.sp = 0;
     C.players.you = me;
     newObjectives();
     C.startVert = vert;
-    news("A new career begins: " + setup.name + ", a 19-year-old " + VB.FAMILY_NAMES[fam].toLowerCase() + " from " + flagOf(setup.nat) + ".", "you");
+    (setup.story || []).forEach(function (t) { news("🎓 " + t, "you"); });
+    news("A new career begins: " + setup.name + ", a " + me.age + "-year-old " + VB.FAMILY_NAMES[fam].toLowerCase() + " from " + flagOf(setup.nat) + ".", "you");
   }
 
   // ================== LINEUPS ==================
@@ -221,7 +285,7 @@
     return { id: cl.id, name: cl.short, short: cl.short, flag: lg(cl.league).flag, kit: cl.kit, kit2: cl.kit2, play: VB.PLAY_OF[cl.id], lineup: lineup };
   }
   function isLikelyStarter() {
-    if (!C.club) return false;
+    if (!C.club || C.mode === "coach") return false;
     return !!keyOf(lineupFor(club(), false), "you");
   }
 
@@ -271,6 +335,7 @@
   }
 
   async function userMatch(L, h, a, label) {
+    if (C.mode === "coach") return await coachMatch(L, h, a, label);
     var mineId = C.club, foeId = h === mineId ? a : h, homeSide = h === mineId ? 0 : 1;
     var myLine = lineupFor(club(mineId), true), foeLine = lineupFor(club(foeId), true);
     var myKey = keyOf(myLine, "you");
@@ -377,7 +442,7 @@
     Object.keys(C.players).forEach(function (id) { var p = P(id); if (p.injured > 0) p.injured--; });
     if (C.injured > 0) C.injured--;
     var cl = C.club ? club() : null, r = Math.random();
-    if (!cl) return;
+    if (!cl || C.mode === "coach") return;
     if (r < 0.12) {
       var mates = cl.roster.filter(function (id) { return id !== "you"; }), victim = P(pick(mates));
       victim.injured = irnd(1, 2);
@@ -523,6 +588,7 @@
   }
 
   async function transferWindow(pre) {
+    if (C.mode === "coach") return await coachWindow(pre);
     var lines = [];
     if (C.club && !C.season0) {
       var d = clubDecision(pre), cl = club();
@@ -605,6 +671,81 @@
   }
   function winner(m) { return m[2] > m[3] ? m[0] : m[1]; }
 
+  // ================== CLUB WORLD CUP: the champions of all eight leagues ==================
+  async function clubWorldCup() {
+    var field = leagueIds().map(function (id) { var L = lg(id); return L.champion || rank(L)[0]; });
+    field = shuffle(field);
+    var CW = { name: "CLUB WORLD CUP", flag: "🌍" }, lines = [], rounds = ["QUARTERFINAL", "SEMIFINAL", "FINAL"], cur = field;
+    var inIt = C.club && field.indexOf(C.club) >= 0;
+    await U.modal("🌍 CLUB WORLD CUP", "<p>The champions of all eight leagues meet in one knockout tournament.</p><p>" +
+      field.map(function (id) { return esc(lg(club(id).league).flag + " " + club(id).short); }).join(" • ") + "</p>" +
+      (inIt ? "<p class='gain'>" + esc(club().short) + " are in!</p>" : "<p class='muted'>" + (C.club ? esc(club().short) + " didn't win their league — you watch from home." : "") + "</p>"));
+    for (var r = 0; r < 3; r++) {
+      var next = [];
+      for (var i = 0; i < cur.length; i += 2) {
+        var h = cur[i], a = cur[i + 1], sc;
+        if (C.club && (h === C.club || a === C.club)) sc = await userMatch(CW, h, a, rounds[r]);
+        else sc = simFixture(h, a);
+        var w = sc[0] > sc[1] ? h : a;
+        lines.push(rounds[r] + ": " + club(h).short + " " + sc[0] + "-" + sc[1] + " " + club(a).short);
+        next.push(w);
+      }
+      cur = next;
+    }
+    var champ = cur[0];
+    news("🌍 " + club(champ).name + " win the CLUB WORLD CUP!", "result");
+    if (champ === C.club) (C.mode === "coach" ? (C.coachTrophies = C.coachTrophies || []) : C.trophies).push(C.season + " CLUB WORLD CUP (" + club().short + ")");
+    await U.modal("🌍 CLUB WORLD CUP — " + club(champ).short, "<ul class='newslist'>" + lines.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul>" +
+      (champ === C.club ? "<p class='center big'>🏆 WORLD CHAMPIONS!</p>" : ""));
+  }
+
+  // ================== SUMMER: VNL WITH YOUR NATIONAL TEAM ==================
+  async function nationsLeague() {
+    if (C.mode === "coach") { news("☀️ Summer break. Time to plan next season.", "story"); return; }
+    var me = you(), nt = VB.NATIONAL.find(function (t) { return t.id === me.nat; });
+    if (!nt) { news("☀️ " + flagOf(me.nat) + " isn't in the VNL this year — a summer of training instead.", "story"); grow(me, 7); return; }
+    var line = VB.teamLineup(nt), slots = VB.ROLES.filter(function (r) { return VB.FAMILY[r] === me.role; });
+    var weakest = slots.sort(function (a, b) { return ovr(line[a]) - ovr(line[b]); })[0], bar = ovr(line[weakest]);
+    if (ovr(me) < bar - 6 || C.injured > 0) {
+      news("📋 Not selected for " + nt.name + "'s VNL squad (their " + VB.FAMILY_NAMES[me.role].toLowerCase() + "s are around OVR " + bar + ").", "story");
+      await U.modal("VNL SQUAD ANNOUNCED", "<p>" + esc(nt.flag + " " + nt.name) + " name their squad — and you're not in it. Their " + VB.FAMILY_NAMES[me.role].toLowerCase() + "s are around OVR " + bar + ".</p><p class='muted'>A summer of extra training instead.</p>");
+      grow(me, 7); return;
+    }
+    var starter = ovr(me) >= bar - 1;
+    line[weakest] = me;
+    var mine = { id: nt.id, name: nt.name, short: nt.name, flag: nt.flag, kit: nt.kit, kit2: nt.kit2, ovr: nt.ovr, play: VB.PLAY_OF[nt.id], lineup: line };
+    await U.modal("📞 NATIONAL TEAM CALL-UP!", "<p>" + esc(nt.flag + " " + nt.name) + " call you up for the VNL" + (starter ? " — as a STARTER." : " as a squad player.") + "</p>");
+    news("📞 Called up by " + nt.name + " for the VNL" + (starter ? " — starting!" : "."), "you");
+    var foes = shuffle(VB.NATIONAL.filter(function (t) { return t.id !== nt.id; })), wins = 0, log = [];
+    async function game(foeT, label, bo) {
+      var foe = { id: foeT.id, name: foeT.name, short: foeT.name, flag: foeT.flag, kit: foeT.kit, kit2: foeT.kit2, ovr: foeT.ovr, play: VB.PLAY_OF[foeT.id], lineup: VB.teamLineup(foeT) };
+      var won, sc;
+      if (starter) {
+        U.showView("match");
+        $("recordLine").textContent = "VNL • " + nt.name;
+        var res = await VB.Engine.playMatch({ mine: mine, foe: foe, homeSide: Math.random() < 0.5 ? 0 : 1, mode: "role", myRole: weakest, label: "VNL • " + label, league: "VNL", floor: "vnl", bestOf: bo || 1 });
+        U.showView("hub");
+        won = res.won; sc = res.score;
+        var rating = VB.Stats.rating(res.stats.you || VB.Stats.newLine(), me.role, won);
+        grow(me, rating); gainXP(rating * 9);
+      } else {
+        var s = VB.Stats.simSets(mine, foe, bo || 1); won = s.a > s.b; sc = [s.a, s.b]; grow(me, 6.6);
+      }
+      log.push(label + ": " + nt.name + " " + sc[0] + "-" + sc[1] + " " + foeT.name);
+      return won;
+    }
+    for (var g = 0; g < 3; g++) if (await game(foes[g], "POOL " + (g + 1) + "/3")) wins++;
+    var title = false;
+    if (wins >= 2) {
+      var top = VB.NATIONAL.filter(function (t) { return t.id !== nt.id; }).sort(function (a, b) { return b.ovr - a.ovr; }).slice(0, 4);
+      if (await game(pick(top.slice(2)), "SEMIFINAL", 3)) title = await game(pick(top.slice(0, 2)), "FINAL", 3);
+      else log.push("Out in the semifinal.");
+    } else log.push("Out in the pool stage.");
+    if (title) { C.trophies.push(C.season + " VNL CHAMPION (" + nt.name + ")"); news("🏆🌍 VNL CHAMPIONS with " + nt.name + "!", "you"); C.interest += 0.15; }
+    C.caps = (C.caps || 0) + (starter ? 5 : 3);
+    await U.modal(title ? "🏆 VNL CHAMPIONS!" : "VNL — " + nt.name, "<ul class='newslist'>" + log.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul><p class='center'>NATIONAL TEAM CAPS: " + C.caps + "</p>");
+  }
+
   function infoFor(pid) {
     var p = P(pid), cl = p.club ? club(p.club) : null;
     return { name: p.name, fam: p.role, team: cl ? cl.short : "FREE AGENT", teamId: p.club, flag: flagOf(p.nat), kit: cl ? cl.kit : "#888888", face: p.face, you: pid === "you" };
@@ -614,7 +755,8 @@
     var html = "", show = null;
     // manager objectives: the boss's verdict
     var objHtml = "";
-    if (C.obj) {
+    if (C.mode === "coach") html += await boardReview();
+    if (C.obj && C.mode !== "coach") {
       var nd = 0;
       objHtml = "<h3 class='mini'>MANAGER OBJECTIVES</h3><ul class='newslist'>" + C.obj.map(function (o) {
         var ok = objDone(o); if (ok) nd++;
@@ -697,8 +839,106 @@
     C.sstats = {};
     C.recent = C.recent.slice(-2);
     newSeasonLeagues();
+    if (C.mode === "coach") { C.tb += Math.round(club().budget * 0.2); news("— SEASON " + C.season + " BEGINS — transfer budget " + C.tb + "k.", "story"); return; }
     newObjectives();
     news("— SEASON " + C.season + " BEGINS — Objectives: " + C.obj.map(function (o) { return o.text; }).join(", ") + ".", "story");
+    // the body has limits: a choice from 33, the end at 35
+    var me = you();
+    if (me.age >= 35) {
+      await U.modal("THE LAST WHISTLE", "<p>At " + me.age + " your body has made the decision for you. It's time to retire.</p>", [{ label: "RETIRE", value: 1 }]);
+      await retireToCoach();
+    } else if (me.age >= 33) {
+      var k = await U.modal("ONE MORE SEASON?", "<p>You're " + me.age + ". Your knees ache in the mornings, but the gym still feels like home.</p>",
+        [{ label: "PLAY ON", value: 0 }, { label: "RETIRE & BECOME A COACH", value: 1, cls: "pink" }]);
+      if (k === 1) await retireToCoach();
+    }
+  }
+
+  // ================== RETIREMENT → COACH CAREER ==================
+  function playerValue(p) {
+    var a = p.age < 24 ? 1.3 : p.age < 29 ? 1 : p.age < 32 ? 0.7 : 0.4;
+    return Math.round(Math.pow(Math.max(1, ovr(p) - 58), 2) * 3 * a);
+  }
+  function boardTarget(cl) { return cl.prestige >= 82 ? 1 : cl.prestige >= 78 ? 2 : cl.prestige >= 76 ? 4 : 6; }
+  async function retireToCoach() {
+    var me = you(), fame = C.trophies.length * 2 + C.awardsWon.length + (C.caps || 0) / 5 + C.history.length * 0.3;
+    news("👋 " + me.name + " retires at " + me.age + " after " + C.history.length + " seasons.", "you");
+    await U.modal("👋 RETIREMENT", "<p class='center big'>THANK YOU, " + esc(me.name) + "</p><p class='center'>" + C.history.length + " seasons • " + C.trophies.length + " trophies • " +
+      C.awardsWon.length + " individual awards • " + (C.caps || 0) + " national caps</p>" + U.cabinet(C.trophies, "🏆"));
+    release("you"); C.free = C.free.filter(function (x) { return x !== "you"; }); me.retired = true;
+    C.mode = "coach"; C.club = null; C.board = 55; C.coachRec = { w: 0, l: 0 };
+    var ids = Object.keys(C.clubs).sort(function (a, b) { return club(a).prestige - club(b).prestige; });
+    var tier = fame >= 12 ? ids.slice(-12, -2) : fame >= 5 ? ids.slice(20, 44) : ids.slice(0, 20);
+    var offers = shuffle(tier).slice(0, 3);
+    var k = await U.modal("📋 COACHING OFFERS", "<p>Your playing days are over — but the phone keeps ringing. Three clubs want you as HEAD COACH.</p>" +
+      offers.map(function (id) { var c = club(id); return "<div class='offer' style='border-color:" + c.kit + "'><b>" + esc(c.name) + "</b> " + esc(lg(c.league).flag + " " + lg(c.league).name) +
+        "<br/>Prestige " + c.prestige + " • Budget " + c.budget + "k • Board target: top " + boardTarget(c) + "<br/><i>" + esc(c.story) + "</i></div>"; }).join(""),
+      offers.map(function (id, i) { return { label: "COACH " + club(id).short, value: i }; }));
+    takeJob(offers[k]);
+  }
+  function takeJob(id) {
+    var cl = club(id);
+    C.club = id; cl.coach = you().name; C.tb = Math.round(cl.budget * 0.3);
+    C.target = boardTarget(cl);
+    news("📋 " + you().name + " is the new head coach of " + cl.name + "! Board target: top " + C.target + ".", "you");
+  }
+  async function coachMatch(L, h, a, label) {
+    var mineId = C.club, foeId = h === mineId ? a : h, homeSide = h === mineId ? 0 : 1;
+    var mine = teamDef(mineId, lineupFor(club(mineId), true)), foe = teamDef(foeId, lineupFor(club(foeId), true));
+    U.showView("match");
+    $("recordLine").textContent = "COACH " + you().name + " • SEASON " + C.season;
+    var res = await VB.Engine.playMatch({ mine: mine, foe: foe, homeSide: homeSide, mode: "full", label: L.name + " • " + label + " • YOU COACH", league: L.name });
+    U.showView("hub");
+    addSeason(res.stats);
+    if (res.won) C.coachRec.w++; else C.coachRec.l++;
+    C.board = clamp(C.board + (res.won ? 2 : -2.5), 0, 100);
+    if (VB.Media && (/PLAYOFF|FINAL/.test(label) || Math.random() < 0.25)) {
+      var post = await VB.Media.post({ who: you().name, team: club(mineId).short, foe: foe.name, won: res.won, score: res.score, rating: res.won ? 7.5 : 6, champion: /FINAL/.test(label) && !/SEMI/.test(label) && res.won });
+      var fx = post.tone === "fiery" ? (C.board -= 3, "-3 BOARD") : post.tone === "humble" || post.tone === "team" ? (C.board += 1, "+1 BOARD") : "";
+      news("📰 Coach " + you().name + ": \"" + post.quote + "\"", "you");
+      await VB.Media.reaction(post, null, fx);
+    }
+    return homeSide === 0 ? [res.score[0], res.score[1]] : [res.score[1], res.score[0]];
+  }
+  async function coachWindow(pre) {
+    var lines = aiTransfers(irnd(3, 6)).concat(Math.random() < 0.7 ? freshFaces(irnd(1, 2)) : []);
+    trimRosters();
+    await U.modal(CAL_TXT[CAL[C.stage]], "<p>The market is open — sign and sell in the <b>MARKET</b> and <b>SQUAD</b> tabs any time. Transfer budget: <b>" + C.tb + "k</b>.</p>" +
+      (lines.length ? "<h3 class='mini'>AROUND THE LEAGUES</h3><ul class='newslist'>" + lines.slice(0, 8).map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul>" : ""));
+  }
+  async function boardReview() {
+    var L = lg(club().league), pos = rank(L).indexOf(C.club) + 1, champ = L.champion === C.club, prize = 0;
+    if (champ) { (C.coachTrophies = C.coachTrophies || []).push(C.season + " " + L.name + " CHAMPION (" + club().short + ")"); prize += 600; }
+    var met = pos <= C.target || champ;
+    C.board = clamp(C.board + (met ? 15 : -18) + (champ ? 10 : 0), 0, 100);
+    C.tb += prize;
+    var html = "<h3 class='mini'>📋 BOARD REVIEW</h3><p>Finished " + pos + " (target: top " + C.target + ")" + (champ ? " — CHAMPIONS!" : "") + ". Board confidence: <b>" + Math.round(C.board) + "</b>." +
+      (prize ? " Prize money +" + prize + "k." : "") + "</p>";
+    if (C.board < 20) {
+      html += "<p class='bad'>The board has seen enough. You're sacked.</p>";
+      news("🪓 " + you().name + " is sacked by " + club().short + ".", "you");
+      var old = C.club; club(old).coach = VB.genName(VB.LEAGUES[club(old).league].nat, C.taken);
+      var ids = Object.keys(C.clubs).filter(function (id) { return id !== old && club(id).prestige <= club(old).prestige; });
+      takeJob(pick(ids.length ? ids : Object.keys(C.clubs)));
+      C.board = 50;
+      html += "<p>A smaller club gives you a fresh start: <b>" + esc(club().name) + "</b>.</p>";
+    } else C.target = boardTarget(club());
+    return html;
+  }
+  function marketHTML() {
+    var cl = club(), mine = {}; cl.roster.forEach(function (id) { mine[id] = 1; });
+    var pool = Object.keys(C.players).filter(function (id) { var q = P(id); return id !== "you" && !mine[id] && !q.retired; })
+      .sort(function (a, b) { return ovr(P(b)) - ovr(P(a)); });
+    var filt = C.mfilter || "ALL";
+    if (filt !== "ALL") pool = pool.filter(function (id) { return P(id).role === filt; });
+    pool = pool.slice(0, 40);
+    return "<p>TRANSFER BUDGET <b>" + C.tb + "k</b> • PAYROLL " + payroll(cl) + "k / " + cl.budget + "k • SQUAD " + cl.roster.length + "/15</p>" +
+      "<div class='focus'>" + ["ALL", "S", "OH", "MB", "OP", "L"].map(function (f) { return "<button class='btn" + (filt === f ? " on" : "") + "' data-act='mfilter' data-arg='" + f + "'>" + f + "</button>"; }).join("") + "</div>" +
+      "<table class='standings'><tr><th>PLAYER</th><th>POS</th><th>OVR</th><th>AGE</th><th>CLUB</th><th>FEE</th><th>WAGE</th><th></th></tr>" + pool.map(function (id) {
+        var q = P(id), fee = q.club ? playerValue(q) : 0, ok = fee <= C.tb && payroll(cl) + salaryFor(q) <= cl.budget * 1.15 && cl.roster.length < 15;
+        return "<tr><td>" + flagOf(q.nat) + " " + esc(q.name) + (q.skill ? " ★" : "") + "</td><td>" + q.role + "</td><td>" + ovr(q) + "</td><td>" + q.age + "</td><td>" + esc(q.club ? club(q.club).short : "FREE") +
+          "</td><td>" + fee + "k</td><td>" + salaryFor(q) + "k</td><td><button class='btn tiny' data-act='buy' data-arg='" + id + "'" + (ok ? "" : " disabled") + ">SIGN</button></td></tr>";
+      }).join("") + "</table><p class='muted small'>Fees follow OVR and age (young stars cost most). Wages must fit your budget.</p>";
   }
 
   // ================== ADVANCE ==================
@@ -710,6 +950,8 @@
       if (st.indexOf("window") === 0) await transferWindow(st === "window-pre");
       else if (st[0] === "R") await playRound(+st.slice(1) - 1);
       else if (st === "SF" || st === "F") await playoffs(st);
+      else if (st === "CWC") await clubWorldCup();
+      else if (st === "VNL") await nationsLeague();
       if (st === "end") { await seasonEnd(); C.stage = 0; }
       else { C.stage++; if (CAL[C.stage] === "R1") C.season0 = false; }
       save();
@@ -741,6 +983,8 @@
     }
     if (st === "SF") return "PLAYOFF SEMIFINALS";
     if (st === "F") return "PLAYOFF FINAL";
+    if (st === "CWC") return "CLUB WORLD CUP";
+    if (st === "VNL") return C.mode === "coach" ? "SUMMER BREAK" : "SUMMER: NATIONAL TEAM (VNL)";
     return "SEASON REVIEW & AWARDS";
   }
   function tableHTML(L) {
@@ -756,7 +1000,8 @@
     var rows = cl.roster.map(P).sort(function (a, b) { return a.role.localeCompare(b.role) || ovr(b) - ovr(a); }).map(function (p) {
       var rch = VB.reach(p);
       return "<tr class='" + (p.id === "you" ? "you" : "") + "'><td>" + flagOf(p.nat) + " " + esc(p.name) + (p.skill ? " <span class='star'>★</span>" : "") + (p.injured > 0 ? " 🚑" : "") + "</td><td>" + p.role +
-        "</td><td>" + ovr(p) + "</td><td>" + p.age + "</td><td>" + p.height + "</td><td>" + rch.spike + "</td><td>" + (starters[p.id] ? "START" : "") + "</td></tr>";
+        "</td><td>" + ovr(p) + "</td><td>" + p.age + "</td><td>" + p.height + "</td><td>" + rch.spike + "</td><td>" + (starters[p.id] ? "START" : "") + "</td>" +
+        (C.mode === "coach" ? "<td>" + playerValue(p) + "k <button class='btn tiny' data-act='sell' data-arg='" + p.id + "'>SELL</button></td>" : "") + "</tr>";
     }).join("");
     return "<p class='muted'>" + esc(cl.story) + " <b>" + esc(cl.arc) + ".</b> Coach " + esc(cl.coach) + " • Budget " + cl.budget + "k • Payroll " + payroll(cl) + "k</p>" +
       "<table class='standings'><tr><th>PLAYER</th><th>POS</th><th>OVR</th><th>AGE</th><th>HT</th><th>REACH</th><th></th></tr>" + rows + "</table>";
@@ -797,22 +1042,27 @@
       return "<tr><td>S" + h.season + "</td><td>" + esc(h.club) + "</td><td>" + h.mp + "</td><td>" + h.pts + "</td><td>" + h.eff + "</td><td>" + h.blk + "</td><td>" + h.dig + "</td><td>" + h.avg + "</td><td>" + h.ovr + "</td></tr>";
     }).join("") || "<tr><td colspan='9'>Your first season is underway.</td></tr>";
     return "<table class='standings'><tr><th>SEASON</th><th>CLUB</th><th>MP</th><th>PTS</th><th>EFF</th><th>BLK</th><th>DIG</th><th>AVG</th><th>OVR</th></tr>" + rows + "</table>" +
-      "<h3 class='mini'>TROPHIES</h3><p>" + (C.trophies.map(esc).join("<br/>") || "None yet.") + "</p>" +
-      "<h3 class='mini'>INDIVIDUAL AWARDS</h3><p>" + (C.awardsWon.map(esc).join("<br/>") || "None yet.") + "</p>";
+      "<h3 class='mini'>TROPHY CABINET</h3>" + U.cabinet(C.trophies, "🏆") +
+      "<h3 class='mini'>INDIVIDUAL AWARDS</h3>" + U.cabinet(C.awardsWon, "🏅") +
+      (C.coachTrophies && C.coachTrophies.length ? "<h3 class='mini'>AS A COACH</h3>" + U.cabinet(C.coachTrophies, "📋") : "");
   }
 
   function render() {
     var me = you(), cl = C.club ? club() : null, rch = VB.reach(me), st = CAL[C.stage];
     var stageTxt = CAL_TXT[st] || ("ROUND " + st.slice(1) + " / 7");
     var nf = nextFixture(), starter = cl && st[0] === "R" ? isLikelyStarter() : null;
-    var tabs = ["news", "table", "squad", "stats", "develop", "training", "career"];
+    var tabs = C.mode === "coach" ? ["news", "table", "squad", "market", "stats", "career"] : ["news", "table", "squad", "stats", "develop", "training", "career"];
     var body = tab === "news" ? "<ul class='newslist'>" + C.news.slice(0, 30).map(function (n) {
                  return "<li class='" + n.tag + "'><span class='muted'>S" + n.s + "</span> " + esc(n.t) + "</li>"; }).join("") + "</ul>"
              : tab === "table" ? "<div class='leaders'>" + leagueOrder().map(function (id) { return tableHTML(lg(id)); }).join("") + "</div>"
-             : tab === "squad" ? squadHTML() : tab === "stats" ? statsHTML() : tab === "develop" ? developHTML() : tab === "training" ? trainingHTML() : careerHTML();
+             : tab === "squad" ? squadHTML() : tab === "market" && C.mode === "coach" ? marketHTML() : tab === "stats" ? statsHTML() : tab === "develop" ? developHTML() : tab === "training" ? trainingHTML() : careerHTML();
     $("hub").innerHTML =
       "<div class='hub-top'>" +
         "<div class='card me-card'><img class='pix big' src='" + VB.Engine.spriteURL(me.face, cl ? cl.kit : "#888888") + "' alt=''/>" +
+          (C.mode === "coach" ? "<div><div class='pname'>📋 COACH " + esc(me.name) + "</div><div class='muted'>AGE " + me.age + " • " + flagOf(me.nat) + " • former " + VB.FAMILY_NAMES[me.role].toLowerCase() + "</div>" +
+            "<div class='ovr'>RECORD " + C.coachRec.w + "W-" + C.coachRec.l + "L</div><div>BOARD CONFIDENCE " + Math.round(C.board) + " • TARGET: TOP " + C.target + "</div>" +
+            "<div class='muted'>TRANSFER BUDGET " + C.tb + "k" + (cl ? " • PAYROLL " + payroll(cl) + "k / " + cl.budget + "k" : "") + "</div></div></div>" +
+            "<div class='card club-card' style='border-color:" + (cl ? cl.kit : "#9cc4ea") + "'>" + (cl ? "<div class='pname'>" + esc(cl.name) + "</div><div class='muted'>" + esc(lg(cl.league).flag + " " + lg(cl.league).name) + " • PRESTIGE " + cl.prestige + "</div><div><i>" + esc(cl.story) + "</i></div>" : "") + "<!--" : "") +
           "<div><div class='pname'>" + esc(me.name) + "</div>" +
           "<div class='muted'>" + VB.FAMILY_NAMES[me.role] + " • AGE " + me.age + " • " + flagOf(me.nat) + "</div>" +
           "<div class='ovr'>OVR " + ovr(me) + " <span class='muted'>POT ~" + Math.round(me.pot / 5) * 5 + "</span></div>" +
@@ -825,7 +1075,7 @@
                 "<div><b>" + esc(cl.arc) + "</b></div><div class='muted'><i>" + esc(cl.story) + "</i></div>" +
                 "<div class='muted'>CONTRACT " + me.salary + "k • " + Math.max(0, me.years) + " YR LEFT</div>"
               : "<div class='pname'>FREE AGENT</div><div class='muted'>No club. Offers come in the transfer windows.</div>") +
-        "</div>" +
+        (C.mode === "coach" ? "-->" : "") + "</div>" +
       "</div>" +
       "<div class='hub-status'>CAREER SLOT " + C.slot + " • SEASON " + C.season + " • " + stageTxt +
         (nf ? " • NEXT: " + esc(nf.foe.short) + (nf.home ? " (H)" : " (A)") + " • " + (starter ? "LIKELY STARTER" : "FIGHTING FOR A SPOT") : "") + "</div>" +
@@ -861,12 +1111,19 @@
         "<label>NATIONALITY <select id='cNat' class='text-in'>" + nats.map(function (n) { return "<option value='" + n + "'" + (n === setup.nat ? " selected" : "") + ">" + VB.FLAGS[n] + " " + n + "</option>"; }).join("") + "</select></label>" +
         "<div>POSITION</div><div class='focus'>" + ["S", "OH", "MB", "OP", "L"].map(function (f) {
           return "<button class='btn" + (setup.role === f ? " on" : "") + "' data-act='setRole' data-arg='" + f + "'>" + VB.FAMILY_NAMES[f] + "</button>"; }).join("") + "</div>" +
-        "<div>BUILD</div><div class='focus'>" + [["tower", "TOWER — tall, big block, lower jump"], ["balanced", "BALANCED"], ["jumper", "JUMPER — shorter, huge vertical"]].map(function (b) {
+        "<div>HEIGHT</div><div class='focus'><button class='btn' data-act='hgt' data-arg='-2'>− 2cm</button><b class='hgt-val'>" + setup.height + " cm</b>" +
+          "<button class='btn' data-act='hgt' data-arg='2'>+ 2cm</button><span class='muted'> " + VB.HEIGHT[setup.role][0] + "-" + VB.HEIGHT[setup.role][1] + " typical • taller: more reach & block, less jump & speed</span></div>" +
+        "<div>BODY</div><div class='focus'>" + [["tower", "POWER FRAME — less jump"], ["balanced", "BALANCED"], ["jumper", "SPRING LEGS — more jump"]].map(function (b) {
           return "<button class='btn" + (setup.build === b[0] ? " on" : "") + "' data-act='setBuild' data-arg='" + b[0] + "'>" + b[1] + "</button>"; }).join("") + "</div>" +
-        "<div>ARCHETYPE</div><div class='focus'>" + Object.keys(ARCH).map(function (k) {
+        "<div>ARCHETYPE</div><div class='focus'>" + archsFor(setup.role).map(function (k) {
           return "<button class='btn" + (setup.arch === k ? " on" : "") + "' data-act='setArch' data-arg='" + k + "'>" + ARCH[k].name + "</button>"; }).join("") + "</div>" +
-        "<p class='muted'>" + esc(ARCH[setup.arch].name + ": " + ARCH[setup.arch].desc) + " Boosts " + Object.keys(ARCH[setup.arch].boost).map(function (a) { return ATTR_TXT[a]; }).join(" & ") + " and grows them faster.</p>" +
-        "<p class='muted'>You start at 19 with OVR ~66 and high potential. Clubs from the bottom of both leagues are willing to take a chance on you.</p>" +
+        (function (A) {
+          var plus = Object.keys(A.boost).map(function (a) { return "+" + A.boost[a] + " " + ATTR_TXT[a]; }).concat(A.vert ? ["+" + A.vert + "cm JUMP"] : [], A.height ? ["+" + A.height + "cm HEIGHT"] : []);
+          var minus = Object.keys(A.minus || {}).map(function (a) { return A.minus[a] + " " + ATTR_TXT[a]; });
+          return "<div class='arch-card'><b>" + esc(A.name) + "</b> — " + esc(A.desc) + "<br/><span class='gain'>" + esc(plus.join(" • ")) + "</span>" +
+            (minus.length ? " <span class='bad'>" + esc(minus.join(" • ")) + "</span>" : "") + "<br/><span class='muted'>Grows faster: " + A.grow.map(function (a) { return ATTR_TXT[a]; }).join(", ") + "</span></div>";
+        })(ARCH[setup.arch]) +
+        "<p class='muted'>Next: your ACADEMY YEARS (ages 14-18) — five choices that shape your pathway before you turn pro.</p>" +
       "</div><div class='hub-actions'><button class='btn big' data-act='create'>START CAREER</button><button class='btn pink' data-act='slots'>BACK</button></div>";
   }
 
@@ -875,6 +1132,30 @@
     if (!b || busy) return;
     var act = b.getAttribute("data-act"), arg = b.getAttribute("data-arg");
     if (act === "advance") return advance();
+    if (act === "mfilter") { C.mfilter = arg; return render(); }
+    if (act === "buy" && C.mode === "coach") {
+      var q = P(arg), cl0 = club(), fee = q.club ? playerValue(q) : 0;
+      if (fee > C.tb || cl0.roster.length >= 15) return;
+      var ok = await U.modal("SIGN " + q.name + "?", "<p>" + esc(q.name) + " (" + q.role + ", OVR " + ovr(q) + ", age " + q.age + ") from " + esc(q.club ? club(q.club).short : "free agency") + ".</p><p>Fee " + fee + "k • wage " + salaryFor(q) + "k</p>",
+        [{ label: "SIGN", value: true }, { label: "CANCEL", value: false, cls: "pink" }]);
+      if (!ok) return;
+      C.tb -= fee; q.salary = salaryFor(q); q.years = irnd(2, 3);
+      if (q.club) moveTo(arg, cl0.id); else { C.free = C.free.filter(function (x) { return x !== arg; }); q.club = cl0.id; cl0.roster.push(arg); }
+      news("✍️ " + cl0.short + " sign " + q.name + " (OVR " + ovr(q) + ") for " + fee + "k.", "transfer");
+      save(); return render();
+    }
+    if (act === "sell" && C.mode === "coach") {
+      var sp = P(arg), cl1 = club(), fam = sp.role, need = { S: 1, OH: 2, MB: 2, OP: 1, L: 1 }[fam];
+      if (famCount(cl1, fam) <= need) { await U.modal("CAN'T SELL", "<p>You need at least " + need + " " + VB.FAMILY_NAMES[fam].toLowerCase() + (need > 1 ? "s" : "") + " in the squad.</p>"); return; }
+      var price = Math.round(playerValue(sp) * 0.85);
+      var ok2 = await U.modal("SELL " + sp.name + "?", "<p>Sell for " + price + "k?</p>", [{ label: "SELL", value: true }, { label: "KEEP", value: false, cls: "pink" }]);
+      if (!ok2) return;
+      var buyers = Object.keys(C.clubs).filter(function (id) { return id !== cl1.id && club(id).roster.length < 14; });
+      if (buyers.length) moveTo(arg, pick(buyers)); else release(arg);
+      C.tb += price;
+      news("💰 " + cl1.short + " sell " + sp.name + " to " + (sp.club ? club(sp.club).short : "free agency") + " for " + price + "k.", "transfer");
+      save(); return render();
+    }
     if (act === "tab") { tab = arg; return render(); }
     if (act === "focus") { C.focus = arg; save(); return render(); }
     if (act === "look") {
@@ -890,7 +1171,11 @@
       return renderSlots();
     }
     if (act === "slots") return renderSlots();
-    if (act === "new") { setup = { slot: +arg, name: "NEW KID", nat: "ITA", role: "OH", build: "balanced", arch: "power" }; return renderNew(); }
+    if (act === "new") { setup = { slot: +arg, name: "NEW KID", nat: "ITA", role: "OH", build: "balanced", arch: "allround", height: 196 }; return renderNew(); }
+    if (act === "hgt") {
+      setup.name = ($("cName").value || "NEW KID").toUpperCase().slice(0, 12); setup.nat = $("cNat").value;
+      var hr = VB.HEIGHT[setup.role]; setup.height = clamp(setup.height + (+arg), hr[0] - 10, hr[1] + 8); return renderNew();
+    }
     if (act === "setArch") { setup.name = ($("cName").value || "NEW KID").toUpperCase().slice(0, 12); setup.nat = $("cNat").value; setup.arch = arg; return renderNew(); }
     if (act === "spend") {
       var cost = spCost(arg);
@@ -916,14 +1201,20 @@
     }
     if (act === "setRole" || act === "setBuild") {
       setup.name = ($("cName").value || "NEW KID").toUpperCase().slice(0, 12); setup.nat = $("cNat").value;
-      if (act === "setRole") setup.role = arg; else setup.build = arg;
+      if (act === "setRole") {
+        setup.role = arg; setup.arch = archsFor(arg)[0];
+        var hr2 = VB.HEIGHT[arg]; setup.height = Math.round((hr2[0] + hr2[1]) / 2);
+      } else setup.build = arg;
       return renderNew();
     }
     if (act === "create") {
       setup.name = ($("cName").value || "NEW KID").toUpperCase().slice(0, 12); setup.nat = $("cNat").value;
       busy = true;
+      await academy(setup);
       createWorld(setup.slot, setup);
-      var first = Object.keys(C.clubs).sort(function (a, b) { return club(a).prestige - club(b).prestige; }).slice(0, 5);
+      var pool = Object.keys(C.clubs).sort(function (a, b) { return club(a).prestige - club(b).prestige; });
+      var pref = setup.prefLeague ? pool.filter(function (id) { return club(id).league === setup.prefLeague; }) : [];
+      var first = pref.length ? pref.slice(0, setup.offerTier === "high" ? 6 : 4).slice(setup.offerTier === "high" ? 2 : 0).concat(pool.slice(0, 3)) : pool.slice(0, 5);
       var offers = [offerFrom(club(first[0]), "STARTER")].concat(shuffle(first.slice(1)).slice(0, 2).map(function (id) { return offerFrom(club(id), "ROTATION"); }));
       var i = await U.modal("YOUR FIRST CONTRACT", "<p>Three clubs are ready to give you a chance. Choose where your career begins.</p>" + offersHTML(offers),
         offers.map(function (o, k) { return { label: "SIGN WITH " + club(o.club).short, value: k }; }));

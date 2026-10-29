@@ -4,7 +4,7 @@
   "use strict";
   var U = VB.ui, $ = U.$, esc = U.esc, pick = VB.pick, rnd = VB.rnd;
 
-  var KEY = "hqGacha", COST1 = 100, COST10 = 900, MAX_ROAM = 8, BASE_PULLS = 500;
+  var KEY = "hqGacha", COST1 = 100, COST10 = 900, COST100 = 9000, MAX_ROAM = 8, BASE_PULLS = 500;
   var RAR = {
     C: { name: "COMMON", col: "#9aa7b5", stars: 1 }, R: { name: "RARE", col: "#3d8bff", stars: 2 }, E: { name: "EPIC", col: "#a64dff", stars: 3 },
     L: { name: "LEGENDARY", col: "#ffc21e", stars: 4 }, M: { name: "MYTHIC", col: "#ff3d7f", stars: 5 }
@@ -141,11 +141,12 @@
     if (dupe >= 6) { refund = { C: 20, R: 40, E: 80, L: 200, M: 400 }[r]; G.coins += refund; }
     else G.owned[card.id] = dupe + 1;
     if (!dupe && G.roam.length < MAX_ROAM) G.roam.push(card.id);
+    if (!dupe) { G.recent = [card.id].concat((G.recent || []).filter(function (x) { return x !== card.id; })).slice(0, 20); }
     G.pulls++;
     return { card: card, isNew: !dupe, refund: refund };
   }
   async function doPull(n) {
-    var cost = n === 10 ? COST10 : COST1 * n;
+    var cost = n === 100 ? COST100 : n === 10 ? COST10 : COST1 * n;
     if (G.coins < cost) { await U.modal("NOT ENOUGH COINS", "<p>You need " + cost + " 🏐 coins. Win matches in any mode to earn more!</p>"); return; }
     G.coins -= cost;
     var res = []; for (var i = 0; i < n; i++) res.push(pullOne());
@@ -219,8 +220,14 @@
         cancelAnimationFrame(raf);
         cv.classList.add("hidden");
         var box = fx.querySelector(".gfx-cards");
-        box.innerHTML = res.map(function (x, i) {
+        var big = res.length > 10, list = big ? res.slice().sort(function (a, b) { return ORDER.indexOf(a.card.r) - ORDER.indexOf(b.card.r) || (b.isNew - a.isNew); }) : res;
+        var tally = {}; res.forEach(function (x) { tally[x.card.r] = (tally[x.card.r] || 0) + 1; });
+        var head = big ? "<div class='gtally'>" + ORDER.map(function (r) { return "<span class='r" + r + "'>" + RAR[r].name + " ×" + (tally[r] || 0) + "</span>"; }).join("") +
+          " <span>NEW ×" + res.filter(function (x) { return x.isNew; }).length + "</span></div>" : "";
+        box.innerHTML = head + list.map(function (x, i) {
           var cd = x.card;
+          if (big) return "<div class='gcard mini r" + cd.r + (animate && i < 12 ? " flip" : "") + "' style='animation-delay:" + (animate && i < 12 ? i * 90 : 0) + "ms'>" +
+            (x.isNew ? "<span class='gnew'>NEW</span>" : "") + "<img src='" + cardImg(cd) + "' alt=''/><div class='gname'>" + esc(cd.name) + "</div></div>";
           return "<div class='gcard r" + cd.r + (animate ? " flip" : "") + "' style='animation-delay:" + (animate ? i * 140 : 0) + "ms'>" +
             (x.isNew ? "<span class='gnew'>NEW</span>" : "") + "<img src='" + cardImg(cd) + "' alt=''/>" +
             "<div class='gname'>" + esc(cd.name) + "</div><div class='gteam'>" + esc((teamOf(cd.team) || {}).name || "") + "</div>" +
@@ -372,9 +379,9 @@
         if (a.t <= 0) b.act = null;
       }
     }
-    room = {
+    var R0 = room = {
       cv: cv, bots: bots, sel: null,
-      cmd: function (type) { if (room.sel) { start(room.sel, type); room.sel.wait = 2; } }
+      cmd: function (type) { if (R0.sel) { start(R0.sel, type); R0.sel.wait = 2; } }
     };
 
     function desk(x, y) {
@@ -441,7 +448,7 @@
       var walk = b.moving ? Math.abs(Math.sin(clock * 11)) * 3 : 0, sitDrop = b.sit ? 10 : 0;
       var col = b.card.r === "M" ? "hsl(" + Math.floor(clock * 120) % 360 + ",100%,60%)" : RAR[b.card.r].col;
       if (!b.sit) { c.globalAlpha = 0.4; c.fillStyle = col; c.beginPath(); c.ellipse(b.x, b.y + 2, 22, 7, 0, 0, 6.28); c.fill(); c.globalAlpha = 1; }
-      if (room.sel === b) { c.strokeStyle = "#ffffff"; c.lineWidth = 2; c.setLineDash([4, 3]); c.beginPath(); c.ellipse(b.x, b.y + 2, 27, 9, 0, 0, 6.28); c.stroke(); c.setLineDash([]); }
+      if (R0.sel === b) { c.strokeStyle = "#ffffff"; c.lineWidth = 2; c.setLineDash([4, 3]); c.beginPath(); c.ellipse(b.x, b.y + 2, 27, 9, 0, 0, 6.28); c.stroke(); c.setLineDash([]); }
       var top = b.y - hop - walk + sitDrop;
       c.save(); c.translate(b.x, top); c.scale(b.face, 1); c.drawImage(b.spr, -21, -56, 42, 56); c.restore();
       if (b.hold === "broom") {
@@ -461,7 +468,7 @@
       }
     }
     function frame(now) {
-      if (!document.body.contains(cv)) { room = null; return; }
+      if (!document.body.contains(cv)) { if (room === R0) room = null; return; }     // an old room stops; never clear the new one
       var dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt;
       bots.forEach(function (b) {
         update(b, dt);
@@ -512,7 +519,7 @@
     cv.onclick = function (e) {
       var r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * 640 / r.width, y = (e.clientY - r.top) * 400 / r.height;
       var hit = bots.find(function (b) { return Math.abs(b.x - x) < 24 && y > b.y - 60 && y < b.y + 18; });
-      room.sel = hit || null;
+      R0.sel = hit || null;
       var lab = $("roomSel");
       if (lab) lab.textContent = hit ? "SELECTED: " + hit.card.name + " — pick an action" : "Tap a student in the classroom, then pick an action.";
       document.querySelectorAll("[data-g=act]").forEach(function (btn) { btn.disabled = !hit; });
@@ -538,7 +545,7 @@
         }).join("") + "</div>" +
         "<p class='muted'>Rates: Mythic 0.05% • Legendary 4% • Epic 15% • Rare 30% • Common ~51%. Every 10 pulls guarantees Epic+. Legendary guaranteed by pull 60, Mythic by pull 1000. " +
         "Won a Legendary/Mythic but not the featured one? Your next one IS featured. Featured cards change daily.</p>" +
-        "<div class='hub-actions'><button class='btn big' data-g='pull' data-v='1'>PULL ×1 • " + COST1 + " 🏐</button><button class='btn big' data-g='pull' data-v='10'>PULL ×10 • " + COST10 + " 🏐</button></div>" +
+        "<div class='hub-actions'><button class='btn big' data-g='pull' data-v='1'>PULL ×1 • " + COST1 + " 🏐</button><button class='btn big' data-g='pull' data-v='10'>PULL ×10 • " + COST10 + " 🏐</button><button class='btn big' data-g='pull' data-v='100'>PULL ×100 • " + COST100 + " 🏐</button></div>" +
         "<p class='center muted'>Every match pays: a WIN = 10 pulls (1000 🏐), a LOSS = 5 pulls (500 🏐). Story events pay too.</p></div>";
     } else {
       var owned = CARDS.filter(function (c) { return G.owned[c.id] && (filter === "ALL" || c.r === filter); })
@@ -546,7 +553,9 @@
       body = "<canvas id='roomCv' class='room' width='640' height='400'></canvas>" +
         "<p class='center' id='roomSel'>Tap a student in the classroom, then pick an action.</p>" +
         "<div class='focus center-row'>" + ACTIONS.map(function (a) { return "<button class='btn' data-g='act' data-v='" + a[0] + "' disabled>" + a[1] + "</button>"; }).join("") + "</div>" +
-        "<p class='center muted'>Up to " + MAX_ROAM + " cards hang out in the classroom (" + G.roam.length + "/" + MAX_ROAM + "); they also pick things to do on their own. Tap a card below to send it in or back to storage.</p>" +
+        "<p class='center muted'>Up to " + MAX_ROAM + " cards hang out in the classroom (" + G.roam.length + "/" + MAX_ROAM + "). Tap a card below to send it in or out — when the room is full it swaps with the student you selected (or the one who's been there longest).</p>" +
+        "<div class='focus center-row'><button class='btn' data-g='quick' data-v='best'>BEST " + MAX_ROAM + "</button><button class='btn' data-g='quick' data-v='new'>NEWEST " + MAX_ROAM + "</button>" +
+        "<button class='btn' data-g='quick' data-v='random'>RANDOM " + MAX_ROAM + "</button><button class='btn pink' data-g='quick' data-v='clear'>EMPTY ROOM</button></div>" +
         "<div class='focus center-row'>" + ["ALL"].concat(ORDER).map(function (r) { return "<button class='btn" + (filter === r ? " on" : "") + "' data-g='filter' data-v='" + r + "'>" + (RAR[r] ? RAR[r].name : "ALL") + "</button>"; }).join("") + "</div>" +
         "<div class='gstore'>" + (owned.length ? owned.map(function (c) {
           var on = G.roam.indexOf(c.id) >= 0;
@@ -570,7 +579,18 @@
       var i = G.roam.indexOf(v);
       if (i >= 0) G.roam.splice(i, 1);
       else if (G.roam.length < MAX_ROAM) G.roam.push(v);
-      else { await U.modal("SHOWROOM FULL", "<p>Only " + MAX_ROAM + " cards can roam at once. Send one back to storage first.</p>"); return; }
+      else {                                                     // full: swap with the selected student, or the longest-staying one
+        var out = room && room.sel ? room.sel.id : G.roam[0], j = G.roam.indexOf(out);
+        G.roam.splice(j < 0 ? 0 : j, 1); G.roam.push(v);
+      }
+      save(); return render();
+    }
+    if (k === "quick") {
+      var have = CARDS.filter(function (c) { return G.owned[c.id]; });
+      if (v === "clear") G.roam = [];
+      else if (v === "best") G.roam = have.slice().sort(function (a, b) { return ORDER.indexOf(a.r) - ORDER.indexOf(b.r) || G.owned[b.id] - G.owned[a.id]; }).slice(0, MAX_ROAM).map(function (c) { return c.id; });
+      else if (v === "new") G.roam = (G.recent || []).filter(function (id) { return G.owned[id]; }).slice(0, MAX_ROAM);
+      else G.roam = VB.shuffle(have.slice()).slice(0, MAX_ROAM).map(function (c) { return c.id; });
       save(); return render();
     }
     if (k === "exit") { $("hub").onclick = null; var r = exitG; exitG = null; return r && r(); }

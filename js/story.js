@@ -10,9 +10,9 @@
   var PH_TXT = { april: "APRIL — NEW SCHOOL YEAR", practice: "PRACTICE MATCH", gw: "GOLDEN WEEK CAMP", ih: "INTERHIGH QUALIFIERS",
                  camp: "TOKYO SUMMER CAMP", spring: "SPRING QUALIFIERS", nationals: "SPRING NATIONALS", end: "SEASON REVIEW" };
   var COMP = { S: 2, OH: 4, MB: 3, OP: 2, L: 2 };
-  var FOCUS = { S: ["set", "def", "srv", "blk", "tec", "men"], OH: ["att", "rec", "def", "srv", "blk", "tec", "men"], MB: ["blk", "att", "srv", "tec", "men"],
-                OP: ["att", "srv", "blk", "def", "tec", "men"], L: ["rec", "def", "set", "tec", "men"] };
-  var ATTR_TXT = { srv: "SERVE", rec: "RECEIVE", set: "SET", att: "ATTACK", blk: "BLOCK", def: "DEFENCE", vert: "VERTICAL", men: "MENTAL", tec: "TECHNIQUE" };
+  var FOCUS = { S: ["set", "def", "srv", "blk", "tec", "men", "spd"], OH: ["att", "rec", "def", "srv", "blk", "tec", "men", "spd"], MB: ["blk", "att", "srv", "tec", "men", "spd"],
+                OP: ["att", "srv", "blk", "def", "tec", "men", "spd"], L: ["rec", "def", "set", "tec", "men", "spd"] };
+  var ATTR_TXT = { srv: "SERVE", rec: "RECEIVE", set: "SET", att: "ATTACK", blk: "BLOCK", def: "DEFENCE", vert: "VERTICAL", men: "MENTAL", tec: "TECHNIQUE", spd: "SPEED" };
 
   // canon school year (as of the story's first spring)
   var HQ_YEARS = {
@@ -112,8 +112,8 @@
     fillSquad(t, 2);
     // you
     var fam = st.fam, h = VB.HEIGHT[fam], v = VB.VERT[fam];
-    var height = Math.round((h[0] + h[1]) / 2) - 9 + (st.build === "tower" ? 7 : st.build === "jumper" ? -10 : 0);
-    var vert = Math.round((v[0] + v[1]) / 2) - 4 + (st.build === "tower" ? -8 : st.build === "jumper" ? 11 : 0);
+    var height = Math.round((h[0] + h[1]) / 2) - 9 + (st.build === "tower" ? 7 : st.build === "jumper" ? -10 : 0) + (st.hAdj || 0);
+    var vert = Math.round((v[0] + v[1]) / 2) - 4 + (st.build === "tower" ? -8 : st.build === "jumper" ? 11 : 0) - Math.round((st.hAdj || 0) * 0.4);
     var me = VB.makePlayer({ id: "you", name: st.name, nat: "JPN", role: fam, base: t.ovr - 11, age: 15, height: height, vert: vert,
                              face: { skin: VB.SKINS[st.skin], hair: st.hairC, style: st.hairS, mouth: true } });
     me.pot = clamp(t.ovr + irnd(8, 12), 55, 99);
@@ -838,8 +838,8 @@
     }).join("");
     var cur = S.stats[S.year];
     return "<p><b>THIS YEAR:</b> " + esc(cur ? VB.Stats.lineText(cur) + " • " + (cur.mp || 0) + " MATCHES" : "no matches yet") + "</p>" +
-      "<p>🏆 " + esc(S.trophies.join(", ") || "No trophies yet") + "</p>" +
-      "<p>🏅 " + esc((S.awards || []).join(", ") || "No individual awards yet") + "</p>" +
+      "<h3 class='mini'>TROPHY CABINET</h3>" + U.cabinet(S.trophies, "🏆") +
+      "<h3 class='mini'>INDIVIDUAL AWARDS</h3>" + U.cabinet(S.awards || [], "🏅") +
       (rows ? "<table class='standings'><tr><th>YEAR</th><th>OVR</th><th>INTERHIGH</th><th>SPRING</th><th>YOUR LINE</th></tr>" + rows + "</table>" : "");
   }
   function render() {
@@ -900,6 +900,8 @@
           return "<button class='btn" + (setup.fam === f ? " on" : "") + "' data-act='setFam' data-arg='" + f + "'>" + VB.FAMILY_NAMES[f] + "</button>"; }).join("") + "</div>" +
         "<div>BUILD</div><div class='focus'>" + [["tower", "TOWER — tall, lower jump"], ["balanced", "BALANCED"], ["jumper", "JUMPER — short, huge vertical"]].map(function (b) {
           return "<button class='btn" + (setup.build === b[0] ? " on" : "") + "' data-act='setBuild' data-arg='" + b[0] + "'>" + b[1] + "</button>"; }).join("") + "</div>" +
+        "<div>HEIGHT ADJUST</div><div class='focus'><button class='btn' data-act='hgt' data-arg='-2'>− 2cm</button><b class='hgt-val'>" + ((setup.hAdj || 0) >= 0 ? "+" : "") + (setup.hAdj || 0) + " cm</b><button class='btn' data-act='hgt' data-arg='2'>+ 2cm</button>" +
+          "<span class='muted'> taller = more reach, less jump & speed</span></div>" +
         "<div>HAIR</div><div class='focus'>" + HAIR_S.map(function (h) {
           return "<button class='btn" + (setup.hairS === h ? " on" : "") + "' data-act='setHairS' data-arg='" + h + "'>" + VB.HAIR_TXT[h] + "</button>"; }).join("") + "</div>" +
         "<div class='focus'>" + HAIR_C.map(function (h) {
@@ -932,6 +934,7 @@
     }
     if (act === "slots") return renderSlots();
     if (act === "new") { setup = { slot: +arg, name: "NEW KID", school: "KAR", fam: "OH", build: "balanced", hairS: "crop", hairC: "#17120d", skin: 0 }; return renderNew(); }
+    if (act === "hgt") { setup.name = ($("sName").value || "NEW KID").toUpperCase().slice(0, 12); setup.hAdj = clamp((setup.hAdj || 0) + (+arg), -12, 12); return renderNew(); }
     var setters = { setSchool: "school", setFam: "fam", setBuild: "build", setHairS: "hairS", setHairC: "hairC", setSkin: "skin" };
     if (setters[act]) {
       setup.name = ($("sName").value || "NEW KID").toUpperCase().slice(0, 12);
