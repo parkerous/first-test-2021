@@ -776,26 +776,28 @@
   }
   // goodW: width of the green zone (0..1 of the bar) — shrinks against fast balls and better opponents
   function timingBar(label, speedMs, goodW) {
-    goodW = clamp(goodW || 0.2, 0.06, 0.34);
-    var perfW = goodW * 0.34;
+    goodW = clamp(goodW || 0.28, 0.12, 0.42);
+    var perfW = goodW * 0.45;
+    speedMs *= 1.35;                                              // a calmer marker
     return new Promise(function (res) {
       var wrap = $("timing"), mk = $("marker");
-      $("timingLabel").textContent = label + "  [" + (goodW >= 0.24 ? "EASY" : goodW >= 0.16 ? "NORMAL" : goodW >= 0.1 ? "HARD" : "BRUTAL") + "]";
+      $("timingLabel").textContent = label + "  [" + (goodW >= 0.32 ? "EASY" : goodW >= 0.24 ? "NORMAL" : goodW >= 0.17 ? "HARD" : "BRUTAL") + "]";
       var center = rnd(0.15 + goodW / 2, 0.85 - goodW / 2);
       $("zoneG").style.left = (center - goodW / 2) * 100 + "%"; $("zoneG").style.width = goodW * 100 + "%";
       $("zoneP").style.left = (center - perfW / 2) * 100 + "%"; $("zoneP").style.width = perfW * 100 + "%";
       function quality(p) {
         var d = Math.abs(p - center);
         if (d <= perfW / 2) return 1;
-        if (d <= goodW / 2) return 0.85 - 0.35 * (d - perfW / 2) / (goodW / 2 - perfW / 2);
-        return Math.max(0, 0.3 - (d - goodW / 2) * 4);
+        if (d <= goodW / 2) return 0.9 - 0.3 * (d - perfW / 2) / (goodW / 2 - perfW / 2);
+        return Math.max(0, 0.45 - (d - goodW / 2) * 2.5);           // near misses still count for something
       }
       wrap.classList.remove("hidden");
       var t0 = gclock(), done = false, raf;
-      function pos(now) { return (1 - Math.cos(((now - t0) / speedMs) * Math.PI * 2)) / 2; }
+      // constant-speed back-and-forth, so the marker is equally readable everywhere on the bar
+      function pos(now) { var u = ((now - t0) / speedMs) % 1; return u < 0.5 ? u * 2 : 2 - u * 2; }
       (function step() {
         if (done) return;
-        if (gclock() - t0 > speedMs * 2.4) { done = true; finish(0); return; }        // too late
+        if (gclock() - t0 > speedMs * 3) { done = true; finish(0); return; }        // too late
         mk.style.left = pos(gclock()) * 100 + "%"; raf = requestAnimationFrame(step);
       })();
       function finish(q) {
@@ -1079,7 +1081,7 @@
     if (!errKind && rcv === me && iControl(rcvRole)) {
       await sleep(150); slow();
       timing = await timingBar("RECEIVE — " + RP.name + "!", barSpeed(srv),
-        0.2 + (RP.rec - Sv.srv) / 220 - sp.power * 0.1 - (superServe ? 0.04 : 0) - (kind === "float" ? 0.02 : 0));
+        0.28 + (RP.rec - Sv.srv) / 250 - sp.power * 0.08 - (superServe ? 0.04 : 0) - (kind === "float" ? 0.02 : 0));
       fast();
     } else if (rcv === me) timing = autoTiming(RP.rec);
     await flight;
@@ -1521,7 +1523,7 @@
       await sleep(60); slow();
       timing = await timingBar((o.soft ? "PLAY THE TOUCH — " : o.type === "tip" ? "CHASE THE TIP — " : "DIG — ") + D.name + "!",
                                barSpeed(atk) * (o.soft ? 1.25 : o.type === "tip" ? 1.1 : 0.9),
-                               0.18 + (D.def - o.A.att) / 220 - (o.superSpike ? 0.04 : 0) - (o.type === "spike" ? (1 - o.st.tempo) * 0.05 : 0) +
+                               0.26 + (D.def - o.A.att) / 250 - (o.superSpike ? 0.03 : 0) - (o.type === "spike" ? (1 - o.st.tempo) * 0.05 : 0) +
                                (o.soft ? 0.08 : 0) + (o.type === "tip" ? 0.05 : 0));
       fast();
     } else timing = autoTiming(D.def);
