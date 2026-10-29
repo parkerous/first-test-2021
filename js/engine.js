@@ -1061,6 +1061,7 @@
       x *= 0.6 + P0.att / 160;
       if (o.id === s.lastCall) x *= 0.5;
       if (o.combo) x *= 1.8;
+      if (mode === "role" && s === me && o.hitter === myRole) x *= 1.6;   // your setter looks for you more
       return x;
     });
     var sum = w.reduce(function (a, b) { return a + b; }, 0), r = Math.random() * sum;
@@ -1370,7 +1371,7 @@
         if (call !== "auto") {
           var want = mine.find(function (o) { return o.id === call; });
           feed(0, me.roster[myRole].name + " (YOU) calls for " + want.say + "!");
-          if (Math.random() < 0.6 + grade * 0.15) st = want; else feed(0, SN + " goes elsewhere...");
+          if (Math.random() < [0.75, 0.88, 0.97][grade]) st = want; else feed(0, SN + " goes elsewhere...");   // perfect / good / poor pass
         }
       }
     }
@@ -1887,6 +1888,14 @@
     cv = $("court"); g = cv.getContext("2d");
     g.imageSmoothingEnabled = false;
     $("rosterBtn").addEventListener("click", openStats);
+    $("backBtn").addEventListener("click", async function () {
+      var wasPaused = paused; setPaused(true);
+      var ok = await U.modal("BACK TO MAIN MENU?", "<p>Leave this match and go back to the main menu?</p>" +
+        "<p class='muted'>Tournaments, story mode and career are saved up to your last finished match — this match won't count.</p>",
+        [{ label: "YES, MAIN MENU", value: true, cls: "pink" }, { label: "KEEP PLAYING", value: false }]);
+      if (ok) { location.reload(); return; }
+      if (!wasPaused) setPaused(false);
+    });
     $("statsClose").addEventListener("click", closeStats);
     $("statsPanel").addEventListener("click", function (e) {
       var t = e.target.closest("[data-st]");

@@ -433,3 +433,7 @@ table.standings tr.you td { background: #fff4d6; }
 #ceremonyFx { position: fixed; inset: 0; z-index: 1001; background: #05070b; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
 #ceremonyFx canvas { width: min(96vw, 640px); max-height: 80vh; object-fit: contain; image-rendering: pixelated; cursor: pointer; }
 .cer-btns { display: flex; gap: 10px; }
+
+/* ---- back to menu ---- */
+.topbar { display: flex; justify-content: flex-start; margin-bottom: 6px; }
+.back-btn { font-size: 9px; padding: 6px 10px; }
