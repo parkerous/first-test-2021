@@ -59,7 +59,8 @@
     showView: function (v) {
       $("hub").classList.toggle("hidden", v !== "hub");
       $("matchView").classList.toggle("hidden", v !== "match");
-      window.scrollTo(0, 0);
+      // in a match, scroll the big title away so the whole court fits on screen
+      window.scrollTo(0, v === "match" ? Math.max(0, $("matchView").getBoundingClientRect().top + window.scrollY - 8) : 0);
     },
 
     // page-level dialog; btns: [{ label, value, cls }] → resolves with the chosen value

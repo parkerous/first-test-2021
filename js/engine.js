@@ -36,6 +36,20 @@
   // ================== STATE ==================
   var cv, g;
   var me = null, opp = null, cfg = null;
+  // your team's tactics (kept between matches)
+  var TAC_OPTS = {
+    block: [["default", "BALANCED"], ["read", "READ BLOCK"], ["guess", "GUESS BLOCK"]],
+    lean: [["auto", "AUTO"], ["line", "TAKE LINE"], ["cross", "TAKE CROSS (LINE OPEN)"]],
+    call: [["ask", "ASK ME EVERY TIME"], ["feed", "SET ME (NO ASKING)"], ["never", "SETTER DECIDES"]],
+    rot: [["51", "5-1"], ["42", "4-2"]]
+  };
+  var TAC = { block: "default", lean: "auto", call: "ask", rot: "51" };
+  try { Object.assign(TAC, JSON.parse(localStorage.getItem("retroVB.tactics") || "{}")); } catch (e) {}
+  function saveTac() { try { localStorage.setItem("retroVB.tactics", JSON.stringify(TAC)); } catch (e) {} }
+  function tacName(k) { return (TAC_OPTS[k].find(function (o) { return o[0] === TAC[k]; }) || TAC_OPTS[k][0])[1]; }
+  // 4-2: when the setter is in the back row, the front-row opposite sets instead
+  function frontSetter(s) { return s === me && TAC.rot === "42" && !isFront(s, "S") && isFront(s, "OP") && s.onCourt.indexOf("OP") >= 0; }
+  function isSetter(s, role) { return role === "S" || (role === "OP" && frontSetter(s)); }
   var setsWon = [0, 0], setNeed = 1, setLog = [];
   var score = [0, 0], serving = 0;
   var ball = { x: W / 2, y: H - 80, h: 0, visible: false, spin: 0, rot: 0 };
@@ -143,10 +157,18 @@
     if (ex.indexOf("streak") >= 0) { p(5, 1, H2); p(6, 1, H2); p(6, 0, H2); }   // coloured fringe streak
     p(4, 4, "#17120d"); p(7, 4, "#17120d");
     if (ex.indexOf("glasses") >= 0) { p(3, 4, "#2b2b2b"); p(5, 4, "#2b2b2b"); p(6, 4, "#2b2b2b"); p(8, 4, "#2b2b2b"); }
+    if (ex.indexOf("sunglasses") >= 0) { row(3, 8, 4, "#111111"); p(4, 4, "#3a5a8a"); p(7, 4, "#3a5a8a"); }
     row(5, 6, 5, face.mouth ? "#a33d4d" : face.skin);
     if (ex.indexOf("beard") >= 0) { p(3, 5, H); p(4, 5, H); p(7, 5, H); p(8, 5, H); }
+    if (ex.indexOf("vampire") >= 0) { p(5, 5, "#ffffff"); p(6, 5, "#ffffff"); }
     if (ex.indexOf("santa") >= 0) { row(3, 8, 0, "#d62828"); row(2, 9, 1, "#d62828"); row(2, 9, 2, "#ffffff"); p(9, 0, "#d62828"); p(10, 0, "#ffffff"); }
     if (ex.indexOf("headband") >= 0) row(2, 9, 2, face.band || "#ffffff");
+    // seasonal outfits
+    if (ex.indexOf("witch") >= 0) { var WC = "#2b1b3d"; row(5, 6, 0, WC); row(4, 7, 1, WC); p(5, 1, "#ff8a1e"); p(6, 1, "#ff8a1e"); row(1, 10, 2, WC); }
+    if (ex.indexOf("pumpkin") >= 0) { row(3, 8, 0, "#ff8a1e"); p(6, 0, "#2f8a4a"); row(2, 9, 1, "#ff8a1e"); p(4, 1, "#c25a00"); p(7, 1, "#c25a00"); }
+    if (ex.indexOf("catears") >= 0) { var CE = face.ears || "#2b2b2b"; p(2, 0, CE); p(3, 0, CE); p(8, 0, CE); p(9, 0, CE); p(3, 1, "#ff9ac0"); p(8, 1, "#ff9ac0"); }
+    if (ex.indexOf("strawhat") >= 0) { row(3, 8, 0, "#e8c66a"); row(3, 8, 1, "#d62828"); row(0, 11, 2, "#e8c66a"); }
+    if (ex.indexOf("flower") >= 0) { p(9, 1, "#ff5fa2"); p(10, 1, "#ffd21e"); }
     for (var y2 = 6; y2 <= 11; y2++) row(2, 9, y2, kit);
     var trim = kit2 && kit2.toLowerCase() !== String(kit).toLowerCase() ? kit2 : mix(kit, "#ffffff", 0.6);
     pat = pat || "trim";
@@ -156,6 +178,8 @@
     if (pat === "panel") for (var py2 = 7; py2 <= 11; py2++) { p(2, py2, trim); p(9, py2, trim); }
     p(5, 6, pat === "shoulder" ? kit : trim); p(6, 6, pat === "shoulder" ? kit : trim);            // collar
     row(2, 9, 11, mix(kit, "#000000", 0.22));
+    if (ex.indexOf("tank") >= 0) { p(2, 6, face.skin); p(9, 6, face.skin); p(2, 7, face.skin); p(9, 7, face.skin); }
+    if (ex.indexOf("vampire") >= 0) { for (var vy = 4; vy <= 7; vy++) { p(1, vy, "#b0102a"); p(10, vy, "#b0102a"); } }
     p(1, 7, face.skin); p(10, 7, face.skin);
     p(1, 8, face.skin); p(10, 8, face.skin);
     var shorts = mix(kit, "#000000", 0.62);
@@ -379,7 +403,7 @@
   }
   function onServeContact(srvSide, rcvSide, target) {
     setTargets(srvSide, baseFormation(srvSide));
-    moveTo(rcvSide, "S", setterSpot(rcvSide.side));
+    moveTo(rcvSide, frontSetter(rcvSide) ? "OP" : "S", setterSpot(rcvSide.side));
     var ps = passersOf(rcvSide);
     var near = nearest(rcvSide, target, ps.length ? ps : null), who = near.pos;
     if (rcvSide.pos.L && dist(rcvSide.pos.L, target) < near.d + 45) who = "L";
@@ -396,11 +420,11 @@
   }
   // returns who takes the second ball: the setter, or the libero/back-row player when it's far away
   async function toSetter(s, from, grade, passerRole) {
-    var pt = passPoint(s, grade), far = dist(pt, setterSpot(s.side)), setterRole = "S";
-    if (passerRole === "S" || (grade === 0 && far > 140)) setterRole = altSetter(s, passerRole) || "S";
+    var pt = passPoint(s, grade), far = dist(pt, setterSpot(s.side)), setterRole = frontSetter(s) && passerRole !== "OP" ? "OP" : "S";
+    if (passerRole === setterRole || (grade === 0 && far > 140)) setterRole = altSetter(s, passerRole) || "S";
     transition(s, setterRole);
     moveTo(s, setterRole, pt);
-    if (setterRole !== "S" || far > 80) s.rush[setterRole] = true;
+    if (!isSetter(s, setterRole) || far > 80) s.rush[setterRole] = true;
     await flyBall(from, pt, 650, { h0: 0, h1: 1.1, peak: 1.3, skew: 0.6 });
     return setterRole;
   }
@@ -931,7 +955,7 @@
         wrap.classList.add("hidden"); timingPop(q); res(q);
       }
       function stop(e) {
-        if (done || paused || (e.target && e.target.closest && e.target.closest("#statsPanel, #rosterBtn"))) return;
+        if (done || paused || (e.target && e.target.closest && e.target.closest("#statsPanel, #rosterBtn, #tacPanel, #tacBtn, #backBtn"))) return;
         done = true;
         e.preventDefault(); cancelAnimationFrame(raf);
         document.removeEventListener("pointerdown", stop, true);
@@ -1252,7 +1276,7 @@
     var grade = shank ? -1 : passGrade(rq);
     RP.st.rc++;
     if (grade < 0) {
-      if (shank) await shankFx(rcv, rcvRole, target);
+      if (shank) { var how0 = await shankFx(rcv, rcvRole, target); feed(rcv.side, RP.name + " shanks the serve " + how0); }
       else {
         jump(rcv, rcvRole, 520, -3, "shank");
         var away = { x: target.x + (target.x < W / 2 ? -1 : 1) * rnd(90, 160), y: target.y + dirR * rnd(60, 120) };
@@ -1273,16 +1297,68 @@
   }
 
   // a shank: the ball cannons off the arms into the stands and the passer goes down
+  // shanks come in flavours — returns how it went, for the commentary
   async function shankFx(s, role, at) {
-    var dir = at.x < W / 2 ? -1 : 1;
+    var dir = at.x < W / 2 ? -1 : 1, back = s.side === 0 ? 1 : -1, v = pick(["stands", "face", "roof", "ref", "chase", "collide"]);
+    puff(at, 10);
+    if (v === "face") {
+      jump(s, role, 1100, -2, "fall", -dir);
+      popup("OFF THE FACE!", at, "#ff4d4d");
+      var hd = { x: at.x, y: at.y - 18 * back };
+      setTimeout(function () { popup("✶ ✶ ✶", hd, "#ffd21e"); }, 250);
+      var l1 = { x: clamp(at.x + rnd(-40, 40), CL - 40, CR + 40), y: clamp(at.y + back * rnd(170, 230), 20, H - 20) };
+      await flyBall(at, l1, 950, { peak: 2.0, spin: 25, skew: 0.35 });
+      puff(l1, 12, "#ffd21e"); popup("BONK!", l1, "#ffffff");
+      return "right off the face!";
+    }
+    if (v === "roof") {
+      jump(s, role, 900, -3, "shank");
+      popup("SHANK!", at, "#ff4d4d");
+      var l2 = { x: clamp(at.x + dir * rnd(60, 140), -50, W + 50), y: clamp(at.y + back * rnd(120, 200), 20, H - 20) };
+      await flyBall(at, l2, 1500, { peak: 6.5, spin: 20, skew: 0.5 });
+      puff(l2, 18, "#ffd21e"); popup("OFF THE ROOF!", l2, "#ffffff");
+      cheer(); return "straight up into the roof!";
+    }
+    if (v === "ref") {
+      jump(s, role, 800, -2, "fall", 1);
+      popup("SHANK!", at, "#ff4d4d");
+      var refAt = { x: CR + 34, y: NET - 14 };
+      await flyBall(at, refAt, 800, { peak: 1.8, spin: 40, skew: 0.5 });
+      refFlagSide = 1 - s.side; refFlagAt = gt;
+      puff(refAt, 14, "#ffffff"); popup("SORRY REF!", refAt, "#ffd21e");
+      cheer(); return "into the referee's stand!";
+    }
+    if (v === "chase") {
+      jump(s, role, 700, -3, "shank");
+      popup("SHANK!", at, "#ff4d4d");
+      var l3 = { x: dir < 0 ? CL - rnd(40, 70) : CR + rnd(40, 70), y: clamp(at.y + back * rnd(80, 170), 30, H - 30) };
+      var mates = s.onCourt.filter(function (r) { return r !== role; });
+      var ch = nearest(s, l3, mates).pos;
+      if (ch) { s.rush[ch] = true; moveTo(s, ch, { x: clamp(l3.x, CL - 30, CR + 30), y: l3.y }); }
+      await flyBall(at, l3, 950, { peak: 1.6, spin: 30, skew: 0.45 });
+      if (ch) { jump(s, ch, 650, -2, "dive", dir); popup("SO CLOSE!", l3, "#ffffff"); }
+      puff(l3, 14, "#ffd21e");
+      return "off the shoulder — " + (ch ? s.roster[ch].name + " sprints and dives, just too late!" : "nobody can chase it down!");
+    }
+    if (v === "collide") {
+      var mate = nearest(s, at, s.onCourt.filter(function (r) { return r !== role; })).pos;
+      if (mate) { s.rush[mate] = true; moveTo(s, mate, { x: at.x + dir * 10, y: at.y }); }
+      await sleep(160);
+      jump(s, role, 1100, -2, "fall", -dir);
+      if (mate) jump(s, mate, 1100, -2, "fall", dir);
+      popup("COLLISION!", at, "#ff4d4d");
+      var l4 = { x: clamp(at.x + rnd(-60, 60), CL, CR), y: clamp(at.y + back * rnd(30, 80), 20, H - 20) };
+      await flyBall(at, l4, 600, { peak: 0.9, spin: 18 });
+      puff(l4, 10);
+      return mate ? "— they collide with " + s.roster[mate].name + " and both go down!" : "and stumbles over!";
+    }
     jump(s, role, 1000, -2, "fall", -dir);
     popup("SHANK!", at, "#ff4d4d");
-    puff(at, 10);
     var land = { x: dir < 0 ? rnd(-62, -32) : W + rnd(32, 62), y: clamp(at.y + rnd(-90, 120), 30, H - 30) };
     await flyBall(at, land, 900, { peak: 2.4, spin: 45, skew: 0.45 });
     puff(land, 16, "#ffd21e");
     popup(pick(["INTO THE STANDS!", "OOF!", "WHOOPS!"]), land, "#ffffff");
-    cheer();
+    cheer(); return "into the stands!";
   }
 
   // the serve clips the tape and trickles over — a "waterfall"
@@ -1379,11 +1455,12 @@
 
   async function offense(atk, grade, setterRole) {
     setterRole = setterRole || "S";
-    var def = other(atk), SN = atk.roster[setterRole].name, emergency = setterRole !== "S";
+    var def = other(atk), SN = atk.roster[setterRole].name, emergency = !isSetter(atk, setterRole);
     var opts = setOptions(atk, grade);
+    if (setterRole !== "S") opts = opts.filter(function (o) { return o.hitter !== setterRole && !o.dump; });   // the setter can't set themself
     if (emergency) opts = opts.filter(function (o) { return o.id === "high" || o.id === "five"; });
     var st = null;
-    if (atk === me && !emergency && iControl("S")) {
+    if (atk === me && !emergency && iControl(setterRole)) {
       msg(SN + " TO SET (" + GRADE_TXT[grade] + ") — 👍 = SETTER'S PICK");
       var choice = await simpleSetMenu(opts, atk);
       if (choice === "__more") {
@@ -1396,20 +1473,24 @@
       }
       st = opts.find(function (o) { return o.id === choice; });
       if (mode === "role" && !st.dump) {
-        var setTq = await timingBar("SET — SOFT HANDS, " + SN + "!", 1000, 0.24 + (me.roster.S.set - 70) / 300);
+        var setTq = await timingBar("SET — SOFT HANDS, " + SN + "!", 1000, 0.24 + (me.roster[setterRole].set - 70) / 300);
         st = Object.assign({}, st, { setAdj: setTq >= 1 ? 0.12 : setTq >= 0.5 ? 0 : -0.18 });
         if (setTq < 0.5) feed(0, SN + "'s set is a little off...");
       }
     } else if (atk === me && mode === "role" && !emergency) {
       var mine = opts.filter(function (o) { return !o.disabled && !o.dump && o.hitter === myRole; });
-      if (mine.length) {
+      if (mine.length && TAC.call === "feed") {
+        var auto = mine.slice().sort(function (a, b) { return SIMPLE_PREF.indexOf(a.id) - SIMPLE_PREF.indexOf(b.id); })[0];
+        if (Math.random() < [0.70, 0.85, 0.97][grade]) { st = auto; feed(0, SN + " looks for " + me.roster[myRole].name + " (YOU) — " + auto.say + "!"); }
+        else feed(0, SN + " goes elsewhere...");
+      } else if (mine.length && TAC.call === "ask") {
         msg("CALL FOR THE BALL? (" + GRADE_TXT[grade] + ")");
         var call = await U.buttons(mine.map(function (o) { return { label: "CALL " + o.label, value: o.id }; })
           .concat([{ label: "LET " + SN + " DECIDE", value: "auto" }]));
         if (call !== "auto") {
           var want = mine.find(function (o) { return o.id === call; });
           feed(0, me.roster[myRole].name + " (YOU) calls for " + want.say + "!");
-          if (Math.random() < [0.75, 0.88, 0.97][grade]) st = want; else feed(0, SN + " goes elsewhere...");   // perfect / good / poor pass
+          if (Math.random() < [0.70, 0.85, 0.97][grade]) st = want; else feed(0, SN + " goes elsewhere...");   // perfect / good / poor pass
         }
       }
     }
@@ -1455,15 +1536,26 @@
 
     moveTo(atk, hitter, { x: contact.x, y: contact.y + dirA * 16 });
     coverHitter(atk, hitter, setterRole, contact);
-    var n = blockCount(st, def), blockers = chooseBlockers(def, st.x, n);
+    var n = blockCount(st, def), late = 1, tight = 0, guessed = null;
+    if (def === me && TAC.block === "read") {                         // react to the set: late on quicks, a full wall on high balls
+      if (st.tempo < 0.6 && n > 0 && Math.random() < 0.4) n--;
+      if (st.tempo >= 0.8 && n < 3 && Math.random() < 0.45) n++;
+      late = st.tempo >= 0.8 ? 0.4 : 1.2; tight = st.tempo >= 0.8 ? 5 : 0;
+    } else if (def === me && TAC.block === "guess") {                 // commit early: huge if right, beaten if wrong
+      guessed = Math.random() < 0.38 + (A.skill ? 0.1 : 0);
+      n = guessed ? Math.min(3, Math.max(n, 2) + (Math.random() < 0.4 ? 1 : 0)) : Math.max(0, n - 1);
+      late = guessed ? 0 : 2; tight = guessed ? 8 : -4;
+    }
+    var blockers = chooseBlockers(def, st.x, n);
     def.jumpQ = null;
-    var lean = Math.random() < 0.5 ? "cross" : "line";
-    var spacing = 24 + (1 - st.tempo) * 20 + rnd(-3, 6);            // fast sets leave gaps in the block
-    var bAx = st.x + (1 - st.tempo) * rnd(-22, 22);                 // ...and the block a step late
+    var lean = def === me && TAC.lean !== "auto" ? TAC.lean : Math.random() < 0.5 ? "cross" : "line";
+    var spacing = 24 + (1 - st.tempo) * 20 + rnd(-3, 6) - tight;     // fast sets leave gaps in the block
+    var bAx = st.x + (1 - st.tempo) * rnd(-22, 22) * late;          // ...and the block a step late
     placeDefense(def, bAx, blockers, lean, spacing);
     var controlled = iAttack && iControl(hitter);
     var plan = controlled ? null : aiAttackPlan(atk, def, A, n, st, grade === 2 ? 1 : grade === 1 ? 0.75 : 0.5, contact, blockers);
-    if (!iAttack && n && plan.target) {
+    if (guessed !== null) feed(0, guessed ? "Your middle GUESSED RIGHT — the block was waiting for " + A.name + "!" : "Your block guessed wrong — " + A.name + " has a step on them!", guessed);
+    if (!iAttack && n && plan.target && TAC.lean === "auto") {
       var actual = shotDir(st.x, plan.target);
       var myBlk = blockers.reduce(function (a, r) { return a + me.roster[r].blk; }, 0) / n;
       if (actual !== "angle" && Math.random() < clamp01((0.3 + myBlk / 300) * st.tempo)) { lean = actual; placeDefense(def, bAx, blockers, lean, spacing); }
@@ -1501,7 +1593,7 @@
     else msg(atk.team.name + ": " + st.label + " TO " + A.name + " — " + BLOCK_TXT[n] + "!");
 
     if (!iAttack && n > 0) {
-      if (mode === "role" && blockers.indexOf(myRole) >= 0 && st.tempo >= 0.7) {
+      if (mode === "role" && blockers.indexOf(myRole) >= 0 && st.tempo >= 0.7 && TAC.lean === "auto") {
         slow();
         msg("YOU'RE IN THE " + BLOCK_TXT[n] + " ON " + A.name + " — LEAN WHICH WAY?");
         lean = await U.buttons([{ label: "LEAN CROSS", value: "cross" }, { label: "LEAN LINE", value: "line" }]);
@@ -1766,9 +1858,9 @@
         o.soft ? "IT DROPS!" : o.type === "tip" ? (o.dump ? "DUMP KILL!" : "TIP KILL!") : "KILL!!");
     }
     if (Math.random() < SHANK_P) {
-      await shankFx(def, digRole, to);
+      var how = await shankFx(def, digRole, to);
       o.A.st.k++; assist(atk, o.setterRole, o.hitterRole);
-      msg("SHANKED!"); feed(def.side, D.name + " shanks it into the stands!");
+      msg("SHANKED!"); feed(def.side, D.name + " shanks it " + how);
       return credit(atk, o.hitterRole);
     }
     var dq = clamp01(timing * 0.72 + D.def / 320 - 0.12 + sty(def).defense + (superDig ? 0.15 : 0) + (o.soft ? 0.2 : 0) + (o.type === "tip" ? 0.15 : 0) - (diving ? 0.1 : 0));
@@ -1840,6 +1932,25 @@
       body.innerHTML = rosterTable(me) + rosterTable(opp);
     }
   }
+  function renderTac() {
+    var h = "<p class='muted'>Your team's game plan. It's saved for every match.</p>";
+    [["block", "BLOCK STYLE", "READ: react to the set (strong vs high balls, late on quicks). GUESS: commit early — a wall if right, beaten if wrong."],
+     ["lean", "BLOCK STRATEGY", "Take line and let the defence cover cross, or take cross and leave the line open."],
+     ["call", "ONE-PLAYER: SETTER & YOU", "Ask at every pass, have the setter feed you automatically, or never ask."],
+     ["rot", "ROTATION SYSTEM", "5-1: one setter. 4-2: the front-row setter sets — when your setter is back row, the opposite sets."]].forEach(function (g2) {
+      h += "<h3 class='mini'>" + g2[1] + "</h3><div class='focus'>" + TAC_OPTS[g2[0]].map(function (o) {
+        return "<button class='btn" + (TAC[g2[0]] === o[0] ? " on" : "") + "' data-tac='" + g2[0] + "' data-v='" + o[0] + "'>" + o[1] + "</button>";
+      }).join("") + "</div><p class='muted small'>" + g2[2] + "</p>";
+    });
+    $("tacBody").innerHTML = h;
+  }
+  function openTac() { setPaused(true); renderTac(); $("tacPanel").classList.remove("hidden"); }
+  function closeTac() {
+    $("tacPanel").classList.add("hidden");
+    if ($("statsPanel").classList.contains("hidden")) setPaused(false);
+    if (me) feed(0, "Tactics: " + tacName("block") + " • " + tacName("lean") + " • " + tacName("rot") + (mode === "role" ? " • " + tacName("call") : ""));
+  }
+
   function openStats() {
     if (!me || !opp) return;
     setPaused(true);
@@ -1880,6 +1991,7 @@
     function tallest(s) { return ROLES.map(function (r) { return s.roster[r]; }).sort(function (a, b) { return b.height - a.height; })[0]; }
     feed(-1, "— " + c.mine.name + " vs " + c.foe.name + " —");
     feed(-1, "Styles: " + c.mine.name + " " + sty(me).name + " • " + c.foe.name + " " + sty(opp).name);
+    feed(0, "Your tactics: " + tacName("block") + " • " + tacName("lean") + " • " + tacName("rot") + (mode === "role" ? " • " + tacName("call") : "") + " (🧠 TACTICS to change)");
     feed(0, "Stars: " + starList(me) + ". Libero: " + me.roster.L.name + ". Tallest: " + tallest(me).name + " " + tallest(me).height + "cm.");
     feed(1, "Stars: " + starList(opp) + ". Libero: " + opp.roster.L.name + ". Tallest: " + tallest(opp).name + " " + tallest(opp).height + "cm.");
 
@@ -1927,6 +2039,12 @@
     cv = $("court"); g = cv.getContext("2d");
     g.imageSmoothingEnabled = false;
     $("rosterBtn").addEventListener("click", openStats);
+    $("tacBtn").addEventListener("click", openTac);
+    $("tacClose").addEventListener("click", closeTac);
+    $("tacPanel").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-tac]");
+      if (b) { TAC[b.getAttribute("data-tac")] = b.getAttribute("data-v"); saveTac(); renderTac(); }
+    });
     $("backBtn").addEventListener("click", async function () {
       var wasPaused = paused; setPaused(true);
       var ok = await U.modal("BACK TO MAIN MENU?", "<p>Leave this match and go back to the main menu?</p>" +

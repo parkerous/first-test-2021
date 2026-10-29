@@ -12,7 +12,7 @@
 <body>
   <div class="cabinet">
     <h1 class="title">VNL VOLLEY</h1>
-    <p class="subtitle">NATIONS LEAGUE • SPRING NATIONALS • SUPERLEGA • SV.LEAGUE</p>
+    <p class="subtitle">NATIONS LEAGUE • SPRING NATIONALS • SUPERLEGA • SV.LEAGUE • PLUSLIGA • EFELER LIGI • SUPERLIGA</p>
 
     <!-- menus, career hub -->
     <div id="hub" class="hub"></div>
@@ -37,14 +37,6 @@
         <div class="stage">
           <canvas id="court" class="screen" width="640" height="900"></canvas>
 
-          <div class="timing hidden" id="timing">
-            <div class="label" id="timingLabel">RECEIVE!</div>
-            <div class="track">
-              <div class="zone" id="zoneG"></div>
-              <div class="zoneP" id="zoneP"></div>
-              <div class="marker" id="marker"></div>
-            </div>
-          </div>
 
           <div class="timing-pop hidden" id="timingPop"></div>
 
@@ -71,10 +63,21 @@
         </div>
 
         <div class="side-col">
-          <div style="text-align:center; margin-bottom:8px">
-            <button class="btn" id="rosterBtn">📊 LIVE STATS &amp; ROSTERS</button>
+          <div class="side-btns">
+            <button class="btn" id="rosterBtn">📊 STATS</button>
+            <button class="btn" id="tacBtn">🧠 TACTICS</button>
           </div>
-          <div class="action-bar" id="actions"></div>
+          <div class="dock" id="dock">
+              <div class="timing hidden" id="timing">
+                <div class="label" id="timingLabel">RECEIVE!</div>
+                <div class="track">
+                  <div class="zone" id="zoneG"></div>
+                  <div class="zoneP" id="zoneP"></div>
+                  <div class="marker" id="marker"></div>
+                </div>
+              </div>
+            <div class="action-bar" id="actions"></div>
+          </div>
           <div class="feed" id="feed"></div>
           <div class="controls">
             The ball slows down while you decide.<br/>
@@ -103,6 +106,15 @@
       </div>
       <div id="statsBody" class="modal-body stats-body"></div>
       <div class="modal-btns"><button class="btn" id="statsClose">▶ RESUME GAME</button></div>
+    </div>
+  </div>
+
+  <!-- tactics (pauses the match) -->
+  <div id="tacPanel" class="modal hidden">
+    <div class="modal-card">
+      <h2>🧠 TACTICS <span class="paused-tag">GAME PAUSED</span></h2>
+      <div id="tacBody" class="modal-body"></div>
+      <div class="modal-btns"><button class="btn" id="tacClose">▶ RESUME GAME</button></div>
     </div>
   </div>
 

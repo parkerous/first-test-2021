@@ -45,7 +45,10 @@ build step, no server.
 - 500 free pulls to start. Every match pays: a win = 10 pulls, a loss = 5 pulls
   (any mode), plus story events and a daily gift. Pull ×1 (100) or ×10 (900).
 - Rarities: Common, Rare, Epic, Legendary, Mythic. Limited variants include
-  Christmas Bokuto/Nishinoya/Hinata/Kenma and Festival Oikawa (Legendary), and
+  Christmas Bokuto/Nishinoya/Hinata/Kenma and Festival Oikawa (Legendary),
+  Halloween (Witch Kenma, Vampire Kuroo, Guess Monster Tendo, Black Cat Lev,
+  Vampire Tsukishima, Pumpkin Hinata) and Summer (Hinata, Nishinoya, Oikawa,
+  Bokuto, Tanaka, Atsumu, Osamu) outfits, and
   the whole timeskip cast: Mythic Ninja Shoyo, Kageyama, Bokuto, Oikawa and
   Ushijima; Legendary Atsumu, Sakusa, Hoshiumi, Kenma, Kuroo, Tsukishima,
   Nishinoya, Azumane, Tanaka, Sawamura, Sugawara, Iwaizumi, Akaashi, Osamu, Yaku
@@ -66,7 +69,12 @@ build step, no server.
 - Story mode: a team awards night every year (Team MVP, Most Improved, Rookie of
   the Year, Fighting Spirit) and a podium when you win Spring Nationals.
 
-### 🏟️ Club Career (SuperLega 🇮🇹 + SV.League 🇯🇵)
+### 🏟️ Player Career (SuperLega 🇮🇹, SV.League 🇯🇵, PlusLiga 🇵🇱, Efeler Ligi 🇹🇷, Superliga 🇧🇷)
+- FIFA-style: pick an archetype (Powerhouse, The Wall, Maestro, Guardian, Serve
+  Bomber), earn XP from matches and weekly training drills, level up and spend
+  skill points, and chase three manager objectives each season (they raise your
+  manager rating, which earns more starts, salary and coins).
+- Five leagues of 8 clubs; older saves get the new leagues automatically.
 - 3 save slots. Create a player: name, nationality, position (setter, outside,
   middle, opposite, libero) and build (tower, balanced, jumper).
 - You control only yourself; coaches pick lineups from form and ratings.
@@ -99,6 +107,14 @@ build step, no server.
 - Home crowd chants when the home team serves (team name, NICE SERVE / NAISSA,
   the server's name, ACE ACE ACE, LET'S GO, team slogans like FLY, and ONE MORE
   POINT on set point).
+- 🧠 TACTICS (pauses the match, saved between matches): READ or GUESS block,
+  TAKE LINE or TAKE CROSS (leave the line open), 5-1 or 4-2 rotation (in a 4-2
+  the front-row opposite sets when the setter is back row), and in one-player
+  mode whether the setter asks you, feeds you automatically or decides alone.
+- Shanks come in flavours: into the stands, off the face, off the roof, into the
+  referee's stand, off the shoulder with a teammate chasing, or a collision.
+- The court fits the screen and the timing bar sits with the decision buttons
+  in a YOUR MOVE panel beside it (a bottom dock on phones).
 - Setter menu: up to four plain options (QUICK / OUTSIDE / RIGHT SIDE / BACK
   ROW → hitter) with the setter's 👍 pick; MORE CALLS opens the full playbook.
 - Every team has a playstyle (FAST TEMPO, POWER ATTACK, IRON WALL, ACE-CENTRIC,

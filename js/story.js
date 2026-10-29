@@ -817,6 +817,7 @@
     });
   };
 
+  VB.drillBar = drillBar;
   VB.Story = {
     start: function () {
       return new Promise(function (res) {

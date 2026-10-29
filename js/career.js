@@ -78,8 +78,11 @@
     }
     return rounds;
   }
+  function leagueIds() { return Object.keys(VB.LEAGUES); }
+  function myLeague() { return C.club ? club().league : "SL"; }
+  function leagueOrder() { return [myLeague()].concat(leagueIds().filter(function (id) { return id !== myLeague(); })); }
   function newSeasonLeagues() {
-    ["SL", "SV"].forEach(function (id) {
+    leagueIds().forEach(function (id) {
       var ids = Object.keys(C.clubs).filter(function (c) { return C.clubs[c].league === id; });
       var table = {};
       ids.forEach(function (c) { table[c] = { w: 0, l: 0, pf: 0, pa: 0 }; });
@@ -92,7 +95,13 @@
     C = { slot: slot, v: 1, season: 1, stage: 0, players: {}, clubs: {}, leagues: {}, free: [], news: [], taken: {},
           club: null, form: 0, recent: [], history: [], trophies: [], awardsWon: [], focus: FOCUS[setup.role][0], prog: {},
           sstats: {}, interest: 0, injured: 0, vertGain: 0, skillUnlocked: false, season0: true, name: setup.name };
-    VB.CLUBS.forEach(function (seed) {
+    VB.CLUBS.forEach(buildClub);
+    for (var f = 0; f < 8; f++) addPlayer(genPlayer(pick(VB.IMPORT_NATS), pick(Object.keys(COMP)), irnd(64, 74), irnd(20, 30)), null);
+    newSeasonLeagues();
+    setupCareer(setup);
+  }
+  // clubs from their seeds (also used to add new leagues to older saves)
+  function buildClub(seed) {
       var cl = { id: seed.id, name: seed.name, short: seed.short, league: seed.league, kit: seed.kit, kit2: seed.kit2,
                  prestige: seed.prestige, coach: seed.coach, story: seed.story, strict: rnd(0.3, 0.8), arc: arcFor(seed.prestige), roster: [], budget: 0 };
       C.clubs[cl.id] = cl;
@@ -110,10 +119,52 @@
         }
       });
       cl.budget = Math.round(payroll(cl) * rnd(1.04, 1.16));
+  }
+  function ensureLeagues() {
+    var added = [];
+    VB.CLUBS.forEach(function (seed) { if (!C.clubs[seed.id]) { buildClub(seed); if (added.indexOf(seed.league) < 0) added.push(seed.league); } });
+    added.forEach(function (id) {
+      var ids = Object.keys(C.clubs).filter(function (c) { return C.clubs[c].league === id; }), table = {};
+      ids.forEach(function (c) { table[c] = { w: 0, l: 0, pf: 0, pa: 0 }; });
+      C.leagues[id] = { id: id, name: VB.LEAGUES[id].name, flag: VB.LEAGUES[id].flag, clubs: ids, rounds: roundRobin(shuffle(ids.slice())), table: table, semis: null, final: null, champion: null };
+      news("🌍 New league on the radar: " + VB.LEAGUES[id].flag + " " + VB.LEAGUES[id].name + ".", "story");
     });
-    for (var f = 0; f < 8; f++) addPlayer(genPlayer(pick(VB.IMPORT_NATS), pick(Object.keys(COMP)), irnd(64, 74), irnd(20, 30)), null);
-    newSeasonLeagues();
+    if (C.mgr == null) C.mgr = 50;
+    if (C.lvl == null) { C.lvl = 1; C.xp = 0; C.sp = 0; }
+    if (!C.obj) newObjectives();
+  }
 
+  // ================== PLAYER CAREER (archetypes, XP & skill points, objectives) ==================
+  var ARCH = {
+    power:    { name: "POWERHOUSE", desc: "Big swings and big serves.", boost: { att: 4, srv: 2 }, vert: 3, grow: ["att", "srv"] },
+    wall:     { name: "THE WALL", desc: "Owns the net.", boost: { blk: 5, att: 1 }, height: 2, grow: ["blk"] },
+    maestro:  { name: "MAESTRO", desc: "Hands like silk, sees everything.", boost: { set: 4, def: 2 }, grow: ["set", "def"] },
+    guardian: { name: "GUARDIAN", desc: "Nothing hits the floor.", boost: { rec: 4, def: 3 }, grow: ["rec", "def"] },
+    bomber:   { name: "SERVE BOMBER", desc: "Every serve is a weapon.", boost: { srv: 6 }, grow: ["srv"] }
+  };
+  function xpNeed() { return 120 + (C.lvl - 1) * 20; }
+  function gainXP(n) {
+    C.xp += Math.round(n);
+    var ups = 0;
+    while (C.xp >= xpNeed()) { C.xp -= xpNeed(); C.lvl++; C.sp++; ups++; }
+    if (ups) news("⬆ LEVEL " + C.lvl + "! +" + ups + " SKILL POINT" + (ups > 1 ? "S" : "") + " to spend in DEVELOP.", "you");
+    return ups;
+  }
+  function spCost(a) { var v = a === "vert" ? 90 : you()[a]; return v < 75 ? 1 : v < 85 ? 2 : 3; }
+  var OBJ_STAT = { OH: ["pts", 45, "SCORE 45 POINTS"], OP: ["pts", 55, "SCORE 55 POINTS"], MB: ["blk", 10, "MAKE 10 BLOCKS"], S: ["ast", 70, "70 ASSISTS"], L: ["dig", 30, "30 DIGS"] };
+  function newObjectives() {
+    var st = OBJ_STAT[you().role];
+    C.obj = [{ k: "mp", target: 5, text: "PLAY 5 MATCHES" }, { k: "avg", target: 7.0, text: "AVERAGE RATING 7.0+" }, { k: st[0], target: st[1], text: st[2] }];
+    C.srat = [];
+  }
+  function objProgress(o) {
+    var my = C.sstats.you || VB.Stats.newLine();
+    if (o.k === "avg") return C.srat && C.srat.length ? Math.round(mean(C.srat) * 10) / 10 : 0;
+    if (o.k === "pts") return VB.Stats.pts(my);
+    return my[o.k] || 0;
+  }
+  function objDone(o) { return objProgress(o) >= o.target && (o.k !== "avg" || (C.srat || []).length >= 3); }
+  function setupCareer(setup) {
     var fam = setup.role, h = VB.HEIGHT[fam], v = VB.VERT[fam], b = setup.build;
     var height = b === "tower" ? h[1] + irnd(0, 4) : b === "jumper" ? h[0] + irnd(0, 3) : Math.round((h[0] + h[1]) / 2) + irnd(-2, 2);
     var vert = b === "tower" ? v[0] + irnd(0, 4) : b === "jumper" ? v[1] + irnd(2, 8) : Math.round((v[0] + v[1]) / 2) + irnd(-2, 2);
@@ -122,7 +173,13 @@
     if (b === "tower") me.blk = clamp(me.blk + 3, 25, 99);
     me.pot = irnd(88, 95);
     me.build = b;
+    var ar = ARCH[setup.arch] || ARCH.power;
+    Object.keys(ar.boost).forEach(function (a) { me[a] = clamp(me[a] + ar.boost[a], 25, 99); });
+    if (ar.vert) me.vert += ar.vert;
+    if (ar.height) me.height += ar.height;
+    C.arch = setup.arch || "power"; C.mgr = 50; C.lvl = 1; C.xp = 0; C.sp = 0;
     C.players.you = me;
+    newObjectives();
     C.startVert = vert;
     news("A new career begins: " + setup.name + ", a 19-year-old " + VB.FAMILY_NAMES[fam].toLowerCase() + " from " + flagOf(setup.nat) + ".", "you");
   }
@@ -131,7 +188,7 @@
   function selectionScore(p, noise) {
     var s = ovr(p);
     if (p.id === "you") {
-      s += C.form * 2.2 + (C.promise === "STARTER" ? 6 : 1.5);
+      s += C.form * 2.2 + (C.promise === "STARTER" ? 6 : 1.5) + ((C.mgr || 50) - 50) * 0.08;
       if (noise && C.promise !== "STARTER" && Math.random() < 0.35) s += 5;   // the coach gives the kid a run
     }
     if (noise) s += rnd(-1.2, 1.2);
@@ -194,6 +251,7 @@
     var gains = {};
     FOCUS[p.role].forEach(function (a) {
       var w = (a === C.focus ? 1.8 : 1) * (a === "vert" ? 1 : clamp((99 - p[a]) / 40, 0.15, 1));   // high attributes are harder to raise
+      if (ARCH[C.arch] && ARCH[C.arch].grow.indexOf(a) >= 0) w *= 1.35;                              // your archetype grows faster
       if (a === "vert") { if (C.focus !== "vert" || C.vertGain >= 12) return; w = 0.6; }
       C.prog[a] = (C.prog[a] || 0) + amt * w * rnd(0.5, 1.2);
       while (C.prog[a] >= 1) {
@@ -223,6 +281,7 @@
       C.recent.push(null);
       C.form = clamp(C.form * 0.85 - 0.15, -3, 3);
       var tg = C.injured > 0 ? {} : grow(you(), 6.5);
+      gainXP(20);
       var tgt = Object.keys(tg).filter(function (k) { return k !== "skill"; }).map(function (k) { return "+" + tg[k] + " " + ATTR_TXT[k]; }).join(", ");
       var rival = myLine[VB.ROLES.find(function (r) { return VB.FAMILY[r] === you().role; })];
       var why = C.injured > 0 ? "You're injured and watch from the stands." :
@@ -240,8 +299,10 @@
     U.showView("hub");
     addSeason(res.stats);
     var line = res.stats.you, rating = VB.Stats.rating(line, you().role, res.won);
-    C.recent.push(rating);
+    C.recent.push(rating); (C.srat = C.srat || []).push(rating);
     C.form = clamp(C.form * 0.6 + (rating - 6.2) * 0.55, -3, 3);
+    var xpGot = Math.round(rating * 9 + (res.won ? 12 : 0)), lvUp = gainXP(xpGot);
+    C.mgr = clamp((C.mgr || 50) + (rating - 6.5) * 1.5, 0, 100);
     var before = ovr(you()), gains = grow(you(), rating), after = ovr(you());
     var flowed = res.flows.some(function (f) { return f.id === "you"; });
     if (flowed) { news("🔵🔥 Fans chant " + you().name + "'s name after a FLOW STATE run.", "you"); C.interest += 0.05; }
@@ -254,7 +315,8 @@
       (gtxt ? "<p class='center gain'>TRAINING GAINS: " + esc(gtxt) + "</p>" : "") +
       (after > before ? "<p class='center gain'>OVR " + before + " → " + after + "</p>" : "") +
       (gains.skill ? "<p class='center gain'>★ SIGNATURE MOVE UNLOCKED: " + esc(VB.SKILL_TXT[you().skill]) + "</p>" : "") +
-      (flowed ? "<p class='center'>🔵🔥 You hit the FLOW STATE this match.</p>" : ""),
+      (flowed ? "<p class='center'>🔵🔥 You hit the FLOW STATE this match.</p>" : "") +
+      "<p class='center'>+" + xpGot + " XP" + (lvUp ? " • <b class='gain'>LEVEL UP! +" + lvUp + " SKILL POINT</b>" : "") + " • MANAGER RATING " + Math.round(C.mgr) + "</p>",
       [{ label: "CONTINUE", value: 1 }]);
     return homeSide === 0 ? [res.score[0], res.score[1]] : [res.score[1], res.score[0]];
   }
@@ -276,8 +338,9 @@
 
   async function playRound(r) {
     var label = "ROUND " + (r + 1) + "/7";
-    for (var k = 0; k < 2; k++) {
-      var L = lg(k === 0 ? (C.club ? club().league : "SL") : (C.club && club().league === "SV" ? "SL" : "SV"));
+    var ord = leagueOrder();
+    for (var k = 0; k < ord.length; k++) {
+      var L = lg(ord[k]);
       for (var i = 0; i < L.rounds[r].length; i++) {
         var m = L.rounds[r][i];
         var sc = await playFixture(L, m[0], m[1], label);
@@ -500,8 +563,8 @@
     });
   }
   async function playoffs(stage) {
-    var order = C.club ? [club().league, club().league === "SL" ? "SV" : "SL"] : ["SL", "SV"];
-    for (var k = 0; k < 2; k++) {
+    var order = leagueOrder();
+    for (var k = 0; k < order.length; k++) {
       var L = lg(order[k]);
       if (stage === "SF") {
         var rk = rank(L);
@@ -530,13 +593,28 @@
 
   async function seasonEnd() {
     var html = "", show = null;
-    ["SL", "SV"].forEach(function (id) {
+    // manager objectives: the boss's verdict
+    var objHtml = "";
+    if (C.obj) {
+      var nd = 0;
+      objHtml = "<h3 class='mini'>MANAGER OBJECTIVES</h3><ul class='newslist'>" + C.obj.map(function (o) {
+        var ok = objDone(o); if (ok) nd++;
+        return "<li class='" + (ok ? "you" : "") + "'>" + (ok ? "✅ " : "❌ ") + esc(o.text) + " — " + objProgress(o) + "/" + o.target + "</li>";
+      }).join("") + "</ul>";
+      C.mgr = clamp(C.mgr + nd * 12 - (3 - nd) * 8, 0, 100);
+      if (nd && C.club) { var raise = Math.round(you().salary * 0.05 * nd); you().salary += raise; objHtml += "<p class='gain'>Bonus: +" + raise + "k salary" + (VB.Gacha ? " • +" + VB.Gacha.earn(500 * nd) + " 🏐 coins" : "") + "</p>"; }
+      objHtml += "<p>MANAGER RATING: <b>" + Math.round(C.mgr) + "</b> " + (C.mgr >= 70 ? "— the coach trusts you completely." : C.mgr >= 45 ? "— solid, keep going." : "— the coach is losing patience.") + "</p>";
+      news("📋 Objectives: " + nd + "/3 completed. Manager rating " + Math.round(C.mgr) + ".", "you");
+    }
+    html += objHtml;
+    leagueIds().forEach(function (id) {
       var L = lg(id), agg = {}, info = {};
       Object.keys(C.sstats).forEach(function (pid) { var p = P(pid); if (p && p.club && club(p.club).league === id) { agg[pid] = C.sstats[pid]; info[pid] = infoFor(pid); } });
       var bonus = {}; if (L.champion) bonus[L.champion] = 12;
       var list = VB.Stats.awards(agg, info, bonus);
       list.forEach(function (a) { if (a.id === "you") { C.awardsWon.push(C.season + " " + L.name + " " + a.title); news("🏅 " + you().name + " wins " + a.title + " (" + L.name + ")!", "you"); } });
-      if (id === (C.club ? club().league : "SL")) show = { L: L, list: list };
+      if (id === myLeague()) show = { L: L, list: list };
+      if (id !== myLeague()) { html += "<h3 class='mini'>" + L.flag + " " + L.name + " — CHAMPION: " + esc(L.champion ? club(L.champion).name : "—") + "</h3>"; return; }
       html += "<h3 class='mini'>" + L.flag + " " + L.name + " — CHAMPION: " + esc(L.champion ? club(L.champion).name : "—") + "</h3>" + VB.Stats.awardsHTML(list);
     });
     if (show && show.L.champion) {
@@ -600,7 +678,8 @@
     C.sstats = {};
     C.recent = C.recent.slice(-2);
     newSeasonLeagues();
-    news("— SEASON " + C.season + " BEGINS —", "story");
+    newObjectives();
+    news("— SEASON " + C.season + " BEGINS — Objectives: " + C.obj.map(function (o) { return o.text; }).join(", ") + ".", "story");
   }
 
   // ================== ADVANCE ==================
@@ -677,6 +756,23 @@
         return "<button class='btn" + (C.focus === a ? " on" : "") + "' data-act='focus' data-arg='" + a + "'>" + ATTR_TXT[a] + (a === "vert" ? " (" + C.vertGain + "/12)" : "") + "</button>";
       }).join("") + "</div>";
   }
+  function developHTML() {
+    var ar = ARCH[C.arch];
+    var attrs = VB.ATTRS.concat(you().role === "L" ? [] : ["vert"]);
+    var drillOk = C.drillAt !== C.season + "-" + C.stage && !(C.injured > 0);
+    return "<div class='dev-top'><div><b>LEVEL " + C.lvl + "</b> • XP " + C.xp + "/" + xpNeed() + "<div class='xpbar'><i style='width:" + Math.round(C.xp / xpNeed() * 100) + "%'></i></div></div>" +
+        "<div><b>" + C.sp + "</b> SKILL POINTS</div><div>ARCHETYPE: <b>" + (ar ? ar.name : "—") + "</b></div><div>MANAGER RATING: <b>" + Math.round(C.mgr) + "</b></div></div>" +
+      "<h3 class='mini'>SPEND SKILL POINTS</h3><div class='focus'>" + attrs.map(function (a) {
+        var v = a === "vert" ? you().vert + "cm" : you()[a], c2 = spCost(a), off = C.sp < c2 || (a === "vert" && C.vertGain >= 12) || (a !== "vert" && you()[a] >= 99);
+        return "<button class='btn' data-act='spend' data-arg='" + a + "'" + (off ? " disabled" : "") + ">" + ATTR_TXT[a] + " " + v + " +1 (" + c2 + " SP)</button>";
+      }).join("") + "</div><p class='muted small'>XP comes from every match (rating × 9, +12 for a win) and training drills. Higher attributes cost more.</p>" +
+      "<h3 class='mini'>TRAINING SESSION</h3><p>One drill per week: stop the marker in the zone to train your focus (" + ATTR_TXT[C.focus] + ").</p>" +
+      "<div class='hub-actions'><button class='btn big' data-act='drill'" + (drillOk ? "" : " disabled") + ">" + (drillOk ? "START DRILL" : "DONE THIS WEEK") + "</button></div>" +
+      "<h3 class='mini'>MANAGER OBJECTIVES — SEASON " + C.season + "</h3><ul class='newslist'>" + (C.obj || []).map(function (o) {
+        var ok = objDone(o);
+        return "<li class='" + (ok ? "you" : "") + "'>" + (ok ? "✅ " : "⬜ ") + esc(o.text) + " — " + objProgress(o) + " / " + o.target + "</li>";
+      }).join("") + "</ul><p class='muted small'>Hit objectives to raise your manager rating (more starts), salary and coins.</p>";
+  }
   function careerHTML() {
     var rows = C.history.map(function (h) {
       return "<tr><td>S" + h.season + "</td><td>" + esc(h.club) + "</td><td>" + h.mp + "</td><td>" + h.pts + "</td><td>" + h.eff + "</td><td>" + h.blk + "</td><td>" + h.dig + "</td><td>" + h.avg + "</td><td>" + h.ovr + "</td></tr>";
@@ -690,17 +786,18 @@
     var me = you(), cl = C.club ? club() : null, rch = VB.reach(me), st = CAL[C.stage];
     var stageTxt = CAL_TXT[st] || ("ROUND " + st.slice(1) + " / 7");
     var nf = nextFixture(), starter = cl && st[0] === "R" ? isLikelyStarter() : null;
-    var tabs = ["news", "table", "squad", "stats", "training", "career"];
+    var tabs = ["news", "table", "squad", "stats", "develop", "training", "career"];
     var body = tab === "news" ? "<ul class='newslist'>" + C.news.slice(0, 30).map(function (n) {
                  return "<li class='" + n.tag + "'><span class='muted'>S" + n.s + "</span> " + esc(n.t) + "</li>"; }).join("") + "</ul>"
-             : tab === "table" ? "<div class='leaders'>" + tableHTML(lg(cl ? cl.league : "SL")) + tableHTML(lg(cl && cl.league === "SV" ? "SL" : "SV")) + "</div>"
-             : tab === "squad" ? squadHTML() : tab === "stats" ? statsHTML() : tab === "training" ? trainingHTML() : careerHTML();
+             : tab === "table" ? "<div class='leaders'>" + leagueOrder().map(function (id) { return tableHTML(lg(id)); }).join("") + "</div>"
+             : tab === "squad" ? squadHTML() : tab === "stats" ? statsHTML() : tab === "develop" ? developHTML() : tab === "training" ? trainingHTML() : careerHTML();
     $("hub").innerHTML =
       "<div class='hub-top'>" +
         "<div class='card me-card'><img class='pix big' src='" + VB.Engine.spriteURL(me.face, cl ? cl.kit : "#888888") + "' alt=''/>" +
           "<div><div class='pname'>" + esc(me.name) + "</div>" +
           "<div class='muted'>" + VB.FAMILY_NAMES[me.role] + " • AGE " + me.age + " • " + flagOf(me.nat) + "</div>" +
           "<div class='ovr'>OVR " + ovr(me) + " <span class='muted'>POT ~" + Math.round(me.pot / 5) * 5 + "</span></div>" +
+          "<div class='muted'>LV " + C.lvl + " • " + C.sp + " SP • " + (ARCH[C.arch] ? ARCH[C.arch].name : "") + " • MANAGER " + Math.round(C.mgr) + "</div>" +
           "<div class='muted'>HT " + me.height + "cm • VERT " + me.vert + "cm • REACH " + rch.spike + "/" + rch.block + "</div>" +
           "<div>FORM " + formBar(C.form) + (C.injured > 0 ? " 🚑 INJURED" : "") + (me.skill ? " <span class='star'>★ " + VB.SKILL_TXT[me.skill] + "</span>" : "") + "</div>" +
           "<div class='muted'>" + VB.ATTRS.map(function (a) { return a.toUpperCase() + " " + me[a]; }).join(" • ") + "</div></div></div>" +
@@ -721,7 +818,7 @@
 
   // ================== SLOTS & NEW CAREER ==================
   function renderSlots() {
-    var html = "<h2 class='hub-h'>CLUB CAREER</h2><p class='center muted'>SuperLega 🇮🇹 and SV.League 🇯🇵 • one player • your performance is your only voice</p><div class='slots'>";
+    var html = "<h2 class='hub-h'>PLAYER CAREER</h2><p class='center muted'>SuperLega 🇮🇹 • SV.League 🇯🇵 • PlusLiga 🇵🇱 • Efeler Ligi 🇹🇷 • Superliga 🇧🇷 • one player • archetypes, skill points, manager objectives</p><div class='slots'>";
     for (var s = 1; s <= SLOTS; s++) {
       var c = load(s);
       if (c) {
@@ -747,6 +844,9 @@
           return "<button class='btn" + (setup.role === f ? " on" : "") + "' data-act='setRole' data-arg='" + f + "'>" + VB.FAMILY_NAMES[f] + "</button>"; }).join("") + "</div>" +
         "<div>BUILD</div><div class='focus'>" + [["tower", "TOWER — tall, big block, lower jump"], ["balanced", "BALANCED"], ["jumper", "JUMPER — shorter, huge vertical"]].map(function (b) {
           return "<button class='btn" + (setup.build === b[0] ? " on" : "") + "' data-act='setBuild' data-arg='" + b[0] + "'>" + b[1] + "</button>"; }).join("") + "</div>" +
+        "<div>ARCHETYPE</div><div class='focus'>" + Object.keys(ARCH).map(function (k) {
+          return "<button class='btn" + (setup.arch === k ? " on" : "") + "' data-act='setArch' data-arg='" + k + "'>" + ARCH[k].name + "</button>"; }).join("") + "</div>" +
+        "<p class='muted'>" + esc(ARCH[setup.arch].name + ": " + ARCH[setup.arch].desc) + " Boosts " + Object.keys(ARCH[setup.arch].boost).map(function (a) { return ATTR_TXT[a]; }).join(" & ") + " and grows them faster.</p>" +
         "<p class='muted'>You start at 19 with OVR ~66 and high potential. Clubs from the bottom of both leagues are willing to take a chance on you.</p>" +
       "</div><div class='hub-actions'><button class='btn big' data-act='create'>START CAREER</button><button class='btn pink' data-act='slots'>BACK</button></div>";
   }
@@ -764,14 +864,37 @@
       save(); return render();
     }
     if (act === "menu" || act === "exit") { if (C) save(); C = null; $("hub").onclick = null; var r = exitCareer; exitCareer = null; return r && r(); }
-    if (act === "load") { C = load(+arg); tab = "news"; return render(); }
+    if (act === "load") { C = load(+arg); ensureLeagues(); save(); tab = "news"; return render(); }
     if (act === "del") {
       var ok = await U.modal("DELETE CAREER?", "<p>Slot " + arg + " will be erased for good.</p>", [{ label: "DELETE", value: true, cls: "pink" }, { label: "KEEP IT", value: false }]);
       if (ok) localStorage.removeItem(SLOT_KEY + arg);
       return renderSlots();
     }
     if (act === "slots") return renderSlots();
-    if (act === "new") { setup = { slot: +arg, name: "NEW KID", nat: "ITA", role: "OH", build: "balanced" }; return renderNew(); }
+    if (act === "new") { setup = { slot: +arg, name: "NEW KID", nat: "ITA", role: "OH", build: "balanced", arch: "power" }; return renderNew(); }
+    if (act === "setArch") { setup.name = ($("cName").value || "NEW KID").toUpperCase().slice(0, 12); setup.nat = $("cNat").value; setup.arch = arg; return renderNew(); }
+    if (act === "spend") {
+      var cost = spCost(arg);
+      if (C.sp < cost) return;
+      C.sp -= cost;
+      if (arg === "vert") { you().vert++; C.vertGain++; } else you()[arg] = Math.min(99, you()[arg] + 1);
+      save(); return render();
+    }
+    if (act === "drill") {
+      busy = true;
+      var lvl = C.focus === "vert" ? 75 : you()[C.focus];
+      var q = await VB.drillBar("TRAINING — " + ATTR_TXT[C.focus], "The coaches are watching. Hit the zone!", { goodW: clamp(0.2 + (lvl - 65) / 300, 0.16, 0.32), speed: 1400 - (lvl - 65) * 4 });
+      C.drillAt = C.season + "-" + C.stage;
+      C.prog[C.focus] = (C.prog[C.focus] || 0) + q * 1.4;
+      var gained = 0;
+      while (C.prog[C.focus] >= 1) { C.prog[C.focus] -= 1; if (C.focus === "vert") { if (C.vertGain >= 12) break; you().vert++; C.vertGain++; } else you()[C.focus] = Math.min(99, you()[C.focus] + 1); gained++; }
+      var lv = gainXP(10 + q * 30);
+      C.mgr = clamp(C.mgr + q * 2 - (q < 0.25 ? 1 : 0), 0, 100);
+      busy = false; save(); render();
+      await U.modal("TRAINING SESSION", "<p class='center big'>" + (q >= 1 ? "PERFECT!" : q >= 0.5 ? "GOOD" : q > 0 ? "OFF" : "MISSED") + "</p><p class='center'>+" + Math.round(10 + q * 30) + " XP" +
+        (gained ? " • <span class='gain'>+" + gained + " " + ATTR_TXT[C.focus] + "</span>" : "") + (lv ? " • LEVEL UP!" : "") + "</p>");
+      return render();
+    }
     if (act === "setRole" || act === "setBuild") {
       setup.name = ($("cName").value || "NEW KID").toUpperCase().slice(0, 12); setup.nat = $("cNat").value;
       if (act === "setRole") setup.role = arg; else setup.build = arg;

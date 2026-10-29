@@ -259,7 +259,10 @@ window.VB = window.VB || {};
   // ---------- clubs (career mode) ----------
   VB.LEAGUES = {
     SL: { id: "SL", name: "SUPERLEGA", flag: "🇮🇹", nat: "ITA" },
-    SV: { id: "SV", name: "SV.LEAGUE", flag: "🇯🇵", nat: "JPN" }
+    SV: { id: "SV", name: "SV.LEAGUE", flag: "🇯🇵", nat: "JPN" },
+    PL: { id: "PL", name: "PLUSLIGA", flag: "🇵🇱", nat: "POL" },
+    EF: { id: "EF", name: "EFELER LIGI", flag: "🇹🇷", nat: "TUR" },
+    SB: { id: "SB", name: "SUPERLIGA", flag: "🇧🇷", nat: "BRA" }
   };
   // seeds: [name, nat, family, skill?] — an arcade homage, not real rosters
   VB.CLUBS = [
@@ -306,5 +309,39 @@ window.VB = window.VB || {};
     { id: "SAK", league: "SV", name: "SAKAI BLAZERS", short: "BLAZERS", kit: "#f39800", kit2: "#003399", prestige: 72, coach: "OKUMURA",
       story: "Develops youngsters — the perfect place to earn minutes.", seeds: [] }
   ];
+  // PlusLiga, Efeler Ligi and the Brazilian Superliga (8 clubs each, an arcade homage)
+  [
+    ["JAS", "PL", "JASTRZEBSKI WEGIEL", "JASTRZEBSKI", "#f39200", "#1b1b1b", 91, "MENDEZ", "Back-to-back champions with a roaring home gym.", [["FORNAL", "POL", "OH", "spike"]]],
+    ["ZAK", "PL", "ZAKSA KEDZIERZYN", "ZAKSA", "#0060a8", "#ffffff", 89, "GRBIC", "European royalty that never stops reloading.", [["KACZMAREK", "POL", "OP", "spike"]]],
+    ["ZAW", "PL", "ALURON ZAWIERCIE", "ZAWIERCIE", "#ffd200", "#1b1b1b", 87, "WINIARSKI", "The new money of Polish volleyball.", [["BIENIEK", "POL", "MB", "block"]]],
+    ["RES", "PL", "ASSECO RESOVIA", "RESOVIA", "#d4001a", "#ffffff", 85, "KOWAL", "Rzeszow's pride, loud and demanding.", []],
+    ["PRO", "PL", "PROJEKT WARSZAWA", "PROJEKT", "#e30613", "#1b1b1b", 83, "ANASTASI", "The capital club with big ambitions.", [["KWOLEK", "POL", "OH"]]],
+    ["TRG", "PL", "TREFL GDANSK", "TREFL", "#ffd200", "#e30613", 79, "PLINSKI", "Coastal underdogs who love long rallies.", []],
+    ["SKR", "PL", "PGE SKRA BELCHATOW", "SKRA", "#ffd200", "#0b3a8a", 77, "LEBEDEW", "A former giant rebuilding with youth.", []],
+    ["SLE", "PL", "SLEPSK SUWALKI", "SUWALKI", "#009640", "#ffffff", 72, "KOWALSKI", "A tiny gym at the edge of the map — and they love it.", []],
+    ["HAL", "EF", "HALKBANK ANKARA", "HALKBANK", "#00599c", "#ffffff", 89, "LEBEDEW", "Ankara's powerhouse, built on big serves.", [["ABDEL-AZIZ", "NED", "OP", "serve"]]],
+    ["ZIR", "EF", "ZIRAATBANK ANKARA", "ZIRAAT", "#e30613", "#ffffff", 87, "CIFTCI", "Deep pockets and deeper benches.", [["A.LAGUMDZIJA", "TUR", "OP", "spike"]]],
+    ["FEN", "EF", "FENERBAHCE ISTANBUL", "FENERBAHCE", "#ffd200", "#00205b", 86, "BAGRIACIK", "Every match is a derby in Istanbul.", []],
+    ["GAL", "EF", "GALATASARAY", "GALATASARAY", "#a50021", "#fdb913", 84, "YILMAZ", "The red-and-yellow wall of noise.", []],
+    ["ARK", "EF", "ARKAS SPOR IZMIR", "ARKAS", "#0068b3", "#ffffff", 82, "GLENN", "The academy factory of Turkish volleyball.", []],
+    ["SPT", "EF", "SPOR TOTO", "SPOR TOTO", "#00843d", "#ffffff", 78, "KARACA", "A steady mid-table club that eats favourites.", []],
+    ["ALA", "EF", "ALANYA BELEDIYE", "ALANYA", "#f39200", "#0b3a8a", 76, "DEMIR", "Sun, sea and surprise results.", []],
+    ["IBB", "EF", "ISTANBUL BBSK", "ISTANBUL BB", "#2a62a8", "#ffffff", 73, "OZTURK", "The city club fighting for every point.", []],
+    ["CRU", "SB", "SADA CRUZEIRO", "CRUZEIRO", "#003da5", "#ffffff", 90, "MARCELO", "Brazil's machine of champions.", [["CACHOPA", "BRA", "S", "dump"]]],
+    ["SES", "SB", "SESI-SP", "SESI", "#e30613", "#ffffff", 86, "GIOVANE", "Sao Paulo's industrial-strength attack.", [["ALAN", "BRA", "OP", "spike"]]],
+    ["MIN", "SB", "MINAS TENIS", "MINAS", "#0b3a8a", "#ffd200", 85, "NERY", "Belo Horizonte's oldest rivalry.", [["HONORATO", "BRA", "OH"]]],
+    ["PRA", "SB", "PRAIA CLUBE", "PRAIA", "#009fe3", "#ffffff", 83, "PAULO", "Uberlandia's flashy, fast-tempo side.", []],
+    ["REN", "SB", "VOLEI RENATA", "RENATA", "#7a1fa2", "#ffd200", 81, "HORACIO", "Campinas' pride and joy.", []],
+    ["JOI", "SB", "JOINVILLE", "JOINVILLE", "#e30613", "#1b1b1b", 78, "CARLAO", "The southern underdogs.", []],
+    ["SJO", "SB", "SAO JOSE", "SAO JOSE", "#1b1b1b", "#ffffff", 75, "SOARES", "Small budget, huge crowd.", []],
+    ["MAR", "SB", "MARINGA", "MARINGA", "#009640", "#ffd200", 72, "LIMA", "A rising club with nothing to lose.", []]
+  ].forEach(function (c) {
+    VB.CLUBS.push({ id: c[0], league: c[1], name: c[2], short: c[3], kit: c[4], kit2: c[5], prestige: c[6], coach: c[7], story: c[8], seeds: c[9] });
+  });
+  ["JAS:power", "ZAK:fast", "ZAW:serve", "RES:power", "PRO:creative", "TRG:defense", "SKR:balanced", "SLE:defense",
+   "HAL:serve", "ZIR:power", "FEN:balanced", "GAL:wall", "ARK:fast", "SPT:defense", "ALA:creative", "IBB:balanced",
+   "CRU:fast", "SES:power", "MIN:creative", "PRA:fast", "REN:serve", "JOI:defense", "SJO:balanced", "MAR:ace"].forEach(function (k) {
+    k = k.split(":"); VB.PLAY_OF[k[0]] = k[1];
+  });
   VB.IMPORT_NATS = ["BRA", "POL", "FRA", "USA", "SRB", "ARG", "CUB", "IRI", "GER", "SLO", "NED", "CAN", "BUL", "TUR", "TUN", "MLI"];
 })(window.VB);

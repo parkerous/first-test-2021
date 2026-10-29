@@ -25,6 +25,21 @@
     { id: "XMAS-HINATA", base: "HINATA", team: "KAR", r: "L", title: "CHRISTMAS HINATA", kit: ["#1f7a3a", "#ffffff"], ex: ["santa"] },
     { id: "XMAS-KENMA", base: "KENMA", team: "NEK", r: "L", title: "CHRISTMAS KENMA", kit: XMAS, ex: ["santa", "roots"] },
     { id: "FEST-OIKAWA", base: "OIKAWA", team: "AOB", r: "L", title: "FESTIVAL OIKAWA", kit: ["#3a5aa8", "#ffffff"] },
+    // halloween
+    { id: "HW-KENMA", base: "KENMA", team: "NEK", r: "L", title: "HALLOWEEN KENMA", sub: "LITTLE WITCH", kit: ["#5b2a86", "#ff8a1e"], ex: ["witch", "roots"] },
+    { id: "HW-KUROO", base: "KUROO", team: "NEK", r: "L", title: "VAMPIRE KUROO", sub: "HALLOWEEN", kit: ["#1b1b1b", "#b0102a"], ex: ["vampire"] },
+    { id: "HW-TENDO", base: "TENDO", team: "SHI", r: "L", title: "GUESS MONSTER TENDO", sub: "HALLOWEEN", kit: ["#ff8a1e", "#1b1b1b"], ex: ["pumpkin"] },
+    { id: "HW-LEV", base: "LEV", team: "NEK", r: "E", title: "BLACK CAT LEV", sub: "HALLOWEEN", kit: ["#2b2b2b", "#ffd21e"], ex: ["catears"] },
+    { id: "HW-TSUKISHIMA", base: "TSUKISHIMA", team: "KAR", r: "E", title: "VAMPIRE TSUKISHIMA", sub: "HALLOWEEN", kit: ["#2b1b3d", "#b0102a"], ex: ["glasses", "vampire"] },
+    { id: "HW-HINATA", base: "HINATA", team: "KAR", r: "E", title: "PUMPKIN HINATA", sub: "HALLOWEEN", kit: ["#ff8a1e", "#1b1b1b"], ex: ["pumpkin"] },
+    // summer
+    { id: "SU-HINATA", base: "HINATA", team: "KAR", r: "L", title: "SUMMER HINATA", sub: "BEACH VOLLEY", kit: ["#2ec4d6", "#ffffff"], ex: ["strawhat", "tank"], face: { skin: 1 } },
+    { id: "SU-NISHINOYA", base: "NISHINOYA", team: "KAR", r: "L", title: "SUMMER NISHINOYA", sub: "BEACH VOLLEY", kit: ["#ff6b6b", "#ffffff"], ex: ["streak", "sunglasses", "tank"] },
+    { id: "SU-OIKAWA", base: "OIKAWA", team: "AOB", r: "L", title: "SUMMER OIKAWA", sub: "BEACH VOLLEY", kit: ["#7ad3ff", "#ffffff"], ex: ["sunglasses", "flower"] },
+    { id: "SU-BOKUTO", base: "BOKUTO", team: "FUK", r: "E", title: "SUMMER BOKUTO", sub: "BEACH VOLLEY", kit: ["#ffd21e", "#1b1b1b"], ex: ["streak", "sunglasses", "tank"] },
+    { id: "SU-TANAKA", base: "TANAKA", team: "KAR", r: "E", title: "SUMMER TANAKA", sub: "BEACH VOLLEY", kit: ["#3ac46a", "#ffffff"], ex: ["strawhat", "tank"] },
+    { id: "SU-ATSUMU", base: "ATSUMU", team: "INA", r: "E", title: "SUMMER ATSUMU", sub: "BEACH VOLLEY", kit: ["#ff9ad5", "#ffffff"], ex: ["sunglasses", "tank"] },
+    { id: "SU-OSAMU", base: "OSAMU", team: "INA", r: "E", title: "SUMMER OSAMU", sub: "BEACH VOLLEY", kit: ["#9ad5ff", "#ffffff"], ex: ["strawhat", "tank"] },
     // timeskip — Mythic
     { id: "TS-HINATA", base: "HINATA", team: "KAR", r: "M", title: "NINJA SHOYO", sub: "TIMESKIP • MSBY BLACK JACKALS", kit: MSBY, face: { style: "flat", skin: 2 } },
     { id: "TS-KAGEYAMA", base: "KAGEYAMA", team: "KAR", r: "M", title: "TIMESKIP KAGEYAMA", sub: "SCHWEIDEN ADLERS", kit: ADLERS, face: { style: "flat" } },
@@ -51,7 +66,8 @@
   ];
   // featured pairs rotate every day (genshin-style banner with a 50/50 and a guarantee)
   var FEATURED = [["XMAS-BOKUTO", "TS-HINATA"], ["TS-SAKUSA", "TS-KAGEYAMA"], ["TS-ATSUMU", "TS-BOKUTO"], ["XMAS-KENMA", "TS-OIKAWA"],
-                  ["TS-HOSHIUMI", "TS-USHIJIMA"], ["XMAS-NISHINOYA", "TS-HINATA"], ["TS-KUROO", "TS-BOKUTO"]];
+                  ["TS-HOSHIUMI", "TS-USHIJIMA"], ["XMAS-NISHINOYA", "TS-HINATA"], ["TS-KUROO", "TS-BOKUTO"],
+                  ["HW-KUROO", "TS-KAGEYAMA"], ["SU-HINATA", "TS-OIKAWA"], ["HW-KENMA", "TS-BOKUTO"], ["SU-NISHINOYA", "TS-USHIJIMA"]];
 
   // ---------- card catalogue ----------
   var CARDS = [], BY = {};
