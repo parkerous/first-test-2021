@@ -25,9 +25,9 @@
     function newTour(myId, playMode, role) {
       var others = VB.shuffle(cfg.teams.filter(function (t) { return t.id !== myId; }));
       var ids = [myId].concat(others.slice(0, cfg.size - 1).map(function (t) { return t.id; }));
-      ids.sort(function (a, b) { return T(b).ovr - T(a).ovr; });
+      ids = VB.shuffle(ids);                                    // a fresh, random draw every tournament
       var np = cfg.size / 4, pools = [];
-      for (var k = 0; k < np; k++) pools.push([ids[k], ids[2 * np - 1 - k], ids[2 * np + k], ids[4 * np - 1 - k]]);   // snake seeding
+      for (var k = 0; k < np; k++) pools.push(ids.slice(k * 4, k * 4 + 4));
       tour = { myId: myId, pools: pools, round: 0, stage: "pool", table: {}, ko: [], koRound: 0, champion: null,
                mode: playMode, myRole: role, rosters: {}, stats: {}, info: {} };
       var taken = {};
@@ -55,7 +55,7 @@
       if (sa > sb) { ta.w++; tb.l++; } else { tb.w++; ta.l++; }
       ta.pf += sa; ta.pa += sb; tb.pf += sb; tb.pa += sa;
     }
-    function simGame(a, b) { var s = VB.Stats.sim(teamDef(a), teamDef(b)); addStats(s.stats); return [s.a, s.b]; }
+    function simGame(a, b, bestOf) { var s = VB.Stats.simSets(teamDef(a), teamDef(b), bestOf || 1); addStats(s.stats); return [s.a, s.b]; }
     function poolPairs(pool, r) {
       return [[[pool[0], pool[3]], [pool[1], pool[2]]], [[pool[0], pool[2]], [pool[3], pool[1]]], [[pool[0], pool[1]], [pool[2], pool[3]]]][r];
     }
@@ -103,10 +103,10 @@
       });
     }
 
-    async function playMine(foeId, label) {
+    async function playMine(foeId, label, bestOf) {
       var res = await VB.Engine.playMatch({
         mine: teamDef(tour.myId), foe: teamDef(foeId), homeSide: Math.random() < 0.5 ? 0 : 1,
-        mode: tour.mode, myRole: tour.myRole, label: label, league: cfg.league
+        mode: tour.mode, myRole: tour.myRole, label: label + (bestOf > 1 ? " • BEST OF 3" : ""), league: cfg.league, floor: cfg.floor, bestOf: bestOf || 1
       });
       addStats(res.stats);
       var r = record(); if (res.won) r.w++; else r.l++;
@@ -156,17 +156,17 @@
                         tour.stage === "ko" ? "TO THE KNOCKOUTS" : "NEXT MATCH");
       }
       while (tour.stage === "ko") {
-        var round = tour.ko[tour.koRound], name = KO_NAMES[round.length];
+        var round = tour.ko[tour.koRound], name = KO_NAMES[round.length], bo = round.length <= 2 ? 3 : 1;   // semis and final: best of 3
         for (var i = 0; i < round.length; i++) {
           var m = round[i];
           if (m[0] === tour.myId || m[1] === tour.myId) {
             var foe = m[0] === tour.myId ? m[1] : m[0];
-            var rs = await playMine(foe, cfg.short + " " + name);
+            var rs = await playMine(foe, cfg.short + " " + name, bo);
             m[2] = m[0] === tour.myId ? rs.score[0] : rs.score[1];
             m[3] = m[0] === tour.myId ? rs.score[1] : rs.score[0];
             if (name === "FINAL" && rs.won) localStorage.setItem(cfg.cupKey, String(cups() + 1));
           } else {
-            var s = simGame(m[0], m[1]); m[2] = s[0]; m[3] = s[1];
+            var s = simGame(m[0], m[1], bo); m[2] = s[0]; m[3] = s[1];
           }
         }
         if (round.length === 1) {
@@ -214,7 +214,7 @@
           }), cfg.pickTitle);
         }
         newTour(mine.id, playMode, role);
-        await showTable("TOURNAMENT DRAW", "POOL PLAY: 3 MATCHES, TOP 2 OF EACH POOL ADVANCE", "START POOL PLAY");
+        await showTable("TOURNAMENT DRAW", "RANDOM DRAW • POOL PLAY: 3 MATCHES, TOP 2 OF EACH POOL ADVANCE • SEMIS & FINAL ARE BEST OF 3", "START POOL PLAY");
       }
       await run();
     }
@@ -227,7 +227,7 @@
   }
 
   VB.VNL = makeTournament({ key: "retroVNL.tour3", recKey: "retroVNL.record", cupKey: "retroVNL.cups", title: "VNL", short: "VNL",
-                            league: "VNL", size: 8, teams: VB.NATIONAL, pickTitle: "VNL VOLLEY" });
+                            league: "VNL", floor: "vnl", size: 8, teams: VB.NATIONAL, pickTitle: "VNL VOLLEY" });
   VB.HQ = makeTournament({ key: "retroHQ.tour", recKey: "retroHQ.record", cupKey: "retroHQ.cups", title: "SPRING NATIONALS", short: "SPRING NATS",
-                           league: "HARUKO", size: 16, teams: VB.HQ_TEAMS, pickTitle: "HAIKYUU!! SPRING NATIONALS" });
+                           league: "HARUKO", floor: "rubber", size: 16, teams: VB.HQ_TEAMS, pickTitle: "HAIKYUU!! SPRING NATIONALS" });
 })(window.VB);

@@ -69,6 +69,18 @@
     return { a: a, b: b, stats: stats };
   }
 
+  // a best-of-N match, simulated set by set
+  function simSets(A, B, bestOf) {
+    var need = Math.ceil((bestOf || 1) / 2), wa = 0, wb = 0, stats = {}, sets = [];
+    while (wa < need && wb < need) {
+      var s = sim(A, B);
+      if (s.a > s.b) wa++; else wb++;
+      sets.push([s.a, s.b]);
+      Object.keys(s.stats).forEach(function (k) { if (stats[k]) { addInto(stats[k], s.stats[k]); stats[k].mp--; } else stats[k] = s.stats[k]; });
+    }
+    return need > 1 ? { a: wa, b: wb, stats: stats, sets: sets } : { a: sets[0][0], b: sets[0][1], stats: stats, sets: sets };
+  }
+
   // 3.0 .. 10.0 match rating for one player
   function rating(l, fam, won) {
     var r = 6 + pts(l) * 0.22 + (l.att >= 3 ? eff(l) * 3 : 0) + l.dig * 0.12 - (l.se + l.re) * 0.35 + (won ? 0.4 : -0.3);
@@ -168,7 +180,7 @@
 
   VB.Stats = {
     KEYS: KEYS, newLine: newLine, addInto: addInto, pts: pts, eff: eff, effTxt: effTxt,
-    sim: sim, simTeam: simTeam, teamOvr: teamOvr, rating: rating, lineText: lineText,
+    sim: sim, simSets: simSets, simTeam: simTeam, teamOvr: teamOvr, rating: rating, lineText: lineText,
     awards: awards, awardsHTML: awardsHTML, sheetHTML: sheetHTML, leadersHTML: leadersHTML
   };
 })(window.VB);

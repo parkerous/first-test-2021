@@ -703,7 +703,7 @@
       "<div class='hub-status'>CAREER SLOT " + C.slot + " • SEASON " + C.season + " • " + stageTxt +
         (nf ? " • NEXT: " + esc(nf.foe.short) + (nf.home ? " (H)" : " (A)") + " • " + (starter ? "LIKELY STARTER" : "FIGHTING FOR A SPOT") : "") + "</div>" +
       "<div class='hub-actions'><button class='btn big' data-act='advance'>" + esc(actionLabel()) + "</button>" +
-        "<button class='btn pink' data-act='menu'>SAVE &amp; MENU</button></div>" +
+        "<button class='btn' data-act='look'>CHANGE LOOK</button><button class='btn pink' data-act='menu'>SAVE &amp; MENU</button></div>" +
       "<div class='tabs'>" + tabs.map(function (t) { return "<button class='tab-btn" + (t === tab ? " on" : "") + "' data-act='tab' data-arg='" + t + "'>" + t.toUpperCase() + "</button>"; }).join("") + "</div>" +
       "<div class='tab-body'>" + body + "</div>";
   }
@@ -747,6 +747,11 @@
     if (act === "advance") return advance();
     if (act === "tab") { tab = arg; return render(); }
     if (act === "focus") { C.focus = arg; save(); return render(); }
+    if (act === "look") {
+      var kc = C.club ? club() : null;
+      busy = true; await VB.editLook(you().face, kc ? kc.kit : "#888888", kc ? kc.kit2 : null, kc ? VB.Engine.kitPattern(kc.id) : null); busy = false;
+      save(); return render();
+    }
     if (act === "menu" || act === "exit") { if (C) save(); C = null; $("hub").onclick = null; var r = exitCareer; exitCareer = null; return r && r(); }
     if (act === "load") { C = load(+arg); tab = "news"; return render(); }
     if (act === "del") {

@@ -119,6 +119,7 @@
     me.pot = clamp(t.ovr + irnd(9, 13), 60, 99);
     S.players.you = me; S.squad.push("you"); S.years.you = 1;
     S.startOvr = ovr(me);
+    snapEval();
     log("You join " + t.name + " as a first-year " + VB.FAMILY_NAMES[fam] + ".", "you");
   }
 
@@ -225,11 +226,13 @@
       var b = document.createElement("button"); b.className = "btn big"; b.textContent = "HIT!"; bar.appendChild(b);
       $("modal").classList.remove("hidden");
       function pos(now) { var u = ((now - t0) / speed) % 2; return u < 1 ? u : 2 - u; }
-      function frame(now) { if (done) return; var m = $("drillM"); if (m) m.style.left = pos(now) * 100 + "%"; raf = requestAnimationFrame(frame); }
+      var shown = 0;
+      function frame(now) { if (done) return; var m = $("drillM"); shown = pos(now); if (m) m.style.left = shown * 100 + "%"; raf = requestAnimationFrame(frame); }
       raf = requestAnimationFrame(frame);
       function hit() {
         if (done) return; done = true; cancelAnimationFrame(raf); document.removeEventListener("keydown", key);
-        var d = Math.abs(pos(performance.now()) - center), q = d <= perfW / 2 ? 1 : d <= goodW / 2 ? 0.85 - 0.3 * (d / (goodW / 2)) : d <= goodW ? 0.25 : 0;
+        var now = performance.now(), d = Math.min(Math.abs(shown - center), Math.abs(pos(now - 60) - center), Math.abs(pos(now) - center));
+        var q = d <= perfW / 2 ? 1 : d <= goodW / 2 ? 0.85 - 0.3 * (d / (goodW / 2)) : d <= goodW ? 0.25 : 0;
         $("drillRes").textContent = q >= 1 ? "PERFECT!" : q >= 0.5 ? "GOOD" : q > 0 ? "OFF" : "MISSED";
         $("drillRes").style.color = q >= 1 ? "#1fa34a" : q >= 0.5 ? "#c99a00" : "#d33";
         bar.innerHTML = "";
@@ -257,7 +260,8 @@
       S.trust = clamp(S.trust + q * 4 - 0.5, 0, 100);
       var bonus = q >= 1 ? 3 : q >= 0.5 ? 1 : 0;
       mine.ovr = VB.Stats.teamOvr(mine) + bonus;
-      var s = VB.Stats.sim(mine, foe), won = s.a > s.b;
+      var s = VB.Stats.simSets(mine, foe, o.bestOf || 1), won = s.a > s.b;
+      if (won && VB.Gacha) VB.Gacha.earn(80);
       await U.modal(won ? "WIN (FROM THE BENCH)" : "LOSS (FROM THE BENCH)",
         "<p>" + esc(coach()) + " went with the starters. " + (q >= 1 ? "Your pinch serve was an ACE — the bench went wild." : q >= 0.5 ? "Your pinch serve forced a free ball." : "Your pinch serve didn't do much.") + "</p>" +
         "<p class='center big'>" + esc(mine.name + " " + s.a + " : " + s.b + " " + foe.name) + "</p><p class='center muted'>COACH TRUST " + Math.round(S.trust) + "</p>",
@@ -267,7 +271,8 @@
     }
     U.showView("match");
     $("recordLine").textContent = yearTxt(S.year) + " • " + school().name + " • " + o.label;
-    var res = await VB.Engine.playMatch({ mine: mine, foe: foe, homeSide: o.away ? 1 : 0, mode: "role", myRole: key, label: o.label, league: o.league || "HARUKO", setsTo: o.setsTo });
+    var res = await VB.Engine.playMatch({ mine: mine, foe: foe, homeSide: o.away ? 1 : 0, mode: "role", myRole: key, label: o.label + (o.bestOf > 1 ? " • BEST OF 3" : ""), league: o.league || "HARUKO",
+                                          bestOf: o.bestOf || 1, floor: o.floor || "wood" });
     U.showView("hub");
     var lineSt = res.stats.you, rating = VB.Stats.rating(lineSt, you().role, res.won);
     S.stats[S.year] = VB.Stats.addInto(st, lineSt);
@@ -279,6 +284,8 @@
     if (flowed) log("🔵🔥 You hit the FLOW STATE against " + foe.name + ".", "you");
     await U.modal(res.won ? "WIN" : "LOSS",
       "<p class='center big'>" + esc(mine.name + " " + res.score[0] + " : " + res.score[1] + " " + foe.name) + "</p>" +
+      (res.sets && res.sets.length > 1 ? "<p class='center muted'>SETS " + res.sets.map(function (x) { return x[0] + "-" + x[1]; }).join(", ") + "</p>" : "") +
+      (res.coins ? "<p class='center'>+" + res.coins + " 🏐 COINS</p>" : "") +
       "<p class='center'>YOUR RATING: <b class='rating'>" + rating + "</b> / 10</p>" +
       "<p class='center'>" + esc(VB.Stats.lineText(lineSt)) + "</p>" +
       (gainTxt(gains) ? "<p class='center gain'>GROWTH: " + esc(gainTxt(gains)) + "</p>" : "") +
@@ -337,6 +344,12 @@
     if (busy || S.done) return;
     busy = true;
     try {
+      if (S.pendingEval) { await evaluation(S.pendingEval); S.pendingEval = null; save(); render(); return; }
+      var evKey = S.year + "-" + S.phase;
+      if (S.evAt !== evKey && PH[S.phase] !== "april" && PH[S.phase] !== "end") {
+        S.evAt = evKey;
+        if (Math.random() < 0.6) { await randomEvent(); save(); render(); return; }
+      }
       var ph = PH[S.phase], t = school();
       if (ph === "april") {
         await U.modal(yearTxt(S.year) + " — APRIL", introText(), [{ label: "LET'S GO", value: 1 }]);
@@ -364,7 +377,7 @@
         if (!S.bracket) { S.bracket = bracket(2); S.step = 0; }
         if (S.step < 2) {
           var foeId = S.bracket[S.step], nm = Q_NAMES[2][S.step];
-          var won = await playStory(foeId, { label: "INTERHIGH " + region(S.school) + " " + nm, league: "INTERHIGH", setsTo: S.step === 1 ? 21 : 15 });
+          var won = await playStory(foeId, { label: "INTERHIGH " + region(S.school) + " " + nm, league: "INTERHIGH", bestOf: S.step === 1 ? 3 : 1 });
           if (!won) { S.ih = "Lost the " + nm + " to " + team(foeId).name; log("Interhigh: out in the " + nm + ".", "result"); S.bracket = null; nextPhase(); }
           else { S.step++; save(); render(); }
         } else {
@@ -406,7 +419,7 @@
       } else if (ph === "spring") {
         if (!S.bracket) { S.bracket = bracket(3); S.step = 0; S.springOut = false; }
         var sf = S.bracket[S.step], snm = Q_NAMES[3][S.step];
-        var w = await playStory(sf, { label: "SPRING " + region(S.school) + " " + snm, league: "SPRING QUALIFIER", setsTo: S.step === 2 ? 21 : 15 });
+        var w = await playStory(sf, { label: "SPRING " + region(S.school) + " " + snm, league: "SPRING QUALIFIER", bestOf: S.step >= 1 ? 3 : 1 });
         if (!w) { S.springOut = true; S.spring = "Lost the prefecture " + snm + " to " + team(sf).name; log("Spring qualifiers: out in the " + snm + ".", "result"); S.bracket = null; nextPhase(); }
         else if (S.step === 2) {
           log("🏆 " + region(S.school) + " CHAMPIONS — off to Spring Nationals!", "you");
@@ -418,7 +431,7 @@
         else {
           if (!S.bracket) { S.bracket = nationalsField(5); S.step = 0; }
           var nf = S.bracket[S.step], nn = N_NAMES[S.step];
-          var nw = await playStory(nf, { label: "SPRING NATIONALS " + nn, league: "SPRING NATIONALS", setsTo: S.step >= 3 ? 21 : 15 });
+          var nw = await playStory(nf, { label: "SPRING NATIONALS " + nn, league: "SPRING NATIONALS", bestOf: S.step >= 3 ? 3 : 1, floor: "rubber" });
           if (!nw) { S.spring = "Spring Nationals: out in the " + nn + " vs " + team(nf).name; log(S.spring + ".", "result"); S.bracket = null; nextPhase(); }
           else if (S.step === 4) {
             S.spring = "SPRING NATIONALS CHAMPIONS"; S.trophies.push("Y" + S.year + " SPRING NATIONALS CHAMPIONS");
@@ -432,9 +445,112 @@
       }
     } finally { busy = false; }
   }
-  function nextPhase() { S.phase++; S.step = 0; save(); render(); }
+  function nextPhase() {
+    if (PH[S.phase] === "ih") S.pendingEval = "MID-YEAR";
+    S.phase++; S.step = 0; save(); render();
+  }
+
+  // ================== EVALUATIONS (twice a year) ==================
+  function grade(o) {
+    var d = o - school().ovr;
+    return d >= 3 ? "S" : d >= 0 ? "A" : d >= -3 ? "B" : d >= -7 ? "C" : "D";
+  }
+  function snapEval() { S.lastEval = {}; S.squad.forEach(function (id) { S.lastEval[id] = ovr(P(id)); }); }
+  async function evaluation(kind) {
+    // teammates develop over each half-year too
+    S.squad.forEach(function (id) {
+      if (id === "you") return;
+      var p = P(id), yf = S.years[id] === 1 ? 2 : 1;
+      VB.ATTRS.forEach(function (a) { p[a] = Math.min(99, p[a] + VB.irnd(0, yf)); });
+    });
+    var last = S.lastEval || {}, line = myLineup(false), starters = {};
+    VB.ROLES.forEach(function (r) { starters[line[r].id] = 1; });
+    var rows = S.squad.map(P).sort(function (a, b) { return ovr(b) - ovr(a); }).map(function (p) {
+      var o = ovr(p), d = last[p.id] != null ? o - last[p.id] : null, g = grade(o);
+      return "<tr class='" + (p.id === "you" ? "you" : "") + "'><td>" + esc(p.name) + "</td><td>" + p.role + "</td><td>" + S.years[p.id] + "</td><td>" + o + "</td><td>" +
+        (d == null ? "NEW" : d > 0 ? "<span class='gain'>▲" + d + "</span>" : d < 0 ? "▼" + (-d) : "—") + "</td><td><b class='grade g" + g + "'>" + g + "</b></td><td>" + (starters[p.id] ? "START" : "") + "</td></tr>";
+    }).join("");
+    var me = you(), dm = last.you != null ? ovr(me) - last.you : 0;
+    var note = dm >= 3 ? "\"You've grown more than anyone. Keep it up.\"" : dm >= 1 ? "\"Steady progress. Now show it in matches.\"" :
+               "\"You've stalled. Work on your " + ATTR_TXT[S.focus].toLowerCase() + " — and your head.\"";
+    snapEval();
+    log(kind + " evaluation: OVR " + ovr(me) + " (" + (dm >= 0 ? "+" : "") + dm + "), grade " + grade(ovr(me)) + ".", "you");
+    await U.modal(kind + " PLAYER EVALUATION", "<p>" + esc(coach()) + " posts the evaluation sheet on the club-room wall.</p>" +
+      "<table class='standings'><tr><th>PLAYER</th><th>POS</th><th>YR</th><th>OVR</th><th>±</th><th>GRADE</th><th></th></tr>" + rows + "</table>" +
+      "<p>" + esc(coach()) + " to you: " + esc(note) + "</p><p class='muted'>Grades compare each player to the team's level: S A B C D.</p>",
+      [{ label: "CONTINUE", value: 1 }]);
+  }
+
+  // ================== RANDOM EVENTS (keep the year from feeling the same) ==================
+  function mate(fam) {
+    var l = myLineup(false), r = VB.ROLES.find(function (k) { return VB.FAMILY[k] === fam && l[k].id !== "you"; });
+    return r ? l[r].name : "your senpai";
+  }
+  function senior() {
+    var c = S.squad.map(P).filter(function (p) { return p.id !== "you" && S.years[p.id] === 3; }).sort(function (a, b) { return ovr(b) - ovr(a); })[0];
+    return c ? c.name : mate("OH");
+  }
+  function coins(n) { return VB.Gacha ? VB.Gacha.earn(n) : 0; }
+  function rivalStar() {
+    var list = [];
+    VB.HQ_TEAMS.forEach(function (t) {
+      if (t.id === S.school) return;
+      Object.keys(t.players || {}).forEach(function (r) { var n = t.players[r]; if (HQ_YEARS[n] && HQ_YEARS[n] + S.year - 1 <= 3) list.push({ name: n, school: t.name, fam: VB.FAMILY[r] }); });
+    });
+    return list.length ? pick(list) : null;
+  }
+  var TIPS = ["Explode on your last two approach steps.", "Watch the hitter's shoulders, not the ball.", "Talk on the court. Quiet teams lose close sets.",
+              "Hit the ball at the very top of your jump. Always.", "A good pass is boring. Be boring.", "Don't fear the block — use it."];
+  var EVENTS = [
+    function () { return { title: "NIGHT PRACTICE", html: "<p>Everyone has gone home, but " + esc(mate("S")) + " is still in the gym with a cart of balls. \"A few more?\"</p>",
+      choices: [{ label: "STAY", run: async function () { var r = await drill(S.focus, "NIGHT PRACTICE"); return r.g ? "+" + r.g + " " + ATTR_TXT[S.focus] + ". Your arms are jelly, but it was worth it." : "Your arms are jelly. Tomorrow it'll click."; } },
+                { label: "GO HOME & REST", run: async function () { S.trust += 1; return "You sleep nine hours. Coach notices how sharp you look the next morning."; } }] }; },
+    function () { return { title: "EXAM WEEK", html: "<p>Fail a test and you'll miss the next trip. The vice-captain is handing out study notes.</p>",
+      choices: [{ label: "STUDY HARD", run: async function () { S.trust += 2; return "You pass everything. Barely. Nobody has to sit remedial classes."; } },
+                { label: "SNEAK INTO THE GYM", run: async function () {
+                  if (Math.random() < 0.5) { var g = addPts(S.focus, 2); return "You sneak in reps AND scrape a pass." + (g ? " +" + g + " " + ATTR_TXT[S.focus] + "." : ""); }
+                  S.trust -= 5; return "Red marks everywhere. Remedial classes — and a long lecture from " + coach() + "."; } }] }; },
+    function () { var rv = rivalStar(); if (!rv) return null; return { title: "RIVAL SIGHTING", html: "<p>At the convenience store you bump into <b>" + esc(rv.name) + "</b> from " + esc(rv.school) + ".</p>",
+      choices: [{ label: "ASK FOR ADVICE", run: async function () { var a = FOCUS[you().role][0], g = addPts(a, 1.4); return rv.name + ": \"" + pick(TIPS) + "\"" + (g ? " (+" + g + " " + ATTR_TXT[a] + ")" : ""); } },
+                { label: "CHALLENGE THEM", run: async function () { var r = await drill("srv", "SERVE-OFF vs " + rv.name);
+                  if (r.q >= 0.5) { S.trust += 2; return "You win the serve-off! " + rv.name + " buys the meat buns. +" + coins(200) + " 🏐 coins."; }
+                  return rv.name + " laughs: \"Come back when you can hit the target.\""; } }] }; },
+    function () { return { title: "MEAT BUNS", html: "<p>After a brutal practice, " + esc(senior()) + " treats the whole team to meat buns.</p>",
+      choices: [{ label: "THANKS, SENPAI!", run: async function () { S.trust += 2; return "Team spirit is up. +" + coins(120) + " 🏐 coins."; } }] }; },
+    function () { return { title: "FAN LETTER", html: "<p>There's a letter in your shoe locker: \"I saw your last match. Please keep playing!\"</p>",
+      choices: [{ label: "SMILE", run: async function () { return "You read it three times on the way home. +" + coins(300) + " 🏐 coins."; } }] }; },
+    function () { return { title: "ANKLE TWEAK", html: "<p>You land on someone's foot during a block drill. It hurts — but not that much?</p>",
+      choices: [{ label: "REST IT", run: async function () { return "Two easy days with ice. Nothing lost."; } },
+                { label: "TAPE IT & PLAY", run: async function () {
+                  if (Math.random() < 0.35) { you().def = Math.max(30, you().def - 1); you().rec = Math.max(30, you().rec - 1); return "It swells up. You lose a little sharpness (-1 DEF, -1 REC)."; }
+                  S.trust += 3; return "It holds. " + coach() + " respects the grit."; } }] }; },
+    function () { return { title: "NEIGHBOURHOOD ASSOCIATION", html: "<p>The local adults' team needs one more player tonight. Their old setter still has magic hands.</p>",
+      choices: [{ label: "PLAY WITH THEM", run: async function () { var r = await drill("rec", "PASSING vs THE ADULTS"); return r.g ? "Great reps. +" + r.g + " " + ATTR_TXT.rec + "." : "They run you ragged. Good lesson."; } },
+                { label: "JUST WATCH", run: async function () { var g = addPts(you().role === "S" ? "set" : "att", 0.8); return "You pick up a couple of veteran tricks" + (g ? " (+" + g + ")" : "") + "."; } }] }; },
+    function () { return { title: "SUMMER FESTIVAL", html: "<p>The whole team is going to the festival tonight. Fireworks, takoyaki, goldfish scooping.</p>",
+      choices: [{ label: "GO WITH THE TEAM", run: async function () { S.trust += 1; return "A team photo you'll keep forever. +" + coins(200) + " 🏐 coins."; } },
+                { label: "SHADOW PRACTICE", run: async function () { var g = addPts(S.focus, 1.2); return "You practise footwork alone by the river" + (g ? " (+" + g + " " + ATTR_TXT[S.focus] + ")" : "") + "."; } }] }; },
+    function () { return { title: "SERVE CHALLENGE", html: "<p>" + esc(coach()) + " puts a towel on the floor in zone 1. \"Three serves. Hit it.\"</p>",
+      choices: [{ label: "TAKE THE CHALLENGE", run: async function () {
+        var hits = 0;
+        for (var i = 0; i < 3; i++) { var r = await drill("srv", "TOWEL SERVE " + (i + 1) + "/3"); if (r.q >= 0.5) hits++; }
+        S.trust += hits; return hits + "/3 on the towel. +" + coins(100 + 120 * hits) + " 🏐 coins."; } }] }; },
+    function () { return { title: "VIDEO NIGHT", html: "<p>" + esc(coach()) + " wheels in a TV with tapes of the next opponents.</p>",
+      choices: [{ label: "TAKE NOTES", run: async function () { S.trust += 2; var g = addPts("def", 0.9); return "You spot their favourite shot" + (g ? " (+" + g + " DEF)" : "") + "."; } }] }; }
+  ];
+  async function randomEvent() {
+    var ev = null;
+    for (var i = 0; i < 6 && !ev; i++) ev = pick(EVENTS)();
+    if (!ev) return;
+    var k = await U.modal("✦ " + ev.title, ev.html, ev.choices.map(function (c, j) { return { label: c.label, value: j }; }));
+    var out = await ev.choices[k].run();
+    S.trust = clamp(S.trust, 0, 100);
+    log(ev.title + ": " + out, "story");
+    await U.modal("✦ " + ev.title, "<p>" + esc(out) + "</p>", [{ label: "CONTINUE", value: 1 }]);
+  }
 
   async function seasonEnd() {
+    await evaluation("YEAR-END");
     var t = school(), line = S.stats[S.year] || VB.Stats.newLine(), me = you();
     var rec = { year: S.year, ovr: ovr(me), ih: S.ih || "—", spring: S.spring || "—", line: VB.Stats.lineText(line), mp: line.mp || 0 };
     S.history.push(rec);
@@ -455,7 +571,6 @@
       S.years[id]++;
       var p = P(id); p.age++;
       if (id === "you") return;
-      VB.ATTRS.forEach(function (a) { p[a] = Math.min(99, p[a] + irnd(0, 3)); });
     });
     var before = S.squad.length;
     fillSquad(t, 3);
@@ -496,6 +611,7 @@
   }
   function nextTxt() {
     if (S.done) return "STORY COMPLETE";
+    if (S.pendingEval) return "NEXT: " + S.pendingEval + " PLAYER EVALUATION";
     var ph = PH[S.phase];
     if (ph === "ih" && S.bracket && S.step < 2) return "NEXT: " + Q_NAMES[2][S.step] + " vs " + team(S.bracket[S.step]).name;
     if (ph === "ih" && S.bracket) return "NEXT: INTERHIGH NATIONALS";
@@ -550,7 +666,7 @@
       "</div>" +
       "<div class='hub-status'>STORY SLOT " + S.slot + " • " + yearTxt(S.year) + " • " + esc(PH_TXT[PH[S.phase]] || "") + " • " + esc(nextTxt()) + "</div>" +
       "<div class='hub-actions'>" + (S.done ? "" : "<button class='btn big' data-act='advance'>" + esc(PH[S.phase] === "end" ? "SEASON REVIEW" : "CONTINUE STORY") + "</button>") +
-        "<button class='btn pink' data-act='menu'>SAVE &amp; MENU</button></div>" +
+        "<button class='btn' data-act='look'>CHANGE LOOK</button><button class='btn pink' data-act='menu'>SAVE &amp; MENU</button></div>" +
       "<div class='tabs'>" + tabs.map(function (x) { return "<button class='tab-btn" + (x === tab ? " on" : "") + "' data-act='tab' data-arg='" + x + "'>" + x.toUpperCase() + "</button>"; }).join("") + "</div>" +
       "<div class='tab-body'>" + body + "</div>";
   }
@@ -604,6 +720,7 @@
     if (act === "advance") return advance();
     if (act === "tab") { tab = arg; return render(); }
     if (act === "focus") { S.focus = arg; save(); return render(); }
+    if (act === "look") { busy = true; await VB.editLook(you().face, school().kit, school().kit2, VB.Engine.kitPattern(S.school)); busy = false; save(); return render(); }
     if (act === "menu" || act === "exit") { if (S) save(); S = null; $("hub").onclick = null; var r = exitStory; exitStory = null; return r && r(); }
     if (act === "load") { S = load(+arg); tab = "team"; return render(); }
     if (act === "del") {
@@ -625,6 +742,36 @@
       save(); tab = "team"; render();
     }
   }
+
+  // shared appearance editor (story + career): edits face in place, resolves on DONE
+  VB.editLook = function (face, kit, kit2, pat) {
+    return new Promise(function (res) {
+      var hub = $("hub"), prev = hub.onclick, saved = hub.innerHTML;
+      var EXTRAS = [["glasses", "GLASSES"], ["headband", "HEADBAND"], ["beard", "BEARD"]];
+      function draw() {
+        var ex = face.ex || [];
+        hub.innerHTML = "<h2 class='hub-h'>CHANGE YOUR LOOK</h2><div class='newcareer'>" +
+          "<div class='center'><img class='pix big' src='" + VB.Engine.spriteURL(face, kit, kit2, pat) + "' alt=''/></div>" +
+          "<div>HAIR</div><div class='focus'>" + HAIR_S.map(function (h) { return "<button class='btn" + (face.style === h ? " on" : "") + "' data-lk='s' data-v='" + h + "'>" + h.toUpperCase() + "</button>"; }).join("") + "</div>" +
+          "<div class='focus'>" + HAIR_C.map(function (h) { return "<button class='btn" + (face.hair === h[1] ? " on" : "") + "' data-lk='c' data-v='" + h[1] + "'>" + h[0] + "</button>"; }).join("") + "</div>" +
+          "<div>SKIN</div><div class='focus'>" + VB.SKINS.map(function (s, i) { return "<button class='btn' data-lk='k' data-v='" + i + "' style='background:" + s + (face.skin === s ? ";outline:3px solid #ff4fa0" : "") + "'>&nbsp;</button>"; }).join("") + "</div>" +
+          "<div>EXTRAS</div><div class='focus'>" + EXTRAS.map(function (e) { return "<button class='btn" + (ex.indexOf(e[0]) >= 0 ? " on" : "") + "' data-lk='x' data-v='" + e[0] + "'>" + e[1] + "</button>"; }).join("") + "</div>" +
+          "</div><div class='hub-actions'><button class='btn big' data-lk='done'>DONE</button></div>";
+      }
+      hub.onclick = function (e) {
+        var b = e.target.closest("[data-lk]");
+        if (!b) return;
+        var k = b.getAttribute("data-lk"), v = b.getAttribute("data-v");
+        if (k === "done") { hub.onclick = prev; hub.innerHTML = saved; return res(face); }
+        if (k === "s") face.style = v;
+        if (k === "c") { face.hair = v; delete face.hair2; }
+        if (k === "k") face.skin = VB.SKINS[+v];
+        if (k === "x") { face.ex = (face.ex || []).slice(); var i = face.ex.indexOf(v); if (i >= 0) face.ex.splice(i, 1); else face.ex.push(v); }
+        draw();
+      };
+      draw();
+    });
+  };
 
   VB.Story = {
     start: function () {

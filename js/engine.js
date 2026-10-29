@@ -36,6 +36,7 @@
   // ================== STATE ==================
   var cv, g;
   var me = null, opp = null, cfg = null;
+  var setsWon = [0, 0], setNeed = 1, setLog = [];
   var score = [0, 0], serving = 0;
   var ball = { x: W / 2, y: H - 80, h: 0, visible: false, spin: 0, rot: 0 };
   var aimPreview = null, aimCtx = null, timeScale = 1, gt = 0;
@@ -84,7 +85,9 @@
   // ================== SPRITES ==================
   var STYLE_IDX = ["buzz", "flat", "spiky", "bald"];
   // face: { skin, hair, style (index or name), hair2?, ex?: ["glasses","beard","streak","roots"], mouth }
-  function makeSprite(kit, face) {
+  var KIT_PATS = ["trim", "stripe", "sash", "shoulder", "panel"];
+  function kitPattern(id) { var h = 0; String(id || "").split("").forEach(function (ch) { h = (h * 31 + ch.charCodeAt(0)) >>> 0; }); return KIT_PATS[h % KIT_PATS.length]; }
+  function makeSprite(kit, face, kit2, pat) {
     var c = document.createElement("canvas");
     c.width = 12; c.height = 16;
     var q = c.getContext("2d");
@@ -112,15 +115,26 @@
     if (ex.indexOf("glasses") >= 0) { p(3, 4, "#2b2b2b"); p(5, 4, "#2b2b2b"); p(6, 4, "#2b2b2b"); p(8, 4, "#2b2b2b"); }
     row(5, 6, 5, face.mouth ? "#a33d4d" : face.skin);
     if (ex.indexOf("beard") >= 0) { p(3, 5, H); p(4, 5, H); p(7, 5, H); p(8, 5, H); }
+    if (ex.indexOf("santa") >= 0) { row(3, 8, 0, "#d62828"); row(2, 9, 1, "#d62828"); row(2, 9, 2, "#ffffff"); p(9, 0, "#d62828"); p(10, 0, "#ffffff"); }
+    if (ex.indexOf("headband") >= 0) row(2, 9, 2, face.band || "#ffffff");
     for (var y2 = 6; y2 <= 11; y2++) row(2, 9, y2, kit);
+    var trim = kit2 && kit2.toLowerCase() !== String(kit).toLowerCase() ? kit2 : mix(kit, "#ffffff", 0.6);
+    pat = pat || "trim";
+    if (pat === "stripe") row(2, 9, 8, trim);
+    if (pat === "sash") for (var sy = 0; sy < 6; sy++) p(8 - sy, 6 + sy, trim);
+    if (pat === "shoulder") { row(2, 9, 6, trim); p(2, 7, trim); p(9, 7, trim); }
+    if (pat === "panel") for (var py2 = 7; py2 <= 11; py2++) { p(2, py2, trim); p(9, py2, trim); }
+    p(5, 6, pat === "shoulder" ? kit : trim); p(6, 6, pat === "shoulder" ? kit : trim);            // collar
+    row(2, 9, 11, mix(kit, "#000000", 0.22));
     p(1, 7, face.skin); p(10, 7, face.skin);
     p(1, 8, face.skin); p(10, 8, face.skin);
-    row(3, 8, 12, "#1b1b1b"); row(3, 8, 13, "#1b1b1b");
+    var shorts = mix(kit, "#000000", 0.62);
+    row(3, 8, 12, shorts); row(3, 8, 13, shorts); p(8, 12, trim);
     p(4, 14, face.skin); p(7, 14, face.skin);
     p(4, 15, "#eee"); p(7, 15, "#eee");
     return c;
   }
-  function spriteURL(face, kit) { return makeSprite(kit || "#888888", face).toDataURL(); }
+  function spriteURL(face, kit, kit2, pat) { return makeSprite(kit || "#888888", face, kit2, pat).toDataURL(); }
 
   var refSprite = null;
   function makeRefSprite(blazer) {
@@ -152,7 +166,7 @@
         cd: 0, ph: rnd(0, Math.PI * 2), streak: 0, flow: false, flowLeft: 0,
         srv: rec.srv, rec: rec.rec, set: rec.set, att: rec.att, blk: rec.blk, def: rec.def,
         height: rec.height, vert: rec.vert, spikeReach: reach.spike, blockReach: reach.block,
-        sprite: makeSprite(role === "L" ? libKit : kit, rec.face),
+        sprite: makeSprite(role === "L" ? libKit : kit, rec.face, role === "L" ? kit : (kit === team.kit ? team.kit2 : team.kit), kitPattern(team.id)),
         st: newStat()
       };
     });
@@ -391,7 +405,18 @@
   }
 
   // ================== ARENA ==================
-  function buildArena(home, away, league) {
+  // floor: a player setting (menu) or the competition's own floor
+  VB.FLOORS = { auto: "AUTO", arena: "ARENA (TEAM COLOURS)", vnl: "VNL YELLOW & BLUE", rubber: "ORANGE TARAFLEX", wood: "WOODEN GYM" };
+  function pickFloor(c) {
+    var pref = "auto";
+    try { pref = localStorage.getItem("retroVB.floor") || "auto"; } catch (e) {}
+    if (pref !== "auto" && VB.FLOORS[pref]) return pref;
+    return c.floor || (c.league === "VNL" ? "vnl" : "arena");
+  }
+  var BANNER_TXT = { KAR: ["FLY", "KARASUNO"], NEK: ["CONNECT", "NEKOMA"], INA: ["NO MEMORIES NEEDED", "INARIZAKI"], FUK: ["HEY HEY HEY", "FUKURODANI"],
+                     AOB: ["SEIJOH", "AOBA JOHSAI"], SHI: ["SHIRATORIZAWA", "WE ARE KINGS"], DAT: ["IRON WALL", "DATE TECH"], KAM: ["KAMOMEDAI", "HIGH POINT"] };
+  function buildArena(home, away, league, floor) {
+    floor = floor || "arena";
     var hk = home.kit, ak = away.kit;
     var hk2 = home.kit2 || "#ffffff";
     arenaTheme = { home: home, away: away, league: league, free: mix(hk, "#2b3a4f", 0.66), seat: mix(hk, "#1b2230", 0.72) };
@@ -430,16 +455,31 @@
     boards(88, 92, 464, 12, true); boards(88, 796, 464, 12, true);
     boards(88, 104, 12, 692, false); boards(540, 104, 12, 692, false);
     // floor: free zone in the home colours, standard court
-    b.fillStyle = arenaTheme.free; b.fillRect(100, 104, 440, 692);
+    var FL = { arena: [arenaTheme.free, "#1668d8", "#1e7ef0", "#ffffff"], vnl: ["#1a4fc0", "#f2b21c", "#f8c63e", "#ffffff"],
+               rubber: ["#2b8f7e", "#e8702a", "#f0873c", "#ffffff"], wood: ["#d6a263", null, null, "#ffffff"] }[floor] || [arenaTheme.free, "#1668d8", "#1e7ef0", "#ffffff"];
+    b.fillStyle = FL[0]; b.fillRect(100, 104, 440, 692);
+    if (floor === "wood") {
+      // planks, with a basketball court painted underneath like a real school gym
+      for (var py = 104; py < 796; py += 7) {
+        b.fillStyle = (py / 7) % 2 ? "rgba(120,70,20,0.09)" : "rgba(255,240,200,0.07)"; b.fillRect(100, py, 440, 7);
+        b.fillStyle = "rgba(90,50,10,0.22)"; b.fillRect(100, py, 440, 1);
+        for (var px = 100 + (py * 37) % 110; px < 540; px += 110) b.fillRect(px, py, 1, 7);
+      }
+      b.strokeStyle = "rgba(200,50,50,0.5)"; b.lineWidth = 2;
+      b.strokeRect(126, 128, 388, 644); b.beginPath(); b.arc(320, 450, 46, 0, 6.283); b.stroke();
+      b.beginPath(); b.arc(320, 150, 90, 0, Math.PI); b.stroke(); b.beginPath(); b.arc(320, 750, 90, Math.PI, 6.283); b.stroke();
+      b.strokeStyle = "rgba(40,110,200,0.45)"; b.strokeRect(160, 170, 320, 560);
+    }
     b.globalAlpha = 0.18; b.fillStyle = "#ffffff";
     b.font = '34px "Press Start 2P", monospace'; b.textAlign = "center"; b.textBaseline = "middle";
-    b.save(); b.translate(118, 450); b.rotate(-Math.PI / 2); b.fillText((home.short || home.name).slice(0, 10), 0, 0); b.restore();
-    b.save(); b.translate(522, 450); b.rotate(Math.PI / 2); b.fillText((home.short || home.name).slice(0, 10), 0, 0); b.restore();
+    var floorTxt = floor === "vnl" ? "VNL" : floor === "wood" ? "" : (home.short || home.name).slice(0, 10);
+    b.save(); b.translate(118, 450); b.rotate(-Math.PI / 2); b.fillText(floorTxt, 0, 0); b.restore();
+    b.save(); b.translate(522, 450); b.rotate(Math.PI / 2); b.fillText(floorTxt, 0, 0); b.restore();
     b.globalAlpha = 1;
     b.save(); b.translate(OX, OY);
-    b.fillStyle = "#1668d8"; b.fillRect(CL, CT, CR - CL, CB - CT);
-    b.fillStyle = "#1e7ef0"; b.fillRect(CL, NET - ATK, CR - CL, ATK * 2);
-    b.strokeStyle = "#ffffff"; b.lineWidth = 2.5;
+    if (FL[1]) { b.fillStyle = FL[1]; b.fillRect(CL, CT, CR - CL, CB - CT); b.fillStyle = FL[2]; b.fillRect(CL, NET - ATK, CR - CL, ATK * 2); }
+    else { b.fillStyle = "rgba(150,80,20,0.16)"; b.fillRect(CL, CT, CR - CL, CB - CT); }
+    b.strokeStyle = FL[3]; b.lineWidth = 2.5;
     b.strokeRect(CL, CT, CR - CL, CB - CT);
     b.beginPath(); b.moveTo(CL, NET - ATK); b.lineTo(CR, NET - ATK); b.stroke();
     b.beginPath(); b.moveTo(CL, NET + ATK); b.lineTo(CR, NET + ATK); b.stroke();
@@ -466,10 +506,31 @@
     }
     seats(0, 0, CW, 84, 9, 10); seats(0, 816, CW, 84, 9, 10);
     seats(0, 84, 74, 732, 9, 10); seats(566, 84, 74, 732, 9, 10);
+    // banners held up in the stands
+    var stars = home.lineup ? VB.ROLES.map(function (r) { return home.lineup[r]; }).filter(function (p) { return p && p.skill; }) : [];
+    var hTxt = (BANNER_TXT[home.id] || []).concat(["GO " + (home.short || home.name) + "!", (home.short || home.name)]);
+    if (stars.length) hTxt.push(pick(stars).name + " #1");
+    var aTxt = (BANNER_TXT[away.id] || []).concat(["GO " + (away.short || away.name) + "!"]);
+    var banners = [];
+    [[30, 58], [150, 58], [430, 58], [40, 836], [190, 868], [330, 836], [470, 868], [6, 250], [6, 560], [572, 420], [572, 640]].forEach(function (pt, i) {
+      var awaySec = (pt[1] < 84 && pt[0] > 400) || (pt[0] > 566 && pt[1] < 300);
+      var t = awaySec ? pick(aTxt) : hTxt[i % hTxt.length];
+      var col = awaySec ? ak : (i % 2 ? hk : hk2), rgb = parseInt(String(col).slice(1), 16);
+      var tc = ((rgb >> 16) * 0.3 + ((rgb >> 8) & 255) * 0.59 + (rgb & 255) * 0.11) > 150 ? "#13293f" : "#ffffff";
+      banners.push({ x: pt[0], y: pt[1], w: Math.min(pt[0] > 560 || pt[0] < 10 ? 62 : 120, t.length * 7 + 12), t: t, col: col, tc: tc });
+    });
     crowdFrames = [0, 1, 2, 3].map(function (pose) {
       var c = document.createElement("canvas"); c.width = CW; c.height = CH;
       var q = c.getContext("2d");
       fans.forEach(function (f) { drawFan(q, f, pose); });
+      banners.forEach(function (bn, i) {
+        var lift = pose >= 2 && i % 2 === pose % 2 ? 2 : 0, y = bn.y - lift;
+        q.fillStyle = "#dddddd"; q.fillRect(bn.x - 1, y - 2, 1, 16); q.fillRect(bn.x + bn.w, y - 2, 1, 16);
+        q.fillStyle = bn.col; q.fillRect(bn.x, y, bn.w, 12);
+        q.fillStyle = "rgba(0,0,0,0.25)"; q.fillRect(bn.x, y + 11, bn.w, 1);
+        q.fillStyle = bn.tc; q.font = '11px "VT323", monospace'; q.textAlign = "center"; q.textBaseline = "middle";
+        q.fillText(bn.t, bn.x + bn.w / 2, y + 6.5, bn.w - 4);
+      });
       return c;
     });
   }
@@ -614,7 +675,8 @@
     g.fillStyle = mix(opp.team.kit, "#ffffff", 0.35);
     g.fillText((opp.team.short || opp.team.name).slice(0, 7), 360, 17);
     g.fillStyle = "#ffd21e"; g.font = '14px "Press Start 2P", monospace';
-    g.fillText(score[0] + "-" + score[1], 320, 33);
+    g.fillText(score[0] + "-" + score[1], 320, setNeed > 1 ? 30 : 33);
+    if (setNeed > 1) { g.fillStyle = "#9cc4ea"; g.font = '7px "Press Start 2P", monospace'; g.fillText("SETS " + setsWon[0] + "-" + setsWon[1], 320, 41); }
   }
 
   function draw(now) {
@@ -818,10 +880,11 @@
       var t0 = gclock(), done = false, raf;
       // constant-speed back-and-forth, so the marker is equally readable everywhere on the bar
       function pos(now) { var u = ((now - t0) / speedMs) % 1; return u < 0.5 ? u * 2 : 2 - u * 2; }
+      var shown = 0;
       (function step() {
         if (done) return;
         if (gclock() - t0 > speedMs * 3) { done = true; finish(0); return; }        // too late
-        mk.style.left = pos(gclock()) * 100 + "%"; raf = requestAnimationFrame(step);
+        shown = pos(gclock()); mk.style.left = shown * 100 + "%"; raf = requestAnimationFrame(step);
       })();
       function finish(q) {
         document.removeEventListener("pointerdown", stop, true);
@@ -834,7 +897,9 @@
         e.preventDefault(); cancelAnimationFrame(raf);
         document.removeEventListener("pointerdown", stop, true);
         document.removeEventListener("keydown", key, true);
-        finish(quality(pos(gclock())));
+        // judge what the player saw: the drawn marker, or where it was ~60ms ago (screen + input lag)
+        var now = gclock();
+        finish(Math.max(quality(shown), quality(pos(now - 60)), quality(pos(now - 30)), quality(pos(now))));
       }
       function key(e) { if (e.key === " ") stop(e); }
       setTimeout(function () { document.addEventListener("pointerdown", stop, true); document.addEventListener("keydown", key, true); }, 120);
@@ -1239,6 +1304,32 @@
     return credit(def, blocker);
   }
 
+  // up to four plain-English options (one per hitter), the setter's suggestion first, and the full playbook behind MORE
+  var FRIENDLY = { MB: "QUICK", OH: "OUTSIDE", OP: "RIGHT SIDE" };
+  var SIMPLE_PREF = ["combo", "one", "high", "five", "pipe", "go", "red", "31", "slide", "d", "bic"];
+  function simpleSetMenu(opts, atk) {
+    var avail = opts.filter(function (o) { return !o.disabled && !o.dump; });
+    var rec = aiPickSet(atk, opts);
+    if (!rec || rec.dump || rec.disabled) rec = null;
+    function simpleFor(h) {
+      return avail.filter(function (o) { return o.hitter === h; }).sort(function (a, b) { return SIMPLE_PREF.indexOf(a.id) - SIMPLE_PREF.indexOf(b.id); })[0];
+    }
+    function nice(o) {
+      var HP = atk.roster[o.hitter];
+      return (o.combo ? o.label : o.pipe ? "BACK ROW" : FRIENDLY[VB.FAMILY[o.hitter]] || o.label) + " → " + HP.name + (HP.skill === "spike" ? " ★" : "");
+    }
+    var picks = [], seen = {};
+    (rec ? [rec] : []).concat(avail).forEach(function (o) {
+      if (seen[o.hitter] || picks.length >= 4) return;
+      seen[o.hitter] = 1; picks.push(o === rec ? rec : simpleFor(o.hitter));
+    });
+    var btns = picks.map(function (o) { return { label: (o === rec ? "👍 " : "") + nice(o), value: o.id }; });
+    var d = opts.find(function (o) { return o.dump; });
+    if (d) btns.push({ label: "★ " + skillLabel(atk.roster.S) + (atk.roster.S.cd ? " (" + atk.roster.S.cd + ")" : ""), value: d.id, disabled: d.disabled });
+    btns.push({ label: "MORE CALLS ▸", value: "__more" });
+    return U.buttons(btns);
+  }
+
   async function offense(atk, grade, setterRole) {
     setterRole = setterRole || "S";
     var def = other(atk), SN = atk.roster[setterRole].name, emergency = setterRole !== "S";
@@ -1246,12 +1337,16 @@
     if (emergency) opts = opts.filter(function (o) { return o.id === "high" || o.id === "five"; });
     var st = null;
     if (atk === me && !emergency && iControl("S")) {
-      msg(SN + " TO SET — PICK HITTER & BALL (" + GRADE_TXT[grade] + ")");
-      var choice = await U.buttons(opts.map(function (o) {
-        if (o.dump) return { label: "★ " + skillLabel(me.roster.S) + (me.roster.S.cd ? " (" + me.roster.S.cd + ")" : ""), value: o.id, disabled: o.disabled };
-        var HP = me.roster[o.hitter];
-        return { label: o.label + " · " + HP.name + (HP.skill === "spike" ? " ★" : ""), value: o.id, disabled: o.disabled };
-      }));
+      msg(SN + " TO SET (" + GRADE_TXT[grade] + ") — 👍 = SETTER'S PICK");
+      var choice = await simpleSetMenu(opts, atk);
+      if (choice === "__more") {
+        msg(SN + " — FULL PLAYBOOK (" + GRADE_TXT[grade] + ")");
+        choice = await U.buttons(opts.map(function (o) {
+          if (o.dump) return { label: "★ " + skillLabel(me.roster.S) + (me.roster.S.cd ? " (" + me.roster.S.cd + ")" : ""), value: o.id, disabled: o.disabled };
+          var HP = me.roster[o.hitter];
+          return { label: o.label + " · " + HP.name + (HP.skill === "spike" ? " ★" : ""), value: o.id, disabled: o.disabled };
+        }));
+      }
       st = opts.find(function (o) { return o.id === choice; });
       if (mode === "role" && !st.dump) {
         var setTq = await timingBar("SET — SOFT HANDS, " + SN + "!", 1000, 0.24 + (me.roster.S.set - 70) / 300);
@@ -1667,8 +1762,9 @@
   // ================== MATCH SHELL ==================
   function updateHud() {
     $("sMe").textContent = score[0]; $("sOpp").textContent = score[1];
-    $("serveMe").textContent = (serving === 0 ? "● SERVING — " : "") + (me ? "ROT " + (me.rot + 1) : "");
-    $("serveOpp").textContent = (opp ? "ROT " + (opp.rot + 1) : "") + (serving === 1 ? " — SERVING ●" : "");
+    var sets = setNeed > 1;
+    $("serveMe").textContent = (serving === 0 ? "● SERVING — " : "") + (me ? "ROT " + (me.rot + 1) : "") + (sets ? " • SETS " + setsWon[0] : "");
+    $("serveOpp").textContent = (sets ? "SETS " + setsWon[1] + " • " : "") + (opp ? "ROT " + (opp.rot + 1) : "") + (serving === 1 ? " — SERVING ●" : "");
   }
 
   function rosterTable(s) {
@@ -1723,7 +1819,7 @@
     me = makeSide(c.mine, 0, mineKit, myLib);
     opp = makeSide(c.foe, 1, foeKit, oppLib);
     var home = c.homeSide === 1 ? c.foe : c.mine, away = c.homeSide === 1 ? c.mine : c.foe;
-    buildArena(home, away, c.league || "VNL");
+    buildArena(home, away, c.league || "VNL", pickFloor(c));
     flowLog = []; flames = []; ball.visible = false;
     U.clearFeed();
     $("hudMe").textContent = (c.mine.flag || "") + " " + c.mine.name;
@@ -1743,8 +1839,22 @@
     me.rot = 0; opp.rot = 0;
     updateHud();
     var to = c.setsTo || 15;
-    while (!(Math.max(score[0], score[1]) >= to && Math.abs(score[0] - score[1]) >= 2)) await rally();
-    var won = score[0] > score[1];
+    setNeed = Math.ceil((c.bestOf || 1) / 2); setsWon = [0, 0]; setLog = [];
+    if (setNeed > 1) feed(-1, "BEST OF " + (setNeed * 2 - 1) + " SETS — first to " + setNeed + ".");
+    while (setsWon[0] < setNeed && setsWon[1] < setNeed) {
+      if (setLog.length) { score = [0, 0]; updateHud(); feed(-1, "— SET " + (setLog.length + 1) + " —"); msg("SET " + (setLog.length + 1) + " — SWITCH ON!"); await sleep(900); }
+      while (!(Math.max(score[0], score[1]) >= to && Math.abs(score[0] - score[1]) >= 2)) await rally();
+      var sw = score[0] > score[1] ? 0 : 1;
+      setsWon[sw]++; setLog.push(score.slice());
+      if (setsWon[0] < setNeed && setsWon[1] < setNeed) {
+        feed(sw, (sw === 0 ? c.mine.name : c.foe.name) + " take set " + setLog.length + ", " + score[sw] + "-" + score[1 - sw] + "!", true);
+        cheer(); updateHud(); await sleep(1500);
+        serving = 1 - serving;
+      }
+    }
+    var won = setsWon[0] > setsWon[1];
+    var finalScore = setNeed > 1 ? setsWon.slice() : score.slice();
+    var coins = VB.Gacha ? VB.Gacha.earn(won ? 250 + 40 * setsWon[0] : 80 + 40 * setsWon[0]) : 0;
     ball.visible = false;
 
     var stats = {};
@@ -1752,8 +1862,9 @@
       ROLES.forEach(function (r) { stats[s.roster[r].ref.id] = Object.assign({ name: s.roster[r].name, role: r }, s.roster[r].st); });
     });
     $("endTitle").textContent = won ? "MATCH WON!" : "MATCH LOST";
-    $("endScore").textContent = score[0] + " : " + score[1];
-    $("endNote").textContent = c.mine.name + " vs " + c.foe.name + " — " + c.label;
+    $("endScore").textContent = finalScore[0] + " : " + finalScore[1];
+    $("endNote").textContent = c.mine.name + " vs " + c.foe.name + " — " + c.label +
+      (setNeed > 1 ? " • SETS " + setLog.map(function (x) { return x[0] + "-" + x[1]; }).join(", ") : "") + (coins ? " • +" + coins + " 🏐 COINS" : "");
     $("endSheet").innerHTML =
       VB.Stats.sheetHTML((c.mine.flag || "") + " " + c.mine.name, ROLES.map(function (r) { return lineFor(me, r); })) +
       VB.Stats.sheetHTML((c.foe.flag || "") + " " + c.foe.name, ROLES.map(function (r) { return lineFor(opp, r); }));
@@ -1761,7 +1872,7 @@
       $("endScreen").classList.remove("hidden");
       $("contBtn").onclick = function () { $("endScreen").classList.add("hidden"); res(); };
     });
-    return { score: score.slice(), won: won, stats: stats, flows: flowLog.slice() };
+    return { score: finalScore, sets: setLog.slice(), won: won, stats: stats, flows: flowLog.slice(), coins: coins };
   }
 
   function init() {
@@ -1781,5 +1892,5 @@
     requestAnimationFrame(draw);
   }
 
-  VB.Engine = { init: init, playMatch: playMatch, spriteURL: spriteURL };
+  VB.Engine = { init: init, playMatch: playMatch, spriteURL: spriteURL, makeSprite: makeSprite, kitPattern: kitPattern };
 })(window.VB);

@@ -30,12 +30,28 @@ build step, no server.
   qualifiers (+ simulated nationals) → Tokyo summer camp (extra practice with
   Bokuto, Kuroo, Akaashi, Kenma, Yaku or Komi, who can teach you a named move)
   → Spring qualifiers → Spring Nationals (5 knockout rounds).
+- Mid-year and year-end player evaluations: every teammate's OVR, change and
+  grade (S-D). Random events (night practice, exams, rival sightings, fan
+  letters, festivals, serve challenges...) keep each year different.
+- Change your look any time (also in Club Career).
 - You play only yourself. The coach starts the best players, weighted by coach
   trust: good matches, drills and pinch serves raise it. Benched? You still
   get a pinch-serve moment.
 - Third-years graduate (rivals too: Oikawa, Ushijima and Bokuto leave after
   year 1), first-years arrive and teammates improve. A captaincy is possible in
   year 3, and an ending depends on your final OVR and trophies.
+
+### 🎴 Gacha & Showroom (Haikyuu!!)
+- Earn 🏐 coins from every match in any mode (wins pay most), story events and a
+  daily gift. Pull ×1 (100) or ×10 (900).
+- Rarities: Common, Rare, Epic, Legendary, Mythic. Limited variants include
+  Christmas Bokuto/Nishinoya/Hinata/Kenma, Festival Oikawa and Timeskip cards
+  (Ninja Shoyo, Kageyama, Bokuto, Oikawa, Atsumu, Ushijima, Kenma).
+- Genshin-style banner: two featured cards rotate daily; 50/50 with a guarantee,
+  Epic+ every 10 pulls, Legendary by 60, Mythic by 150. Duplicates level a card
+  (C1-C6).
+- Spike reveal animation (the trail colour shows the rarity) — skippable.
+- Showroom: up to 6 cards roam a wooden gym; the rest wait in storage.
 
 ### 🏟️ Club Career (SuperLega 🇮🇹 + SV.League 🇯🇵)
 - 3 save slots. Create a player: name, nationality, position (setter, outside,
@@ -61,6 +77,13 @@ build step, no server.
   one-touches, waterfalls, overpasses, joust battles, free balls, dolphin dives,
   no-touch kills, shanks; poor passes can land anywhere, and the libero sets
   when the setter can't get there.
+- Tournaments: a random pool draw every time; semifinals and finals are best of
+  3 sets (story-mode semis and finals too).
+- Floors: VNL yellow & blue, orange Taraflex, wooden school gym or team-colour
+  arena (COURT FLOOR button on the menu; AUTO picks by competition). Fans hold
+  banners and jerseys have trims, sashes, stripes or panels.
+- Setter menu: up to four plain options (QUICK / OUTSIDE / RIGHT SIDE / BACK
+  ROW → hitter) with the setter's 👍 pick; MORE CALLS opens the full playbook.
 - Every team has a playstyle (FAST TEMPO, POWER ATTACK, IRON WALL, ACE-CENTRIC,
   DEFENSIVE GRIND, SERVE & PRESSURE, CREATIVE, BALANCED) that shapes its set
   choices, tips, serves, blocking and defence.
@@ -77,13 +100,14 @@ build step, no server.
   block can still slide toward your shot; deep swings clear short blocks.
 - One-player mode adds extra timing steps: serve toss, the setter's touch,
   the hitter's approach jump and the blocker's jump timing.
-- Timing bar: a slow, steady marker. GOOD is fair; PERFECT is a narrow band. The green zone shrinks for
+- Timing bar: a slow, steady marker judged on what you see (screen/input lag is
+  forgiven). GOOD is fair; PERFECT is a narrow band. The green zone shrinks for
   harder serves and attacks and grows when your player out-rates the hitter.
 
 ## Files
 `index.html` (layout) · `style.css` · `js/data.js` (teams, clubs, players) ·
 `js/haikyuu.js` (Spring Nationals teams) · `js/ui.js` · `js/stats.js` (box scores, sims, awards) · `js/engine.js` (match
-engine + arena) · `js/vnl.js` (tournaments) · `js/story.js` (Haikyuu story) · `js/career.js` · `js/main.js` (menu).
+engine + arena) · `js/vnl.js` (tournaments) · `js/story.js` (Haikyuu story) · `js/gacha.js` (gacha + showroom) · `js/career.js` · `js/main.js` (menu).
 
 ## Deploy to Netlify
 The repo root is the site. Leave **Base directory** empty and **Publish
