@@ -67,6 +67,36 @@
   function other(s) { return s === me ? opp : me; }
   function pointTo(s) { return s === me ? 0 : 1; }
   function cheer() { cheerAt = performance.now(); }
+  // home-crowd chants when the home team serves
+  var chant = null, homeIdx = 0;
+  function startChant(srv) {
+    var t = srv.team, sh = (t.short || t.name).split(" ")[0], Sv = srv.roster[srv.lineup[1]];
+    var jp = t.nat === "JPN" || t.id === "JPN" || VB.HQ_TEAMS.some(function (x) { return x.id === t.id; });
+    var to = (cfg && cfg.setsTo) || 15, big = score[srv.side] >= to - 1;
+    var list = [sh + "! " + sh + "! CLAP CLAP CLAP!", (jp ? "NAISSA! NAISSA!" : "NICE SERVE! NICE SERVE!"), Sv.name + "! " + Sv.name + "! " + Sv.name + "!",
+                "ACE! ACE! ACE!", "LET'S GO " + sh + "! LET'S GO!"];
+    if (BANNER_TXT[t.id]) list.push(BANNER_TXT[t.id][0] + "! " + BANNER_TXT[t.id][0] + "!");
+    if (big) list = ["ONE MORE POINT! ONE MORE!", "FINISH IT! FINISH IT!"];
+    chant = { text: pick(list), at: performance.now(), col: t.kit };
+    feed(srv.side, "🎵 The home crowd: \"" + chant.text + "\"");
+  }
+  function drawChant(now) {
+    if (!chant) return;
+    var t = (now - chant.at) / 1000;
+    if (t > 2.6) { chant = null; return; }
+    var a = Math.min(1, t * 4, (2.6 - t) * 3), pulse = 1 + Math.max(0, Math.sin(t * Math.PI * 3.3)) * 0.08;
+    g.save(); g.globalAlpha = a;
+    g.font = '13px "Press Start 2P", monospace'; g.textAlign = "center"; g.textBaseline = "middle";
+    [[320, 62], [320, 858]].forEach(function (pt) {
+      var w = Math.min(624, g.measureText(chant.text).width + 24);
+      g.save(); g.translate(pt[0], pt[1]); g.scale(pulse, pulse);
+      g.fillStyle = "rgba(5,7,11,0.78)"; g.fillRect(-w / 2, -13, w, 26);
+      g.fillStyle = mix(chant.col, "#ffffff", 0.25); g.fillRect(-w / 2, 10, w, 3);
+      g.fillStyle = "#ffd21e"; g.fillText(chant.text, 0, 1, w - 16);
+      g.restore();
+    });
+    g.restore();
+  }
   function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
   function msg(t) { U.msg(t); }
   function feed(side, t, hot) { U.feed(side, t, hot); }
@@ -504,8 +534,8 @@
         }
       }
     }
-    seats(0, 0, CW, 84, 9, 10); seats(0, 816, CW, 84, 9, 10);
-    seats(0, 84, 74, 732, 9, 10); seats(566, 84, 74, 732, 9, 10);
+    seats(0, 0, CW, 78, 11, 12); seats(0, 822, CW, 78, 11, 12);
+    seats(0, 84, 66, 732, 11, 12); seats(574, 84, 66, 732, 11, 12);
     // banners held up in the stands
     var stars = home.lineup ? VB.ROLES.map(function (r) { return home.lineup[r]; }).filter(function (p) { return p && p.skill; }) : [];
     var hTxt = (BANNER_TXT[home.id] || []).concat(["GO " + (home.short || home.name) + "!", (home.short || home.name)]);
@@ -523,6 +553,12 @@
       var c = document.createElement("canvas"); c.width = CW; c.height = CH;
       var q = c.getContext("2d");
       fans.forEach(function (f) { drawFan(q, f, pose); });
+      // a thick barrier rail in the home colours
+      [[0, 78, CW, 7, true], [0, 815, CW, 7, true], [66, 84, 8, 732, false], [566, 84, 8, 732, false]].forEach(function (r) {
+        q.fillStyle = "#0b0f16"; q.fillRect(r[0], r[1], r[2], r[3]);
+        q.fillStyle = hk; if (r[4]) q.fillRect(r[0], r[1] + 2, r[2], 3); else q.fillRect(r[0] + 2, r[1], 3, r[3]);
+        q.fillStyle = "rgba(255,255,255,0.35)"; if (r[4]) q.fillRect(r[0], r[1] + 2, r[2], 1); else q.fillRect(r[0] + 2, r[1], 1, r[3]);
+      });
       banners.forEach(function (bn, i) {
         var lift = pose >= 2 && i % 2 === pose % 2 ? 2 : 0, y = bn.y - lift;
         q.fillStyle = "#dddddd"; q.fillRect(bn.x - 1, y - 2, 1, 16); q.fillRect(bn.x + bn.w, y - 2, 1, 16);
@@ -689,9 +725,10 @@
 
     g.drawImage(bg, 0, 0);
     var cheerAmt = clamp01(1 - (now - cheerAt) / 1100);
-    var frame = cheerAmt > 0 ? (Math.floor(now / 120) % 2 ? 3 : 2) : (Math.floor(now / 650) % 2);
+    var frame = cheerAmt > 0 ? (Math.floor(now / 120) % 2 ? 3 : 2) : chant ? (Math.floor((now - chant.at) / 300) % 2 ? 2 : 0) : (Math.floor(now / 650) % 2);
     g.drawImage(crowdFrames[frame], 0, 0);
     drawJumbotron();
+    drawChant(now);
 
     g.save(); g.translate(OX, OY);
     // net, posts, antennas, officials
@@ -1114,6 +1151,7 @@
     if (mode === "role" && me.onCourt.indexOf(myRole) < 0) {
       feed(0, me.roster[myRole].name + " (YOU) sits this rotation out — " + (myRole === "L" ? "your middle is serving." : "the libero is in for you."));
     }
+    if (serving === homeIdx && Math.random() < 0.8) startChant(srvSide);
     await sleep(700);
     var winner = await serve(srvSide);
     if (winner !== serving) (winner === 0 ? me : opp).rot = ((winner === 0 ? me : opp).rot + 1) % 6;
@@ -1828,6 +1866,7 @@
     me = makeSide(c.mine, 0, mineKit, myLib);
     opp = makeSide(c.foe, 1, foeKit, oppLib);
     var home = c.homeSide === 1 ? c.foe : c.mine, away = c.homeSide === 1 ? c.mine : c.foe;
+    homeIdx = c.homeSide === 1 ? 1 : 0; chant = null;
     buildArena(home, away, c.league || "VNL", pickFloor(c));
     flowLog = []; flames = []; ball.visible = false;
     U.clearFeed();

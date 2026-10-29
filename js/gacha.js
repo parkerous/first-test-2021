@@ -224,90 +224,271 @@
   // ---------- showroom: favourites hang out in a classroom ----------
   var room = null;
   var DESK_X = [96, 226, 356, 486], DESK_Y = [200, 268, 336], DW = 58;
+  var LINES = { BOKUTO: "HEY HEY HEY!", HINATA: "BWAH! I can jump!", KAGEYAMA: "Toss... I need to toss.", NISHINOYA: "ROLLING THUNDER!", TANAKA: "OSSU!!",
+                OIKAWA: "Peace peace~", KENMA: "...one more level.", KUROO: "Let's get fired up.", ATSUMU: "Nice serve, me.", OSAMU: "I'm hungry.",
+                USHIJIMA: "I'll hit it.", TSUKISHIMA: "It's just a club.", SAWAMURA: "Eat up, everyone.", SUGAWARA: "Don't mind!", AZUMANE: "Ah, sorry, sorry!",
+                IWAIZUMI: "Oikawa, focus!", HOSHIUMI: "I can fly too!", SAKUSA: "Keep your distance.", AKAASHI: "Bokuto-san...", TENDO: "Guess block~",
+                LEV: "I'm the ace!", YAKU: "LEV! Receive practice!", TAKETORA: "YEAAAH!", TERUSHIMA: "Party time!", AONE: "...", KOGANEGAWA: "Senpai!!" };
+  var WORDS = ["FLY HIGH", "SPIKE!", "NO SLEEP", "VOLLEY ♥", "TEST TMRW", "PRACTICE 4PM", "RECEIVE!!", "1-2-3 GO", "NATIONALS", "MEAT BUNS"];
+  var ACTIONS = [["cheer", "SAY HI"], ["pass", "PASS"], ["spike", "SPIKE"], ["sweep", "SWEEP"], ["write", "WHITEBOARD"], ["read", "READ"], ["nap", "NAP"], ["dance", "DANCE"], ["chat", "CHAT"], ["sit", "SIT"]];
   function startRoom() {
     var cv = $("roomCv");
     if (!cv) return;
     var c = cv.getContext("2d"); c.imageSmoothingEnabled = false;
-    var seats = [];
+    var clock = 0, seats = [], fx = [], flying = [];
     DESK_Y.forEach(function (y) { DESK_X.forEach(function (x) { seats.push({ x: x + DW / 2, y: y - 4, taken: null }); }); });
+    var broom = { x: 480, y: 156, holder: null }, board = { lines: ["SHOWROOM"], user: null }, CART = { x: 44, y: 182 };
     var bots = G.roam.filter(function (id) { return BY[id]; }).map(function (id, i) {
-      return { id: id, card: BY[id], spr: VB.Engine.makeSprite(BY[id].kit[0], BY[id].face, BY[id].kit[1], VB.Engine.kitPattern(BY[id].team)),
-               x: 70 + (i % 5) * 130, y: 165 + Math.floor(i / 5) * 200, tx: 0, ty: 0, wait: rnd(0, 2), jump: 0, face: 1, seat: null, sit: 0 };
+      var cd = BY[id];
+      return { id: id, card: cd, line: LINES[cd.base || cd.id] || null, spr: VB.Engine.makeSprite(cd.kit[0], cd.face, cd.kit[1], VB.Engine.kitPattern(cd.team)),
+               x: 120 + (i % 4) * 130, y: 190 + Math.floor(i / 4) * 175, tx: 0, ty: 0, wait: rnd(0.5, 3), jump: 0, face: 1, act: null, bubble: null, hold: null, sit: 0, seat: null };
     });
     bots.forEach(function (b) { b.tx = b.x; b.ty = b.y; });
     var last = performance.now();
-    room = { cv: cv, bots: bots };
-    function desk(x, y) {
-      c.fillStyle = "#7a5230"; c.fillRect(x + 4, y + 14, 4, 16); c.fillRect(x + DW - 8, y + 14, 4, 16);     // legs
-      c.fillStyle = "#c79a62"; c.fillRect(x, y, DW, 16); c.fillStyle = "#e0b57a"; c.fillRect(x, y, DW, 4);    // top
-      c.fillStyle = "#6b6f78"; c.fillRect(x + 6, y + 16, DW - 12, 6);                                         // drawer
+    function go(b, x, y) { b.tx = x; b.ty = y; }
+    function at(b) { return Math.hypot(b.tx - b.x, b.ty - b.y) < 2; }
+    function say(b, t, sec) { b.bubble = { text: t, until: clock + (sec || 2) }; }
+    function idle(x) { return !x.act || x.act.type === "walk"; }
+    function standUp(b) { if (b.seat) { b.seat.taken = null; b.seat = null; if (b.sit) { b.y += 20; b.ty = b.y; } } b.sit = 0; }
+    function cancel(b) {
+      var a = b.act; if (!a) return;
+      if (broom.holder === b) { broom.holder = null; }
+      if (board.user === b) board.user = null;
+      if (a.mate && a.mate.act && a.mate.act.lead === b) a.mate.act = null;
+      if (a.lead && a.lead.act && a.lead.act.mate === b) a.lead.act = null;
+      b.hold = null; standUp(b); b.act = null;
     }
-    function room0(now) {
-      // wall, chalkboard, clock, windows
+    function freeSeat() { var f = seats.filter(function (s) { return !s.taken; }); return f.length ? pick(f) : null; }
+    function partnerFor(b) {
+      var c2 = bots.filter(function (x) { return x !== b && idle(x) && !x.sit; });
+      return c2.sort(function (p, q) { return Math.hypot(p.x - b.x, p.y - b.y) - Math.hypot(q.x - b.x, q.y - b.y); })[0] || null;
+    }
+    function start(b, type) {
+      cancel(b);
+      var a = { type: type, ph: 0, t: 0 };
+      if (type === "sit" || type === "nap" || type === "read") { var s = freeSeat(); if (!s) return start(b, "cheer"); s.taken = b; b.seat = s; go(b, s.x, s.y); }
+      else if (type === "sweep") { if (broom.holder) return start(b, "cheer"); broom.holder = b; go(b, broom.x - 10, 172); }
+      else if (type === "write") { if (board.user) return start(b, "cheer"); board.user = b; go(b, 66, 168); a.word = pick(WORDS); a.n = 0; }
+      else if (type === "spike") go(b, CART.x + 34, CART.y + 10);
+      else if (type === "pass" || type === "chat") {
+        var m = partnerFor(b); if (!m) return start(b, "cheer");
+        cancel(m); a.mate = m; m.act = { type: type + "mate", lead: b };
+        if (type === "pass") { var x0 = rnd(110, 400), y0 = pick([180, 236, 304, 372]); go(b, x0, y0); go(m, x0 + 140, y0); }
+        else { go(b, m.x - 38, m.y); m.tx = m.x; m.ty = m.y; }
+      }
+      else if (type === "walk") go(b, pick([60, 190, 320, 450, 580]) + rnd(-8, 8), rnd(176, 384));
+      else if (type === "cheer") { b.jump = 0.6; say(b, b.line || pick(["NICE!", "DON'T MIND!", "ONE MORE!", "LET'S GO!"]), 2.6); a.t = 2.6; a.ph = 1; }
+      else if (type === "dance") { a.t = 4; a.ph = 1; say(b, "♪ ♫ ♪", 4); }
+      b.act = a;
+    }
+    function update(b, dt) {
+      var a = b.act;
+      if (!a) {
+        b.wait -= dt;
+        if (b.wait <= 0) {
+          var r = Math.random();
+          start(b, r < 0.35 ? "walk" : r < 0.43 ? "sit" : r < 0.5 ? "nap" : r < 0.56 ? "read" : r < 0.63 ? "sweep" : r < 0.7 ? "write" :
+                   r < 0.78 ? "pass" : r < 0.85 ? "spike" : r < 0.9 ? "dance" : r < 0.95 ? "cheer" : "chat");
+          b.wait = rnd(0.5, 2.5);
+        }
+        return;
+      }
+      if (a.type === "passmate" || a.type === "chatmate") return;          // the lead runs the show
+      var arrived = at(b);
+      if (a.type === "walk") { if (arrived) b.act = null; return; }
+      if (a.type === "sit" || a.type === "nap" || a.type === "read") {
+        if (a.ph === 0 && arrived) { a.ph = 1; b.sit = 1; a.t = a.type === "sit" ? rnd(3, 6) : rnd(6, 10); if (a.type === "read") b.hold = "book"; }
+        if (a.ph === 1) { a.t -= dt; if (a.type === "nap" && Math.random() < dt * 1.2) fx.push({ k: "z", x: b.x + 10, y: b.y - 50, t: 0 }); if (a.t <= 0) { cancel(b); b.wait = rnd(0.5, 2); } }
+        return;
+      }
+      if (a.type === "sweep") {
+        if (a.ph === 0 && arrived) { a.ph = 1; a.t = 7; b.hold = "broom"; a.nx = 0; }
+        else if (a.ph === 1) {
+          a.t -= dt; a.nx -= dt;
+          if (a.nx <= 0) { a.nx = 1.3; go(b, rnd(40, 600), pick([180, 236, 304, 372]) + rnd(-6, 6)); }
+          if (b.moving && Math.random() < dt * 9) fx.push({ k: "dust", x: b.x + 18 * b.face, y: b.y, t: 0 });
+          if (a.t <= 0) { a.ph = 2; go(b, broom.x - 10, 172); }
+        } else if (a.ph === 2 && arrived) { b.hold = null; broom.holder = null; b.act = null; say(b, "All clean!", 1.5); }
+        return;
+      }
+      if (a.type === "write") {
+        if (a.ph === 0 && arrived) { a.ph = 1; a.t = 0; board.lines.push(""); if (board.lines.length > 4) board.lines.shift(); }
+        else if (a.ph === 1) {
+          a.t += dt;
+          if (a.t > 0.14 && a.n < a.word.length) { a.t = 0; a.n++; board.lines[board.lines.length - 1] = a.word.slice(0, a.n); }
+          if (a.n >= a.word.length && a.t > 1) { board.user = null; b.act = null; say(b, "Done!", 1.2); }
+        }
+        return;
+      }
+      if (a.type === "spike") {
+        if (a.ph === 0 && arrived) { a.ph = 1; a.t = 0.7; b.hold = "ball"; say(b, "TOSS!", 0.8); }
+        else if (a.ph === 1) { a.t -= dt; if (a.t <= 0) { a.ph = 2; a.t = 1.2; b.jump = 0.6; } }
+        else if (a.ph === 2) {
+          a.t -= dt;
+          if (b.hold && a.t < 0.95) {
+            b.hold = null; say(b, "SPIKE!!", 1.2);
+            flying.push({ x: b.x, y: b.y - 92, tx: rnd(200, 610), ty: rnd(180, 380), t: 0 });
+          }
+          if (a.t <= 0) b.act = null;
+        }
+        return;
+      }
+      if (a.type === "pass" || a.type === "chat") {
+        var m = a.mate;
+        if (!m || !m.act || m.act.lead !== b) { b.act = null; return; }
+        if (a.ph === 0 && arrived && at(m)) { a.ph = 1; a.t = a.type === "pass" ? 7 : 4.5; b.face = m.x > b.x ? 1 : -1; m.face = -b.face; a.hop = -1; }
+        if (a.ph === 1) {
+          a.t -= dt;
+          var hop = Math.floor(clock * 1.1);
+          if (hop !== a.hop) {
+            a.hop = hop;
+            var who = hop % 2 ? m : b;
+            if (a.type === "pass") say(who, pick(["BUMP!", "SET!", "NICE!", "MINE!"]), 0.8);
+            else say(who, pick(["...", "Did you see that?", "Ramen later?", "Practice was rough.", "Nationals!", "Hahaha!"]), 1.1);
+          }
+          if (a.t <= 0) { m.act = null; b.act = null; m.wait = rnd(0.5, 2); }
+        }
+        return;
+      }
+      if (a.type === "cheer" || a.type === "dance") {
+        a.t -= dt;
+        if (a.type === "dance") { if (Math.floor(clock * 4) !== a.f) { a.f = Math.floor(clock * 4); b.face *= -1; if (a.f % 2) b.jump = Math.max(b.jump, 0.3); } if (Math.random() < dt * 3) fx.push({ k: "note", x: b.x + rnd(-16, 16), y: b.y - 60, t: 0 }); }
+        if (a.t <= 0) b.act = null;
+      }
+    }
+    room = {
+      cv: cv, bots: bots, sel: null,
+      cmd: function (type) { if (room.sel) { start(room.sel, type); room.sel.wait = 2; } }
+    };
+
+    function desk(x, y) {
+      c.fillStyle = "#7a5230"; c.fillRect(x + 4, y + 14, 4, 16); c.fillRect(x + DW - 8, y + 14, 4, 16);
+      c.fillStyle = "#c79a62"; c.fillRect(x, y, DW, 16); c.fillStyle = "#e0b57a"; c.fillRect(x, y, DW, 4);
+      c.fillStyle = "#6b6f78"; c.fillRect(x + 6, y + 16, DW - 12, 6);
+    }
+    function vball(x, y, r) {
+      c.fillStyle = "#ffd21e"; c.beginPath(); c.arc(x, y, r, 0, 6.28); c.fill();
+      c.strokeStyle = "#1e4fd8"; c.lineWidth = Math.max(1, r / 3); c.beginPath(); c.arc(x, y, r * 0.75, -0.6, 1.2); c.stroke();
+    }
+    function bubble(x, y, t) {
+      c.font = '15px "VT323", monospace'; c.textAlign = "center"; c.textBaseline = "middle";
+      var w = c.measureText(t).width + 12;
+      c.fillStyle = "#ffffff"; c.fillRect(x - w / 2, y - 10, w, 18); c.fillRect(x - 3, y + 8, 6, 4);
+      c.strokeStyle = "#2b3445"; c.lineWidth = 1; c.strokeRect(x - w / 2 + 0.5, y - 9.5, w - 1, 17);
+      c.fillStyle = "#13293f"; c.fillText(t, x, y);
+    }
+    function scene() {
       c.fillStyle = "#efe6cf"; c.fillRect(0, 0, 640, 140);
       c.fillStyle = "#c8b994"; c.fillRect(0, 132, 640, 8);
-      c.fillStyle = "#6b4a2a"; c.fillRect(126, 14, 348, 98);
-      c.fillStyle = "#2f5d46"; c.fillRect(132, 20, 336, 86);
+      // whiteboard with student scribbles
+      c.fillStyle = "#9aa3ad"; c.fillRect(8, 22, 116, 92); c.fillStyle = "#ffffff"; c.fillRect(12, 26, 108, 80);
+      c.fillStyle = "#9aa3ad"; c.fillRect(14, 106, 104, 5); c.fillStyle = "#e0348a"; c.fillRect(30, 103, 12, 3); c.fillStyle = "#1e63ff"; c.fillRect(48, 103, 12, 3);
+      c.font = '15px "VT323", monospace'; c.textAlign = "left"; c.textBaseline = "middle";
+      board.lines.forEach(function (l, i) { c.fillStyle = ["#1e63ff", "#e0348a", "#0e9e45", "#13293f"][i % 4]; c.fillText(l, 16, 36 + i * 18, 100); });
+      // chalkboard
+      c.fillStyle = "#6b4a2a"; c.fillRect(140, 14, 320, 98); c.fillStyle = "#2f5d46"; c.fillRect(146, 20, 308, 86);
       c.fillStyle = "rgba(255,255,255,0.88)"; c.textAlign = "center";
-      c.font = '12px "Press Start 2P", monospace'; c.fillText("SHOWROOM", 300, 44);
+      c.font = '12px "Press Start 2P", monospace'; c.fillText("SHOWROOM", 300, 40);
       c.font = '18px "VT323", monospace';
-      c.fillText("COLLECTION " + Object.keys(G.owned).length + "/" + CARDS.length + "  •  FLEX " + flex(), 300, 68);
-      c.fillText("TODAY'S DUTY: " + (bots[0] ? bots[0].card.name : "nobody"), 300, 90);
-      c.fillStyle = "#ffffff"; c.fillRect(150, 106, 30, 4); c.fillStyle = "#ffd21e"; c.fillRect(186, 106, 12, 4);   // chalk
-      c.fillStyle = "#ffffff"; c.beginPath(); c.arc(70, 50, 22, 0, 6.28); c.fill(); c.strokeStyle = "#3a3a3a"; c.lineWidth = 3; c.stroke();
+      c.fillText("COLLECTION " + Object.keys(G.owned).length + "/" + CARDS.length + "  •  FLEX " + flex(), 300, 64);
+      c.fillText("ON DUTY: " + (bots[0] ? bots[0].card.name : "nobody"), 300, 86);
+      c.fillStyle = "#ffffff"; c.fillRect(160, 106, 30, 4); c.fillStyle = "#ffd21e"; c.fillRect(196, 106, 12, 4);
+      // clock
+      c.fillStyle = "#ffffff"; c.beginPath(); c.arc(494, 44, 20, 0, 6.28); c.fill(); c.strokeStyle = "#3a3a3a"; c.lineWidth = 3; c.stroke();
       var h = new Date(), ha = (h.getHours() % 12 + h.getMinutes() / 60) / 12 * 6.283, ma = h.getMinutes() / 60 * 6.283;
-      c.lineWidth = 3; c.beginPath(); c.moveTo(70, 50); c.lineTo(70 + Math.sin(ha) * 11, 50 - Math.cos(ha) * 11); c.stroke();
-      c.lineWidth = 2; c.beginPath(); c.moveTo(70, 50); c.lineTo(70 + Math.sin(ma) * 17, 50 - Math.cos(ma) * 17); c.stroke();
-      for (var w = 0; w < 2; w++) {
-        c.fillStyle = "#8a6a46"; c.fillRect(500 + w * 66, 16, 60, 100);
-        c.fillStyle = "#bfe3ff"; c.fillRect(504 + w * 66, 20, 24, 44); c.fillRect(532 + w * 66, 20, 24, 44); c.fillRect(504 + w * 66, 68, 24, 44); c.fillRect(532 + w * 66, 68, 24, 44);
-        c.fillStyle = "rgba(255,255,255,0.5)"; c.fillRect(506 + w * 66, 22, 6, 20);
-      }
+      c.beginPath(); c.moveTo(494, 44); c.lineTo(494 + Math.sin(ha) * 10, 44 - Math.cos(ha) * 10); c.stroke();
+      c.lineWidth = 2; c.beginPath(); c.moveTo(494, 44); c.lineTo(494 + Math.sin(ma) * 15, 44 - Math.cos(ma) * 15); c.stroke();
+      // window
+      c.fillStyle = "#8a6a46"; c.fillRect(530, 16, 100, 100);
+      c.fillStyle = "#bfe3ff"; c.fillRect(534, 20, 44, 44); c.fillRect(582, 20, 44, 44); c.fillRect(534, 68, 44, 44); c.fillRect(582, 68, 44, 44);
+      c.fillStyle = "rgba(255,255,255,0.5)"; c.fillRect(538, 24, 8, 20);
       // floor
       c.fillStyle = "#c9935a"; c.fillRect(0, 140, 640, 260);
       for (var y = 140; y < 400; y += 9) { c.fillStyle = "rgba(90,50,10,0.18)"; c.fillRect(0, y, 640, 1); for (var x = (y * 29) % 90; x < 640; x += 90) c.fillRect(x, y, 1, 9); }
-      // teacher's desk
+      // teacher's desk, plant, bin
       c.fillStyle = "#8a5a32"; c.fillRect(262, 146, 76, 22); c.fillStyle = "#a8743f"; c.fillRect(262, 146, 76, 5);
+      c.fillStyle = "#b5562a"; c.fillRect(604, 150, 22, 18); c.fillStyle = "#2f8a4a"; c.beginPath(); c.arc(615, 140, 14, 0, 6.28); c.fill(); c.fillStyle = "#3fae5e"; c.beginPath(); c.arc(608, 134, 8, 0, 6.28); c.fill();
+      c.fillStyle = "#6b7684"; c.fillRect(578, 152, 16, 18); c.fillStyle = "#56606d"; c.fillRect(576, 150, 20, 4);
+      // ball cart
+      c.fillStyle = "#8f9aa6"; c.fillRect(CART.x - 22, CART.y - 22, 44, 3); c.fillRect(CART.x - 22, CART.y - 22, 3, 26); c.fillRect(CART.x + 19, CART.y - 22, 3, 26); c.fillRect(CART.x - 22, CART.y + 2, 44, 3);
+      vball(CART.x - 10, CART.y - 12, 8); vball(CART.x + 8, CART.y - 10, 8); vball(CART.x - 1, CART.y - 22, 8);
+      c.fillStyle = "#3a3f4a"; c.fillRect(CART.x - 20, CART.y + 6, 4, 4); c.fillRect(CART.x + 16, CART.y + 6, 4, 4);
+      // broom resting against the wall
+      if (!broom.holder) {
+        c.strokeStyle = "#8a5a32"; c.lineWidth = 3; c.beginPath(); c.moveTo(broom.x, 100); c.lineTo(broom.x + 6, broom.y - 10); c.stroke();
+        c.fillStyle = "#d9b44a"; c.fillRect(broom.x - 2, broom.y - 12, 16, 12); c.fillStyle = "#b8922e"; for (var k = 0; k < 4; k++) c.fillRect(broom.x + k * 4, broom.y - 12, 1, 12);
+      }
+    }
+    function drawBot(b, dt) {
+      var hop = 0;
+      if (b.jump > 0) { b.jump -= dt; hop = Math.sin((0.6 - Math.max(0, b.jump)) / 0.6 * Math.PI) * 26; }
+      var walk = b.moving ? Math.abs(Math.sin(clock * 11)) * 3 : 0, sitDrop = b.sit ? 10 : 0;
+      var col = b.card.r === "M" ? "hsl(" + Math.floor(clock * 120) % 360 + ",100%,60%)" : RAR[b.card.r].col;
+      if (!b.sit) { c.globalAlpha = 0.4; c.fillStyle = col; c.beginPath(); c.ellipse(b.x, b.y + 2, 22, 7, 0, 0, 6.28); c.fill(); c.globalAlpha = 1; }
+      if (room.sel === b) { c.strokeStyle = "#ffffff"; c.lineWidth = 2; c.setLineDash([4, 3]); c.beginPath(); c.ellipse(b.x, b.y + 2, 27, 9, 0, 0, 6.28); c.stroke(); c.setLineDash([]); }
+      var top = b.y - hop - walk + sitDrop;
+      c.save(); c.translate(b.x, top); c.scale(b.face, 1); c.drawImage(b.spr, -21, -56, 42, 56); c.restore();
+      if (b.hold === "broom") {
+        var sw = Math.sin(clock * 9) * 7;
+        c.strokeStyle = "#8a5a32"; c.lineWidth = 3; c.beginPath(); c.moveTo(b.x + 12 * b.face, top - 30); c.lineTo(b.x + (24 * b.face) + sw, top + 2); c.stroke();
+        c.fillStyle = "#d9b44a"; c.fillRect(b.x + 24 * b.face + sw - 8, top - 2, 16, 8);
+      }
+      if (b.hold === "book") { c.fillStyle = "#e0348a"; c.fillRect(b.x - 10, top - 30, 20, 13); c.fillStyle = "#ffffff"; c.fillRect(b.x - 1, top - 30, 2, 13); }
+      if (b.hold === "ball") vball(b.x, top - 66 - Math.sin(clock * 6) * 4, 7);
+      if (b.card.r === "M" || b.card.r === "L") {
+        for (var k = 0; k < 3; k++) { var an = clock * 3.3 + k * 2.1; c.fillStyle = col; c.fillRect(b.x + Math.cos(an) * 24, top - 30 + Math.sin(an) * 26, 3, 3); }
+      }
+      if (!b.sit) {
+        c.font = '14px "VT323", monospace'; c.textAlign = "center"; c.textBaseline = "alphabetic"; c.fillStyle = "rgba(10,14,22,0.7)";
+        var w = c.measureText(b.card.name).width + 8; c.fillRect(b.x - w / 2, b.y + 6, w, 14);
+        c.fillStyle = col; c.fillText(b.card.name, b.x, b.y + 17);
+      }
     }
     function frame(now) {
       if (!document.body.contains(cv)) { room = null; return; }
-      var dt = Math.min(0.05, (now - last) / 1000); last = now;
-      room0(now);
+      var dt = Math.min(0.05, (now - last) / 1000); last = now; clock += dt;
       bots.forEach(function (b) {
-        b.wait -= dt;
-        var d0 = Math.hypot(b.tx - b.x, b.ty - b.y);
-        if (b.sit > 0) { b.sit -= dt; if (b.sit <= 0) { b.seat.taken = null; b.seat = null; b.ty += 22; } return; }
-        if (b.wait <= 0 && d0 < 2) {
-          if (b.seat) { b.sit = rnd(3, 7); return; }
-          var r = Math.random(), free = seats.filter(function (s) { return !s.taken; });
-          if (r < 0.35 && free.length) { b.seat = pick(free); b.seat.taken = b; b.tx = b.seat.x; b.ty = b.seat.y; }
-          else if (r < 0.5) { b.jump = 0.6; b.wait = rnd(0.8, 2); }
-          else { b.tx = pick([60, 190, 320, 450, 580, 600]) + rnd(-8, 8); b.ty = rnd(176, 384); b.wait = rnd(0.4, 2); }
-        }
+        update(b, dt);
         var dx = b.tx - b.x, dy = b.ty - b.y, d = Math.hypot(dx, dy);
-        if (d > 1 && b.wait <= 0) { var sp = 55 * dt; b.x += dx / d * Math.min(sp, d); b.y += dy / d * Math.min(sp, d); b.face = dx < 0 ? -1 : 1; b.moving = true; }
+        if (d > 1 && !b.sit) { var sp = (b.hold === "broom" ? 38 : 60) * dt; b.x += dx / d * Math.min(sp, d); b.y += dy / d * Math.min(sp, d); if (Math.abs(dx) > 1) b.face = dx < 0 ? -1 : 1; b.moving = true; }
         else b.moving = false;
       });
-      // depth-sorted desks and students
+      scene();
       var items = [];
       DESK_Y.forEach(function (y) { DESK_X.forEach(function (x) { items.push({ y: y + 2, desk: [x, y] }); }); });
       bots.forEach(function (b) { items.push({ y: b.y, bot: b }); });
-      items.sort(function (a, b) { return a.y - b.y; }).forEach(function (it) {
-        if (it.desk) return desk(it.desk[0], it.desk[1]);
-        var b = it.bot, hop = 0;
-        if (b.jump > 0) { b.jump -= dt; hop = Math.sin((0.6 - b.jump) / 0.6 * Math.PI) * 26; }
-        var walk = b.moving ? Math.abs(Math.sin(now / 90)) * 3 : 0, sitDrop = b.sit > 0 ? 10 : 0;
-        var col = b.card.r === "M" ? "hsl(" + Math.floor(now / 8) % 360 + ",100%,60%)" : RAR[b.card.r].col;
-        if (!b.sit) { c.globalAlpha = 0.4; c.fillStyle = col; c.beginPath(); c.ellipse(b.x, b.y + 2, 22, 7, 0, 0, 6.28); c.fill(); c.globalAlpha = 1; }
-        c.save(); c.translate(b.x, b.y - hop - walk + sitDrop); c.scale(b.face, 1); c.drawImage(b.spr, -21, -56, 42, 56); c.restore();
-        if (b.card.r === "M" || b.card.r === "L") {
-          for (var k = 0; k < 3; k++) { var a = now / 300 + k * 2.1; c.fillStyle = col; c.fillRect(b.x + Math.cos(a) * 24, b.y - 30 - hop + Math.sin(a) * 26, 3, 3); }
+      items.sort(function (p, q) { return p.y - q.y; }).forEach(function (it) { if (it.desk) desk(it.desk[0], it.desk[1]); else drawBot(it.bot, dt); });
+      // passing drills: the ball arcs between partners
+      bots.forEach(function (b) {
+        var a = b.act;
+        if (a && a.type === "pass" && a.ph === 1 && a.mate) {
+          var u = (clock * 1.1) % 1, fwd = Math.floor(clock * 1.1) % 2 === 0, p = fwd ? b : a.mate, q = fwd ? a.mate : b;
+          vball(p.x + (q.x - p.x) * u, p.y - 40 + (q.y - p.y) * u - Math.sin(u * Math.PI) * 70, 6);
         }
-        if (!b.sit) {
-          c.font = '14px "VT323", monospace'; c.textAlign = "center"; c.fillStyle = "rgba(10,14,22,0.7)";
-          var w = c.measureText(b.card.name).width + 8; c.fillRect(b.x - w / 2, b.y + 6, w, 14);
-          c.fillStyle = col; c.fillText(b.card.name, b.x, b.y + 17);
-        }
+      });
+      // spiked balls fly, bounce and roll back to the cart
+      flying = flying.filter(function (f) {
+        f.t += dt;
+        var x, y;
+        if (f.t < 0.3) { var u = f.t / 0.3; x = f.x + (f.tx - f.x) * u; y = f.y + (f.ty - f.y) * u; }
+        else if (f.t < 0.9) { var v = (f.t - 0.3) / 0.6; x = f.tx + v * 30; y = f.ty - Math.sin(v * Math.PI) * 40; if (f.t < 0.34) fx.push({ k: "pow", x: f.tx, y: f.ty, t: 0 }); }
+        else { var w2 = Math.min(1, (f.t - 0.9) / 2.2); x = f.tx + 30 + (CART.x - f.tx - 30) * w2; y = f.ty + (CART.y - f.ty) * w2; }
+        vball(x, y, 6);
+        return f.t < 3.1;
+      });
+      // little effects: dust, zzz, notes, impact
+      fx = fx.filter(function (e) {
+        e.t += dt;
+        c.textAlign = "center";
+        if (e.k === "dust") { c.fillStyle = "rgba(160,140,110," + (0.6 - e.t) + ")"; c.beginPath(); c.arc(e.x, e.y - e.t * 10, 3 + e.t * 8, 0, 6.28); c.fill(); return e.t < 0.6; }
+        if (e.k === "z") { c.fillStyle = "rgba(60,80,140," + (1 - e.t / 2) + ")"; c.font = '14px "Press Start 2P", monospace'; c.fillText("z", e.x + e.t * 8, e.y - e.t * 22); return e.t < 2; }
+        if (e.k === "note") { c.fillStyle = "rgba(224,52,138," + (1 - e.t / 1.5) + ")"; c.font = '18px "VT323", monospace'; c.fillText("♪", e.x, e.y - e.t * 26); return e.t < 1.5; }
+        if (e.k === "pow") { c.strokeStyle = "rgba(255,210,30," + (1 - e.t * 3) + ")"; c.lineWidth = 3; c.beginPath(); c.arc(e.x, e.y, 6 + e.t * 50, 0, 6.28); c.stroke(); return e.t < 0.33; }
+        return false;
+      });
+      bots.forEach(function (b) {
+        if (b.bubble && clock < b.bubble.until) bubble(b.x, b.y - (b.sit ? 56 : 74) - (b.jump > 0 ? 20 : 0), b.bubble.text);
+        if (b.act && b.act.type === "nap" && b.act.ph === 1 && !b.bubble) { /* zzz handled by effects */ }
       });
       requestAnimationFrame(frame);
     }
@@ -315,7 +496,11 @@
     cv.onclick = function (e) {
       var r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * 640 / r.width, y = (e.clientY - r.top) * 400 / r.height;
       var hit = bots.find(function (b) { return Math.abs(b.x - x) < 24 && y > b.y - 60 && y < b.y + 18; });
-      if (hit && !hit.sit) { hit.jump = 0.6; hit.wait = 1; }
+      room.sel = hit || null;
+      var lab = $("roomSel");
+      if (lab) lab.textContent = hit ? "SELECTED: " + hit.card.name + " — pick an action" : "Tap a student in the classroom, then pick an action.";
+      document.querySelectorAll("[data-g=act]").forEach(function (btn) { btn.disabled = !hit; });
+      if (hit) { hit.jump = 0.5; say(hit, "Hm?", 0.8); }
     };
   }
   function flex() {
@@ -343,7 +528,9 @@
       var owned = CARDS.filter(function (c) { return G.owned[c.id] && (filter === "ALL" || c.r === filter); })
         .sort(function (a, b) { return ORDER.indexOf(a.r) - ORDER.indexOf(b.r) || a.name.localeCompare(b.name); });
       body = "<canvas id='roomCv' class='room' width='640' height='400'></canvas>" +
-        "<p class='center muted'>Up to " + MAX_ROAM + " cards hang out in the classroom (" + G.roam.length + "/" + MAX_ROAM + "). Tap a card below to send it out or back to storage.</p>" +
+        "<p class='center' id='roomSel'>Tap a student in the classroom, then pick an action.</p>" +
+        "<div class='focus center-row'>" + ACTIONS.map(function (a) { return "<button class='btn' data-g='act' data-v='" + a[0] + "' disabled>" + a[1] + "</button>"; }).join("") + "</div>" +
+        "<p class='center muted'>Up to " + MAX_ROAM + " cards hang out in the classroom (" + G.roam.length + "/" + MAX_ROAM + "); they also pick things to do on their own. Tap a card below to send it in or back to storage.</p>" +
         "<div class='focus center-row'>" + ["ALL"].concat(ORDER).map(function (r) { return "<button class='btn" + (filter === r ? " on" : "") + "' data-g='filter' data-v='" + r + "'>" + (RAR[r] ? RAR[r].name : "ALL") + "</button>"; }).join("") + "</div>" +
         "<div class='gstore'>" + (owned.length ? owned.map(function (c) {
           var on = G.roam.indexOf(c.id) >= 0;
@@ -362,6 +549,7 @@
     if (k === "tab") { tab = v; return render(); }
     if (k === "filter") { filter = v; return render(); }
     if (k === "pull") return doPull(+v);
+    if (k === "act") { if (room) room.cmd(v); return; }
     if (k === "roam") {
       var i = G.roam.indexOf(v);
       if (i >= 0) G.roam.splice(i, 1);

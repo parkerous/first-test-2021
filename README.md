@@ -54,8 +54,11 @@ build step, no server.
   Epic+ every 10 pulls, Legendary by 60, Mythic by 1000. Duplicates level a card
   (C1-C6).
 - Spike reveal animation (the trail colour shows the rarity) — skippable.
-- Showroom: a classroom where up to 8 cards wander, sit at desks and hop; the
-  rest wait in storage.
+- Showroom: a classroom (chalkboard, whiteboard, ball cart, broom, clock,
+  plant) where up to 8 cards live; the rest wait in storage. They pick things
+  to do on their own — pass a ball, spike from the cart, sweep, write on the
+  whiteboard, read, nap, dance, chat, say their catchphrase — or tap one and
+  choose an action.
 
 ### 🏅 Award ceremonies
 - Tournaments and club seasons end with a podium (gold, silver, bronze teams),
@@ -91,7 +94,11 @@ build step, no server.
   3 sets (story-mode semis and finals too).
 - Floors: VNL yellow & blue, orange Taraflex, wooden school gym or team-colour
   arena (COURT FLOOR button on the menu; AUTO picks by competition). Fans hold
-  banners and jerseys have trims, sashes, stripes or panels.
+  banners behind a thick barrier rail, and jerseys have trims, sashes, stripes
+  or panels.
+- Home crowd chants when the home team serves (team name, NICE SERVE / NAISSA,
+  the server's name, ACE ACE ACE, LET'S GO, team slogans like FLY, and ONE MORE
+  POINT on set point).
 - Setter menu: up to four plain options (QUICK / OUTSIDE / RIGHT SIDE / BACK
   ROW → hitter) with the setter's 👍 pick; MORE CALLS opens the full playbook.
 - Every team has a playstyle (FAST TEMPO, POWER ATTACK, IRON WALL, ACE-CENTRIC,
