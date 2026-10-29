@@ -135,6 +135,15 @@ build step, no server.
   textured crop, curls, afro, slicked back, bun, wavy, braids, classic, bald)
   plus stubble/beards for everyday players; anime hair stays with the famous
   faces (and Bokuto's OWL is in the look editor).
+- No rubber-banding: team class matters (a strong team beats a weak one more
+  often and more clearly) and scoring runs build MOMENTUM until a TIMEOUT.
+- Drama banners: SET POINT / MATCH POINT / DEUCE, 3-0 RUNS and ON FIRE streaks,
+  TIMEOUTS with coach talk, COMEBACKS, WHAT A RALLY! (3+ digs, standing ovation)
+  and VIDEO CHALLENGES on balls near the line (sometimes overturned).
+- 🎤 Press: big matches start with a press conference and good/bad/big games end
+  with an interview (story mode and player career). Answer HUMBLE, CONFIDENT,
+  FIERY or TEAM FIRST — each changes confidence, coach trust, manager rating,
+  fame or friendships, and fiery talk raises the stakes of the next result.
 - Every team has a playstyle (FAST TEMPO, POWER ATTACK, IRON WALL, ACE-CENTRIC,
   DEFENSIVE GRIND, SERVE & PRESSURE, CREATIVE, BALANCED) that shapes its set
   choices, tips, serves, blocking and defence.

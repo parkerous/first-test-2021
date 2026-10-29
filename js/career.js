@@ -292,6 +292,11 @@
                     [{ label: "CONTINUE", value: 1 }]);
       return homeSide === 0 ? [s.a, s.b] : [s.b, s.a];
     }
+    var pre = null;
+    if (VB.Media && /PLAYOFF/.test(label)) {
+      pre = await VB.Media.pre({ who: you().name, team: club(mineId).short, foe: foe.name, label: label, final: /FINAL/.test(label) && !/SEMI/.test(label) });
+      await VB.Media.reaction(pre, null, careerTone(pre.tone, true));
+    }
     U.showView("match");
     $("recordLine").textContent = "SEASON " + C.season + " • " + club().short + " " + C.leagues[club().league].table[mineId].w + "W-" + C.leagues[club().league].table[mineId].l + "L";
     var res = await VB.Engine.playMatch({ mine: mine, foe: foe, homeSide: homeSide, mode: "role", myRole: myKey,
@@ -318,7 +323,21 @@
       (flowed ? "<p class='center'>🔵🔥 You hit the FLOW STATE this match.</p>" : "") +
       "<p class='center'>+" + xpGot + " XP" + (lvUp ? " • <b class='gain'>LEVEL UP! +" + lvUp + " SKILL POINT</b>" : "") + " • MANAGER RATING " + Math.round(C.mgr) + "</p>",
       [{ label: "CONTINUE", value: 1 }]);
+    if (pre && pre.tone === "fiery") { C.interest += res.won ? 0.04 : -0.02; C.mgr = clamp(C.mgr + (res.won ? 2 : -4), 0, 100); }
+    var champ = /PLAYOFF FINAL/.test(label) && res.won;
+    if (VB.Media && (champ || /PLAYOFF/.test(label) || rating >= 8 || rating <= 5 || Math.random() < 0.35)) {
+      var post = await VB.Media.post({ who: you().name, team: club(mineId).short, foe: foe.name, won: res.won, score: res.score, rating: rating, champion: champ });
+      news("📰 " + post.outlet + " — " + you().name + ": \"" + post.quote + "\"", "you");
+      await VB.Media.reaction(post, null, careerTone(post.tone, res.won));
+    }
     return homeSide === 0 ? [res.score[0], res.score[1]] : [res.score[1], res.score[0]];
+  }
+  // interview answers → manager rating, fame and dressing-room mood
+  function careerTone(tone, won) {
+    if (tone === "humble") { C.mgr = clamp(C.mgr + 2, 0, 100); return "+2 MANAGER RATING"; }
+    if (tone === "confident") { C.interest += 0.03; if (won) C.form = clamp(C.form + 0.2, -3, 3); return "+FAME" + (won ? " • +FORM" : ""); }
+    if (tone === "fiery") { C.interest += 0.06; C.mgr = clamp(C.mgr - (won ? 3 : 6), 0, 100); return "++FAME • -" + (won ? 3 : 6) + " MANAGER RATING"; }
+    C.mgr = clamp(C.mgr + 2, 0, 100); C.form = clamp(C.form + 0.1, -3, 3); return "+2 MANAGER RATING • THE DRESSING ROOM APPRECIATES IT";
   }
 
   async function playFixture(L, h, a, label) {

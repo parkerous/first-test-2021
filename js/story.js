@@ -275,6 +275,13 @@
       if (bet) await rivalAfter(bet, won, false);
       return won;
     }
+    // big matches and rival matches come with a press conference
+    var pre = null;
+    if (VB.Media && (bet || o.bestOf > 1 || /NATIONALS/.test(o.label))) {
+      pre = await VB.Media.pre({ who: you().name, team: school().name, foe: foe.name, label: o.label, final: o.bestOf > 1, rival: bet ? S.rival.name : null });
+      var fx0 = storyTone(pre.tone);
+      await VB.Media.reaction(pre, null, fx0);
+    }
     U.showView("match");
     $("recordLine").textContent = yearTxt(S.year) + " • " + school().name + " • " + o.label;
     var res = await VB.Engine.playMatch({ mine: mine, foe: foe, homeSide: o.away ? 1 : 0, mode: "role", myRole: key, label: o.label + (o.bestOf > 1 ? " • BEST OF 3" : ""), league: o.league || "HARUKO",
@@ -302,6 +309,14 @@
       "<p class='center muted'>COACH TRUST " + Math.round(S.trust) + " • CONFIDENCE " + Math.round(S.conf) + "</p>",
       [{ label: "CONTINUE", value: 1 }]);
     if (bet) await rivalAfter(bet, res.won, true, rating);
+    if (pre && pre.tone === "fiery") { addConf(res.won ? 3 : -4); log(res.won ? "You backed up your big words." : "Your pre-match talk comes back to bite you.", "you"); }
+    var champ = o.titleMatch && res.won;
+    if (VB.Media && (champ || bet || o.bestOf > 1 || rating >= 7.8 || rating <= 5.2 || Math.random() < 0.3)) {
+      var post = await VB.Media.post({ who: you().name, team: school().name, foe: foe.name, won: res.won, score: res.score, rating: rating, rival: bet ? S.rival.name : null, champion: champ });
+      var fx1 = storyTone(post.tone, res.won);
+      log("📰 " + post.outlet + ": \"" + post.quote + "\"", "story");
+      await VB.Media.reaction(post, null, fx1);
+    }
     return res.won;
   }
   function checkSkill() {
@@ -442,7 +457,7 @@
         else {
           if (!S.bracket) { S.bracket = nationalsField(5); S.step = 0; }
           var nf = S.bracket[S.step], nn = N_NAMES[S.step];
-          var nw = await playStory(nf, { label: "SPRING NATIONALS " + nn, league: "SPRING NATIONALS", bestOf: S.step >= 3 ? 3 : 1, floor: "rubber" });
+          var nw = await playStory(nf, { label: "SPRING NATIONALS " + nn, league: "SPRING NATIONALS", bestOf: S.step >= 3 ? 3 : 1, floor: "rubber", titleMatch: S.step === 4 });
           if (!nw) { S.spring = "Spring Nationals: out in the " + nn + " vs " + team(nf).name; log(S.spring + ".", "result"); S.bracket = null; nextPhase(); }
           else if (S.step === 4) {
             S.spring = "SPRING NATIONALS CHAMPIONS"; S.trophies.push("Y" + S.year + " SPRING NATIONALS CHAMPIONS");
@@ -460,6 +475,16 @@
   function nextPhase() {
     if (PH[S.phase] === "ih") S.pendingEval = "MID-YEAR";
     S.phase++; S.step = 0; save(); render();
+  }
+
+  // interview answers → consequences (returns the text shown under the quote)
+  function storyTone(tone, won) {
+    var mates = S.squad.filter(function (id) { return id !== "you"; });
+    if (tone === "humble") { S.trust = clamp(S.trust + 2, 0, 100); return "+2 COACH TRUST"; }
+    if (tone === "confident") { addConf(3); return "+3 CONFIDENCE"; }
+    if (tone === "fiery") { addConf(4); S.trust = clamp(S.trust - 3, 0, 100); return "+4 CONFIDENCE • -3 COACH TRUST (" + coach() + " wants less talk)"; }
+    var m = pick(mates); S.bond[m] = Math.min(5, (S.bond[m] || 0) + 1); S.trust = clamp(S.trust + 1, 0, 100); addConf(1);
+    return P(m).name + " BOND +1 • +1 TRUST • +1 CONFIDENCE";
   }
 
   // ================== CONFIDENCE ==================

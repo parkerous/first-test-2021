@@ -80,6 +80,62 @@
   function fast() { timeScale = 1; }
   function other(s) { return s === me ? opp : me; }
   function pointTo(s) { return s === me ? 0 : 1; }
+  // ---- drama: class gaps, momentum runs, timeouts, set/match point, comebacks, epic rallies, challenges ----
+  var pow = [80, 80], mom = [0, 0], run = { side: -1, n: 0 }, tos = [2, 2], trail = [0, 0], comeback = [false, false], rallyDigs = 0, drama = null;
+  function edge(s) { return (pow[s.side] - pow[1 - s.side]) / 100; }        // the better team simply wins more of the duels
+  function resetDrama() { mom = [0, 0]; run = { side: -1, n: 0 }; tos = [2, 2]; trail = [0, 0]; comeback = [false, false]; rallyDigs = 0; }
+  function banner(text, sub, col, secs) { drama = { text: text, sub: sub || "", col: col || "#ffd21e", at: performance.now(), dur: (secs || 1.6) * 1000 }; }
+  function drawDrama(now) {
+    if (!drama) return;
+    var t = (now - drama.at) / drama.dur;
+    if (t > 1) { drama = null; return; }
+    var a = Math.min(1, t * 6, (1 - t) * 5), sc = t < 0.12 ? 0.6 + t / 0.12 * 0.45 : 1.05 - Math.min(0.05, (t - 0.12) * 0.2);
+    g.save(); g.globalAlpha = a;
+    g.fillStyle = "rgba(5,10,30,0.72)"; g.fillRect(0, 392, CW, drama.sub ? 96 : 70);
+    g.fillStyle = drama.col; g.fillRect(0, 392, CW, 4); g.fillRect(0, (drama.sub ? 484 : 458), CW, 4);
+    g.translate(CW / 2, 428); g.scale(sc, sc);
+    g.font = '26px "Press Start 2P", monospace'; g.textAlign = "center"; g.textBaseline = "middle";
+    g.lineWidth = 7; g.strokeStyle = "#05070b"; g.strokeText(drama.text, 0, 0, CW - 30);
+    g.fillStyle = drama.col; g.fillText(drama.text, 0, 0, CW - 30);
+    if (drama.sub) { g.font = '22px "VT323", monospace'; g.fillStyle = "#ffffff"; g.fillText(drama.sub, 0, 36, CW - 40); }
+    g.restore();
+  }
+  var TIMEOUT_TALK = ["Breathe. One point at a time.", "Serve tough and trust the block!", "They're reading our sets — mix it up!",
+                      "Talk to each other out there!", "Forget the score. Win the next rally.", "Their hitter loves the line — take it away!"];
+  function teamOf(i) { return i === 0 ? me : opp; }
+  function preRally() {
+    rallyDigs = 0;
+    var to = (cfg && cfg.setsTo) || 15, hi = Math.max(score[0], score[1]), lead = score[0] > score[1] ? 0 : score[1] > score[0] ? 1 : -1;
+    if (lead >= 0 && score[lead] >= to - 1) {
+      var mp = setsWon[lead] + 1 >= setNeed, side = teamOf(lead);
+      banner(mp ? "MATCH POINT" : "SET POINT", side.team.name + " " + score[lead] + "-" + score[1 - lead], mp ? "#ff4d6d" : "#ffd21e", 1.3);
+      if (mp) feed(lead, "🔥 MATCH POINT " + side.team.name + "!", true);
+      cheer();
+    } else if (lead < 0 && hi >= to - 1) { banner("DEUCE!", score[0] + "-" + score[1] + " — win by two", "#7fd8ff", 1.2); }
+  }
+  async function postRally(winner) {
+    var loser = 1 - winner, W0 = teamOf(winner), L0 = teamOf(loser);
+    if (run.side === winner) run.n++; else run = { side: winner, n: 1 };
+    mom[winner] = Math.min(0.05, (run.n - 1) * 0.015); mom[loser] = 0;
+    trail[loser] = Math.max(trail[loser], score[winner] - score[loser]);
+    if (rallyDigs >= 3) { banner("WHAT A RALLY!", rallyDigs + " digs — the crowd is on its feet", "#3dff7a", 1.8); feed(-1, "👏 Standing ovation after a " + rallyDigs + "-dig rally!", true); cheer(); await sleep(500); }
+    else if (score[winner] > score[loser] && trail[winner] >= 4 && !comeback[winner]) {
+      comeback[winner] = true; banner("COMEBACK!", W0.team.name + " were down " + trail[winner] + " — now they lead", "#3dff7a", 1.8);
+      feed(winner, "🔄 COMEBACK! " + W0.team.name + " take the lead after trailing by " + trail[winner] + "!", true); cheer();
+    } else if (run.n === 3 || run.n === 5 || run.n === 7) {
+      banner(run.n >= 5 ? "ON FIRE!" : run.n + "-0 RUN!", W0.team.name + (run.n >= 5 ? " — " + run.n + " straight points" : " have the momentum"), "#ff9a3a", 1.2);
+    }
+    var to = (cfg && cfg.setsTo) || 15;
+    if (run.n >= 4 && tos[loser] > 0 && Math.max(score[0], score[1]) < to) {
+      tos[loser]--;
+      await sleep(400);
+      banner("TIMEOUT", L0.team.name + " — " + tos[loser] + " left", "#ffffff", 1.6);
+      feed(loser, "⏸ TIMEOUT " + L0.team.name + ". Coach: \"" + pick(TIMEOUT_TALK) + "\"", true);
+      await sleep(1700);
+      mom = [0, 0]; run = { side: -1, n: 0 };
+    }
+  }
+  function nearLine(pt) { return Math.min(Math.abs(pt.x - CL), Math.abs(pt.x - CR), Math.abs(pt.y - CB), Math.abs(pt.y - CT)) < 24; }
   function cheer() { cheerAt = performance.now(); }
   // home-crowd chants when the home team serves
   var chant = null, homeIdx = 0;
@@ -793,6 +849,7 @@
     g.drawImage(crowdFrames[frame], 0, 0);
     drawJumbotron();
     drawChant(now);
+    drawDrama(now);
 
     g.save(); g.translate(OX, OY);
     // net, posts, antennas, officials
@@ -1233,6 +1290,7 @@
       feed(0, me.roster[myRole].name + " (YOU) sits this rotation out — " + (myRole === "L" ? "your middle is serving." : "the libero is in for you."));
     }
     if (serving === homeIdx && Math.random() < 0.8) startChant(srvSide);
+    preRally();
     await sleep(700);
     var winner = await serve(srvSide);
     if (winner !== serving) (winner === 0 ? me : opp).rot = ((winner === 0 ? me : opp).rot + 1) % 6;
@@ -1241,6 +1299,7 @@
     tickCooldowns();
     updateStreaks(winner);
     updateHud();
+    await postRally(winner);
     await sleep(800);
   }
 
@@ -1310,6 +1369,7 @@
       sp.errP = Math.max(0.02, sp.errP + (tossMod < 0.35 ? 0.1 : tossMod >= 1 ? -0.02 : 0));
     }
     if (!(srv === me && iControl(sr))) { sp.power = clamp01(sp.power + sty(srv).serveRisk); sp.errP = Math.max(0.02, sp.errP + sty(srv).serveRisk * 0.6); }
+    sp.errP += Math.max(0, -edge(srv)) * 0.12;                      // weaker sides miss more serves under pressure
     target = clampHalf(rcv, { x: target.x + rnd(-1, 1) * sp.wobble * 90, y: target.y + rnd(-1, 1) * sp.wobble * 60 });
     var jumpFloat = kind === "float" && Math.random() < 0.4 + (Sv.srv - 70) / 100;
     if (!superServe) feed(srv.side, Sv.name + (kind === "spin" ? " rips a jump topspin!" : jumpFloat ? " jump-floats one — it's dancing..." : " floats one over..."));
@@ -1354,8 +1414,8 @@
 
     var useRec = ready(RP, "rec") && (rcv !== me || iControl(rcvRole) || Math.random() < 0.7);
     if (useRec) useSkill(rcv, RP);
-    var rq = rcv === me ? clamp01(timing * 0.72 + RP.rec / 320 - sp.power * 0.28 + rnd(-0.04, 0.06))
-                        : clamp01(RP.rec / 110 - sp.power * 0.45 + rnd(-0.12, 0.18));
+    var rq = rcv === me ? clamp01(timing * 0.72 + RP.rec / 320 - sp.power * 0.28 + rnd(-0.04, 0.06) + edge(rcv) * 0.4 + mom[rcv.side])
+                        : clamp01(RP.rec / 110 - sp.power * 0.45 + rnd(-0.12, 0.18) + edge(rcv) * 0.8 + mom[rcv.side]);
     if (useRec) rq = clamp01(rq + 0.15);
     var shank = Math.random() < (useRec ? SHANK_P / 2 : SHANK_P) * techShank(RP);
     var grade = shank ? -1 : passGrade(rq);
@@ -1931,7 +1991,19 @@
     } else timing = autoTiming(D.def);
     await flight;
 
-    function killed(text, txtMsg) {
+    async function killed(text, txtMsg) {
+      if (!o.soft && nearLine(to) && Math.random() < 0.4) {
+        banner("VIDEO CHALLENGE", def.team.name + " say it was out...", "#7fd8ff", 1.5);
+        feed(def.side, "📺 " + def.team.name + " challenge the call — it was right on the line...", true);
+        await sleep(1500);
+        if (Math.random() < 0.35) {
+          banner("OUT!", "Call overturned — point " + def.team.name, "#ff4d6d", 1.5);
+          o.A.st.ae++; feed(def.side, "...OUT by a fingernail! The call is overturned!", true); cheer();
+          return credit(def);
+        }
+        banner("IN!", "The call stands — point " + atk.team.name, "#3dff7a", 1.3);
+        feed(atk.side, "...IN! The line was touched. Point stands.");
+      }
       o.A.st.k++; assist(atk, o.setterRole, o.hitterRole);
       msg(txtMsg); cheer();
       popup(txtMsg.replace(/!+$/, "!"), to, "#ffd21e");
@@ -1954,6 +2026,7 @@
                          (o.readWrong ? 0.08 * o.st.tempo : 0) + (o.seam ? 0.08 : 0) + (diving ? 0.08 : 0));
     if (superDig) killP -= 0.12;
     killP -= sty(def).defense;
+    killP += edge(atk) * 0.9 + mom[atk.side];                     // class and momentum
     if (controlled) killP *= (1.45 - timing * 0.9);
     if (Math.random() < clamp01(killP)) {
       if (!o.soft && o.type !== "tip") await bounce(from, to);
@@ -1971,14 +2044,14 @@
       msg("SHANKED!"); feed(def.side, D.name + " shanks it " + how);
       return credit(atk, o.hitterRole);
     }
-    var dq = clamp01(timing * 0.72 + D.def / 320 - 0.12 + sty(def).defense + (superDig ? 0.15 : 0) + (o.soft ? 0.2 : 0) + (o.type === "tip" ? 0.15 : 0) - (diving ? 0.1 : 0));
+    var dq = clamp01(timing * 0.72 + D.def / 320 - 0.12 + edge(def) * 0.5 + mom[def.side] * 0.5 + sty(def).defense + (superDig ? 0.15 : 0) + (o.soft ? 0.2 : 0) + (o.type === "tip" ? 0.15 : 0) - (diving ? 0.1 : 0));
     var dg = passGrade(dq);
     if (dg < 0) {
       o.A.st.k++; assist(atk, o.setterRole, o.hitterRole);
       msg("NO CONTROL!"); feed(def.side, D.name + " gets a hand on it but can't control it.");
       return credit(atk, o.hitterRole);
     }
-    D.st.dig++;
+    D.st.dig++; rallyDigs++;
     var digTxt = diving ? pick(["DOLPHIN DIVE SAVE", "PANCAKE SAVE", "FULL-STRETCH DIVE"]) + " by " + D.name + "!" :
                  D.name + " digs " + (o.soft ? "the touch" : o.type === "tip" ? "the tip" : shotName(o.st.x, to)) + "!";
     if (diving) msg(digTxt.split(" by")[0] + "!");
@@ -2131,9 +2204,10 @@
     updateHud();
     var to = c.setsTo || 15;
     setNeed = Math.ceil((c.bestOf || 1) / 2); setsWon = [0, 0]; setLog = [];
+    pow = [c.mine.ovr, c.foe.ovr]; resetDrama(); drama = null;
     if (setNeed > 1) feed(-1, "BEST OF " + (setNeed * 2 - 1) + " SETS — first to " + setNeed + ".");
     while (setsWon[0] < setNeed && setsWon[1] < setNeed) {
-      if (setLog.length) { score = [0, 0]; updateHud(); feed(-1, "— SET " + (setLog.length + 1) + " —"); msg("SET " + (setLog.length + 1) + " — SWITCH ON!"); await sleep(900); }
+      if (setLog.length) { score = [0, 0]; resetDrama(); updateHud(); feed(-1, "— SET " + (setLog.length + 1) + " —"); msg("SET " + (setLog.length + 1) + " — SWITCH ON!"); await sleep(900); }
       while (!(Math.max(score[0], score[1]) >= to && Math.abs(score[0] - score[1]) >= 2)) await rally();
       var sw = score[0] > score[1] ? 0 : 1;
       setsWon[sw]++; setLog.push(score.slice());
