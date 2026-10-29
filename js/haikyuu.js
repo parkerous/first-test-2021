@@ -81,5 +81,5 @@
     { id: "UBU", name: "UBUGAWA", flag: "🏔️", ovr: 76, kit: "#3aa0a0", kit2: "#ffffff", players: {}, stars: {} }
   ];
   // high schoolers run shorter than pros
-  VB.HQ_TEAMS.forEach(function (t) { t.nat = "JPN"; t.ages = [16, 18]; t.short = t.name; t.heightAdj = -9; t.ovr = VB.scaleOvr(t.ovr) - 4; });
+  VB.HQ_TEAMS.forEach(function (t) { t.nat = "JPN"; t.ages = [16, 18]; t.short = t.name; t.heightAdj = -9; t.ovr = VB.scaleHS(t.ovr); });
 })(window.VB);

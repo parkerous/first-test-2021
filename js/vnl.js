@@ -4,7 +4,7 @@
   "use strict";
   var U = VB.ui, $ = U.$, clamp = VB.clamp;
 
-  function stars(ovr) { var n = clamp(Math.round((ovr - 58) / 6), 1, 5); return "★★★★★".slice(0, n) + "☆☆☆☆☆".slice(0, 5 - n); }
+  function stars(ovr) { var n = clamp(Math.round((ovr - 64) / 4.6), 1, 5); return "★★★★★".slice(0, n) + "☆☆☆☆☆".slice(0, 5 - n); }
   var KO_NAMES = { 4: "QUARTERFINAL", 2: "SEMIFINAL", 1: "FINAL" };
 
   // cfg: { key, recKey, cupKey, title, short, league, size, teams, pickTitle }

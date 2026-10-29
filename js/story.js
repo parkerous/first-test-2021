@@ -93,7 +93,7 @@
     if (region(t.id) === "LOCAL") {
       shuffle(LOCAL_NAMES.slice()).slice(0, 4).forEach(function (n, i) {
         var k = LOCAL_KITS[i % LOCAL_KITS.length];
-        S.locals.push({ id: "LOC" + i, name: n, short: n, flag: "🏫", ovr: irnd(64, 71), kit: k[0], kit2: k[1], players: {}, stars: {},
+        S.locals.push({ id: "LOC" + i, name: n, short: n, flag: "🏫", ovr: irnd(62, 68), kit: k[0], kit2: k[1], players: {}, stars: {},
                         nat: "JPN", ages: [16, 18], heightAdj: -9, play: pick(["balanced", "defense", "power", "fast"]) });
       });
     }
@@ -758,11 +758,11 @@
   function endingHTML() {
     var o = ovr(you()), champs = S.trophies.length, tr = S.trophies.join(", ");
     var title, txt;
-    if (o >= 84 || S.trophies.some(function (x) { return /SPRING/.test(x); }) && o >= 80) {
+    if (o >= 82 || S.trophies.some(function (x) { return /SPRING/.test(x); }) && o >= 78) {
       title = "STRAIGHT TO THE PROS"; txt = "SV.League scouts were in the stands all spring. You sign your first professional contract before graduation day.";
-    } else if (o >= 80 || champs) {
+    } else if (o >= 77 || champs) {
       title = "UNIVERSITY ACE"; txt = "A top university offers you a place on their team. The national youth coach has your name on a list.";
-    } else if (o >= 75) {
+    } else if (o >= 72) {
       title = "STILL CLIMBING"; txt = "You keep playing at university. You're not done — the small giant inside you is just getting started.";
     } else {
       title = "THE ONE WHO LOVED THE GAME"; txt = "You never became the star, but every weekend you're back in a gym somewhere, chasing the ball you could never quite let fall.";

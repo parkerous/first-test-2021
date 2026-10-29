@@ -54,7 +54,10 @@ window.VB = window.VB || {};
     return Math.round(s - OVR_OFF[p.role]);
   };
   // the ratings scale: elite pros sit around 80-85
-  VB.scaleOvr = function (x) { return Math.round(40 + (x - 40) * 0.82); };
+  // regular pros ≈ 79, the best teams' regulars ≈ 86 (their stars 90+), the weakest pro sides ≈ 70
+  VB.scaleOvr = function (x) { return Math.round(79 + (x - 81) * 0.55); };
+  // high schoolers sit clearly below the pros: 65 (weakest school) .. 77 (best)
+  VB.scaleHS = function (x) { return Math.round(65 + (x - 76) * 0.7); };
   // star players stand above their team: world-class pros reach 90+, high-school aces sit a bit lower
   VB.STAR_PRO = 7; VB.STAR_HS = 4;
   // reach in cm: standing reach ≈ 1.335 × height; jumping adds the vertical

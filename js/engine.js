@@ -455,6 +455,7 @@
     var peak = o.peak || 0, h0 = o.h0 || 0, h1 = o.h1 || 0, skew = o.skew || 0.5, wob = o.wobble || 0;
     ball.visible = true;
     ball.spin = o.spin || 0;
+    ball.trail = o.trail || null; trailPts = [];
     return new Promise(function (res) {
       var t = 0, last = performance.now();
       (function step(now) {
@@ -657,6 +658,15 @@
       var hy = kind === "dig" ? y + 6 : y + 2;
       Lh = { x: x - 2, y: hy }; Rh = { x: x + 2, y: hy };
     } else if (kind === "shank") { Lh = { x: x - 15, y: y - 2 }; Rh = { x: x + 6, y: y - 18 }; }
+    else if (kind === "ready") { Lh = { x: x - 7, y: y + 4 }; Rh = { x: x + 7, y: y + 4 }; }              // low, braced, platform out
+    else if (kind === "press") { Lh = { x: x - 14, y: y - 46 }; Rh = { x: x + 14, y: y - 46 }; }         // hands pressed over the net
+    else if (kind === "cheer") { Lh = { x: x - 15, y: y - 36 + Math.sin(pr * 20) * 3 }; Rh = { x: x + 15, y: y - 36 - Math.sin(pr * 20) * 3 }; }
+    else if (kind === "approach") { Lh = { x: x - 13, y: y + 6 }; Rh = { x: x + 9, y: y + 8 }; }        // arms swung back on the run-up
+    else if (kind === "wipe") {                                                                          // swing turns out toward the antenna
+      var d0 = dir || 1;
+      if (pr < 0.45) { Lh = { x: x - 5, y: y - 40 }; Rh = { x: x + 17, y: y - 30 }; }
+      else { Lh = { x: x - 8, y: y - 24 }; Rh = { x: x + 22 * d0, y: y - 36 + (pr - 0.45) * 30 }; }
+    }
     else return;
     g.lineCap = "round";
     [["rgba(10,20,40,0.45)", 6.5], [skin, 4]].forEach(function (st) {
@@ -666,7 +676,8 @@
     g.lineCap = "butt";
     g.fillStyle = skin;
     if (kind === "pass" || kind === "dig") g.fillRect(Lh.x - 4, Lh.y - 1, 12, 4);
-    if (kind === "block") { g.fillRect(Lh.x - 3, Lh.y - 4, 6, 5); g.fillRect(Rh.x - 3, Rh.y - 4, 6, 5); }
+    if (kind === "block" || kind === "press" || kind === "cheer") { g.fillRect(Lh.x - 3, Lh.y - 4, 6, 5); g.fillRect(Rh.x - 3, Rh.y - 4, 6, 5); }
+    if (kind === "ready") g.fillRect(Lh.x - 2, Lh.y - 1, 18, 4);
     if (kind === "set") { g.fillRect(Lh.x - 3, Lh.y - 3, 5, 4); g.fillRect(Rh.x - 2, Rh.y - 3, 5, 4); }
   }
 
@@ -705,6 +716,17 @@
 
   // ---- popups & dust ----
   function popup(text, at, col) { popups.push({ text: text, x: at.x, y: at.y, t0: gt, col: col || "#ffd21e" }); }
+  var rings = [], trailPts = [];
+  function ring(at, col, maxR, dur) { rings.push({ x: at.x, y: at.y, t0: gt, col: col || "#ffffff", r: maxR || 30, dur: dur || 0.4 }); }
+  function drawRings() {
+    rings = rings.filter(function (q) { return gt - q.t0 < q.dur; });
+    rings.forEach(function (q) {
+      var k = (gt - q.t0) / q.dur;
+      g.globalAlpha = 1 - k; g.strokeStyle = q.col; g.lineWidth = 4 * (1 - k) + 1;
+      g.beginPath(); g.ellipse(q.x, q.y, q.r * (0.25 + k), q.r * (0.25 + k) * 0.6, 0, 0, Math.PI * 2); g.stroke();
+    });
+    g.globalAlpha = 1;
+  }
   function puff(at, n, col) {
     for (var i = 0; i < n; i++) {
       puffs.push({ x: at.x + rnd(-5, 5), y: at.y + rnd(-5, 5), vx: rnd(-70, 70), vy: rnd(-80, -15), life: 0, max: rnd(0.4, 0.8),
@@ -868,6 +890,7 @@
     });
     drawFlames(sdt);
     drawPuffs(sdt);
+    drawRings();
 
     var placed = [];
     function freeY(text, x, y, font, dir) {
@@ -897,6 +920,15 @@
       g.fillStyle = "rgba(0,20,60," + clamp(0.45 - ball.h * 0.11, 0.08, 0.45) + ")";
       g.beginPath(); g.ellipse(ball.x, ball.y, shR, shR * 0.55, 0, 0, Math.PI * 2); g.fill();
       var r = 6 + ball.h * 5, by = ball.y - ball.h * 30;
+      if (ball.trail) {                                            // speed streak (jump serves, kills) or float flutter dots
+        trailPts.push({ x: ball.x, y: by, r: r }); if (trailPts.length > 9) trailPts.shift();
+        trailPts.forEach(function (tp, i) {
+          var k = i / trailPts.length;
+          if (ball.trail === "float") { if (i % 2) return; g.fillStyle = "rgba(255,255,255," + (k * 0.6) + ")"; g.fillRect(tp.x - 1.5, tp.y - 1.5, 3, 3); return; }
+          g.fillStyle = ball.trail === "hot" ? "rgba(255,120,40," + (k * 0.45) + ")" : "rgba(255,230,120," + (k * 0.4) + ")";
+          g.beginPath(); g.arc(tp.x, tp.y, tp.r * (0.4 + k * 0.6), 0, Math.PI * 2); g.fill();
+        });
+      } else trailPts = [];
       g.fillStyle = "#ffd500"; g.beginPath(); g.arc(ball.x, by, r, 0, Math.PI * 2); g.fill();
       g.strokeStyle = "#1e4fd8"; g.lineWidth = Math.max(1.4, r * 0.3);
       g.beginPath(); g.arc(ball.x, by, r * 0.62, ball.rot + 0.3, ball.rot + 1.8); g.stroke();
@@ -1212,22 +1244,41 @@
     await sleep(800);
   }
 
-  async function serveMotion(s, role, kind) {
+  async function serveMotion(s, role, kind, jumpFloat, power) {
     var spot = serveFrom(s.side), dir = s.side === 0 ? 1 : -1;
     var contact = { x: spot.x, y: spot.y - 6 * dir };
     if (kind === "spin") {
-      var back = { x: spot.x, y: spot.y + 22 * dir };
+      // walk back, big toss, three-step run-up, leap, WHAM — then land inside the court
+      var back = { x: spot.x, y: spot.y + 40 * dir };
       moveTo(s, role, back);
-      await sleep(350);
-      var toss = flyBall(back, contact, 700, { h0: 0.5, h1: 1.5, peak: 1.0, skew: 0.55, spin: 3 });
-      await sleep(160);
-      moveTo(s, role, spot);
-      await sleep(300);
-      jump(s, role, 420, 12, "spike");
+      await sleep(380);
+      var toss = flyBall(back, { x: contact.x, y: contact.y + 6 * dir }, 820, { h0: 0.5, h1: 1.6, peak: 1.6, skew: 0.55, spin: 4 });
+      await sleep(200);
+      jump(s, role, 420, 2, "approach");
+      s.rush[role] = true; moveTo(s, role, spot);
+      await sleep(330);
+      jump(s, role, 480, 16, "spike");
       await toss;
+      ring(contact, power > 0.7 ? "#ff7a2a" : "#ffd21e", power > 0.7 ? 40 : 30, 0.35);
+      puff(contact, power > 0.7 ? 8 : 4, "#fff3b0");
+      if (power > 0.7) popup("BOOM!", contact, "#ff7a2a");
+      setTimeout(function () { if (s.pos[role]) moveTo(s, role, { x: spot.x, y: spot.y - 26 * dir }); }, 260);
+    } else if (jumpFloat) {
+      var back2 = { x: spot.x, y: spot.y + 18 * dir };
+      moveTo(s, role, back2);
+      await sleep(300);
+      var toss2 = flyBall(back2, contact, 600, { h0: 0.5, h1: 1.1, peak: 0.7, skew: 0.55 });
+      await sleep(220);
+      moveTo(s, role, spot);
+      await sleep(180);
+      jump(s, role, 360, 7, "serve");
+      await toss2;
+      ring(contact, "#ffffff", 20, 0.3);
     } else {
+      jump(s, role, 300, 0, "set");                                   // tosses it from both hands
       await flyBall(spot, contact, 520, { h0: 0.5, h1: 0.9, peak: 0.6, skew: 0.6 });
       jump(s, role, 240, 3, "serve");
+      ring(contact, "#ffffff", 16, 0.25);
     }
     return contact;
   }
@@ -1260,9 +1311,10 @@
     }
     if (!(srv === me && iControl(sr))) { sp.power = clamp01(sp.power + sty(srv).serveRisk); sp.errP = Math.max(0.02, sp.errP + sty(srv).serveRisk * 0.6); }
     target = clampHalf(rcv, { x: target.x + rnd(-1, 1) * sp.wobble * 90, y: target.y + rnd(-1, 1) * sp.wobble * 60 });
-    if (!superServe) feed(srv.side, Sv.name + (kind === "spin" ? " rips a jump topspin!" : " floats one over..."));
+    var jumpFloat = kind === "float" && Math.random() < 0.4 + (Sv.srv - 70) / 100;
+    if (!superServe) feed(srv.side, Sv.name + (kind === "spin" ? " rips a jump topspin!" : jumpFloat ? " jump-floats one — it's dancing..." : " floats one over..."));
 
-    var contact = await serveMotion(srv, sr, kind);
+    var contact = await serveMotion(srv, sr, kind, jumpFloat, sp.power);
     var errKind = Math.random() < sp.errP ? (Math.random() < 0.5 ? "net" : "long") : null;
     var dirR = rcv.side === 0 ? 1 : -1;
     if (errKind === "net") {
@@ -1278,10 +1330,18 @@
     if (errKind === "long") target = { x: target.x, y: dirR > 0 ? CB + 24 : CT - 24 };
 
     var flightMs = kind === "spin" ? (superServe ? 680 : 780) : 1150;
-    var fo = kind === "spin" ? { h0: 1.5, h1: 0, peak: 0.5, skew: 0.3, spin: 22 } : { h0: 0.9, h1: 0, peak: 0.6, skew: 0.5, wobble: 9 };
+    var fo = kind === "spin" ? { h0: 1.5, h1: 0, peak: 0.5, skew: 0.3, spin: 22, trail: superServe || sp.power > 0.7 ? "hot" : "fast" }
+                             : { h0: 0.9, h1: 0, peak: 0.6, skew: 0.5, wobble: jumpFloat ? 13 : 9, trail: "float" };
     var flight = flyBall(contact, target, flightMs, fo);
     var rcvRole = onServeContact(srv, rcv, target);
     var RP = rcv.roster[rcvRole], timing = null;
+    // the receiving line braces; the passer calls it; on a float they keep adjusting to the movement
+    rcv.onCourt.forEach(function (r) { if (r !== "S" && !isFront(rcv, r) || r === rcvRole) jump(rcv, r, flightMs, 0, "ready"); });
+    setTimeout(function () { if (rcv.pos[rcvRole]) popup(rcvRole === "L" ? "MINE!" : pick(["MINE!", "GOT IT!", "ME!"]), rcv.pos[rcvRole], "#ffffff"); }, flightMs * 0.35);
+    if (kind === "float") [0.3, 0.55].forEach(function (f) {
+      setTimeout(function () { if (rcv.pos[rcvRole]) moveTo(rcv, rcvRole, { x: target.x + rnd(-16, 16), y: target.y + rnd(-6, 6) }); }, flightMs * f);
+      setTimeout(function () { if (rcv.pos[rcvRole]) moveTo(rcv, rcvRole, target); }, flightMs * 0.8);
+    });
     if (!errKind && rcv === me && iControl(rcvRole)) {
       await sleep(150); slow();
       timing = await timingBar("RECEIVE — " + RP.name + " vs " + Sv.name + " (SRV " + Sv.srv + ")!",
@@ -1313,9 +1373,15 @@
       feed(srv.side, shank ? RP.name + " SHANKS the serve into the crowd!" : "ACE! " + Sv.name + " is on fire.", true);
       return credit(srv, sr);
     }
-    jump(rcv, rcvRole, 500, -3, "pass");
-    if (grade === 2) RP.st.rp++;
-    feed(rcv.side, RP.name + " passes — " + GRADE_TXT[grade].toLowerCase() + ".");
+    var overhead = kind === "float" && rcvRole !== "L" && RP.tec >= 72 && Math.random() < 0.22;
+    jump(rcv, rcvRole, 500, overhead ? 2 : -3, overhead ? "set" : "pass");
+    if (kind === "spin" && sp.power > 0.62) {                      // a heavy serve knocks the passer back a step
+      ring(target, "#ffffff", 22, 0.3); puff(target, 6);
+      moveTo(rcv, rcvRole, { x: target.x, y: target.y + dirR * 14 });
+    }
+    if (grade === 2) { RP.st.rp++; ring(target, "#3dff7a", 26, 0.45); if (Math.random() < 0.5) popup("PERFECT!", target, "#3dff7a"); }
+    if (grade === 0) popup(pick(["OFF!", "SCRAMBLE!", "UH-OH"]), target, "#ffb000");
+    feed(rcv.side, RP.name + (overhead ? " takes it with the hands — " : " passes — ") + GRADE_TXT[grade].toLowerCase() + ".");
     if (grade === 0 && Math.random() < 0.12) return await overpass(rcv, target);
     var setter = await toSetter(rcv, target, grade, rcvRole);
     return await offense(rcv, grade, setter);
@@ -1349,7 +1415,7 @@
       popup("SHANK!", at, "#ff4d4d");
       var refAt = { x: CR + 34, y: NET - 14 };
       await flyBall(at, refAt, 800, { peak: 1.8, spin: 40, skew: 0.5 });
-      refFlagSide = 1 - s.side; refFlagAt = gt;
+      refFlagSide = 1 - s.side; refFlagAt = performance.now();
       puff(refAt, 14, "#ffffff"); popup("SORRY REF!", refAt, "#ffd21e");
       cheer(); return "into the referee's stand!";
     }
@@ -1647,7 +1713,7 @@
     if (plan.type === "super") useSkill(atk, A);
     await setFlight;
 
-    jump(atk, hitter, 450, 14, "spike");
+    jump(atk, hitter, 450, 14, plan.type === "wipe" ? "wipe" : "spike", st.x < W / 2 ? -1 : 1);
     blockers.forEach(function (r, i) { jumpLater(def, r, 60 + i * 30, 500, 12, "block"); });
     await sleep(190);
     return await resolveHit(atk, def, hitter, st, plan, blockers, lean, superBlock, grade, contact, setterRole);
@@ -1760,8 +1826,16 @@
                   r < stuffP + toolP + offP + rebP ? "rebound" : "soft";
       }
       var who = Btouch.name + (superBlock ? " ★" : "");
+      if (outcome !== "stuff" && outcome !== "tool") blockers.forEach(function (r) { jump(def, r, 260, 3, "block"); });   // hands flinch on the touch
       if (outcome === "stuff") {
-        await flyBall(blockPt, { x: bx + rnd(-25, 25), y: NET + dirA * rnd(25, 70) }, 280, { h0: 0.6, h1: 0 });
+        blockers.forEach(function (r) { jump(def, r, 300, 8, "press"); });
+        ring(blockPt, "#ff6fb0", 40, 0.4); puff(blockPt, 10, "#ffd1e6");
+        var land = { x: bx + rnd(-25, 25), y: NET + dirA * rnd(25, 70) };
+        await flyBall(blockPt, land, 260, { h0: 0.6, h1: 0, trail: "hot" });
+        puff(land, 12, "#ffd21e"); ring(land, "#ffd21e", 24, 0.35);
+        if (Math.random() < 0.35) jump(atk, hitter, 900, -2, "fall", -1);           // the hitter lands on their seat
+        setTimeout(function () { blockers.forEach(function (r) { jump(def, r, 700, 5, "cheer"); }); }, 320);
+        if (Math.random() < 0.5) setTimeout(function () { popup(pick(["ROOF!", "GET THAT OUT!", "DENIED!"]), def.pos[BtouchRole] || blockPt, "#ff6fb0"); }, 400);
         A.st.bk++; Btouch.st.blk++;
         popup("STUFF BLOCK!", blockPt, "#ff6fb0");
         msg((n === 3 ? "TRIPLE " : n === 2 ? "DOUBLE " : "") + "BLOCK — STUFFED!!"); cheer();
@@ -1772,7 +1846,12 @@
         var outside = type === "wipe" || Math.random() < (pin ? 0.7 : 0.3);
         var toolPt = outside ? { x: st.x < W / 2 ? CL - 28 : CR + 28, y: NET + dirD * rnd(70, 220) }
                              : { x: clamp(bx + rnd(-60, 60), CL - 20, CR + 20), y: def.side === 0 ? CB + 30 : CT - 30 };
-        await flyBall(blockPt, toolPt, outside ? 420 : 520, { h0: 0.6, h1: 0, peak: outside ? 0.5 : 1.2, spin: 20 });
+        if (type === "wipe") puff(blockPt, 10, "#fff3b0");
+        ring(blockPt, "#ffd21e", 30, 0.35);
+        jump(def, BtouchRole, 500, 2, "shank");                                     // the blocker spins round to watch it go
+        await flyBall(blockPt, toolPt, outside ? 420 : 520, { h0: 0.6, h1: 0, peak: outside ? 0.5 : 1.2, spin: 20, trail: "fast" });
+        refFlagSide = atk.side; refFlagAt = performance.now();                      // the line judge signals the touch
+        popup("TOUCH — OUT!", toolPt, "#ffffff");
         A.st.k++; assist(atk, setterRole, hitter);
         msg(type === "wipe" ? "WIPED OFF THE BLOCK!" : "TOOLED!"); cheer();
         popup(type === "wipe" ? "WIPED!" : "TOOLED!", blockPt, "#ffd21e");
@@ -1807,6 +1886,9 @@
         return await offense(atk, 1, sr);
       }
       var waterfall = Math.random() < 0.3;
+      ring(blockPt, "#7fd8ff", 22, 0.3);
+      var caller = def.pos.L ? "L" : def.onCourt.find(function (r) { return blockers.indexOf(r) < 0; });
+      if (caller && def.pos[caller]) popup("TOUCH!", def.pos[caller], "#7fd8ff");
       var pop = waterfall ? clampHalf(def, { x: bx + rnd(-20, 20), y: NET + dirD * rnd(16, 34) })
                           : clampHalf(def, { x: bx + rnd(-70, 70), y: NET + dirD * rnd(100, 170) });
       msg(waterfall ? "WATERFALL OFF THE BLOCK!" : "ONE TOUCH!");
