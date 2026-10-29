@@ -70,12 +70,11 @@
         </div>
 
         <div class="side-col">
+          <div style="text-align:center; margin-bottom:8px">
+            <button class="btn" id="rosterBtn">📊 LIVE STATS &amp; ROSTERS</button>
+          </div>
           <div class="action-bar" id="actions"></div>
           <div class="feed" id="feed"></div>
-          <div style="text-align:center; margin-top:8px">
-            <button class="link-btn" id="rosterBtn">VIEW ROSTERS, HEIGHTS &amp; ATTRIBUTES</button>
-          </div>
-          <div id="rosterBox" class="hidden" style="margin-top:8px; display:flex; gap:14px; flex-wrap:wrap; justify-content:center"></div>
           <div class="controls">
             The ball slows down while you decide.<br/>
             Serve: float (knuckles, no spin) or topspin (jump serve), then click to aim.<br/>
@@ -90,6 +89,19 @@
 
     <div class="footer-row">
       <span>Rosters, heights and clubs are an arcade homage, not official data.</span>
+    </div>
+  </div>
+
+  <!-- live stats (pauses the match) -->
+  <div id="statsPanel" class="modal hidden">
+    <div class="modal-card">
+      <h2>MATCH STATS <span class="paused-tag">GAME PAUSED</span></h2>
+      <div class="tabs">
+        <button class="tab-btn on" data-st="sheet">LIVE SCORESHEET</button>
+        <button class="tab-btn" data-st="roster">ROSTERS, HEIGHTS &amp; ATTRIBUTES</button>
+      </div>
+      <div id="statsBody" class="modal-body stats-body"></div>
+      <div class="modal-btns"><button class="btn" id="statsClose">▶ RESUME GAME</button></div>
     </div>
   </div>
 

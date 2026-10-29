@@ -47,7 +47,20 @@
   var lastFrame = 0;
 
   function iControl(role) { return mode === "full" || role === myRole; }
-  function sleep(ms) { return new Promise(function (res) { setTimeout(res, ms); }); }
+  // pausing (stats panel open) freezes the ball, players, timers and the timing bar
+  var paused = false, pausedTotal = 0, pauseStart = 0;
+  function setPaused(on) {
+    if (on === paused) return;
+    if (on) pauseStart = performance.now(); else pausedTotal += performance.now() - pauseStart;
+    paused = on;
+  }
+  function gclock() { return performance.now() - pausedTotal - (paused ? performance.now() - pauseStart : 0); }
+  function sleep(ms) {
+    return new Promise(function (res) {
+      var end = gclock() + ms;
+      (function tick() { var left = end - gclock(); if (left <= 0) res(); else setTimeout(tick, Math.min(50, left)); })();
+    });
+  }
   function slow() { timeScale = 0.2; }
   function fast() { timeScale = 1; }
   function other(s) { return s === me ? opp : me; }
@@ -338,7 +351,8 @@
     return new Promise(function (res) {
       var t = 0, last = performance.now();
       (function step(now) {
-        t += (now - last) / ms * timeScale; last = now;
+        if (!paused) t += (now - last) / ms * timeScale;
+        last = now;
         var tt = clamp01(t);
         var arc = tt < skew ? Math.sin(tt / skew * Math.PI / 2) : Math.cos((tt - skew) / (1 - skew) * Math.PI / 2);
         ball.x = from.x + (to.x - from.x) * tt + Math.sin(tt * Math.PI * 6) * wob * (1 - tt * 0.4);
@@ -585,8 +599,9 @@
   function draw(now) {
     var dt = Math.min(0.05, (now - lastFrame) / 1000);
     lastFrame = now;
-    gt += dt * timeScale;
-    stepPlayers(dt);
+    var sdt = paused ? 0 : dt * timeScale;
+    gt += sdt;
+    if (!paused) stepPlayers(dt);
     if (!bg) { requestAnimationFrame(draw); return; }
 
     g.drawImage(bg, 0, 0);
@@ -665,7 +680,7 @@
         g.fillStyle = "rgba(60,200,255," + (0.3 + Math.sin(gt * 8) * 0.12) + ")";
         g.beginPath(); g.ellipse(x, p.y + 17, 19, 7, 0, 0, Math.PI * 2); g.fill();
         drawFlameBody(x, p.y, y - 24);
-        spawnFlames(x, p.y, y - 24, dt * timeScale);
+        if (sdt > 0) spawnFlames(x, p.y, y - 24, sdt);
       }
       if (kind === "dive" || kind === "fall") {                    // dive: laid out toward the ball; fall: knocked over by a shank
         var fall = kind === "fall";
@@ -687,8 +702,8 @@
         if (kind) drawArms(kind, pr, x, y, Pl.face.skin, a && a.dir);
       }
     });
-    drawFlames(dt * timeScale);
-    drawPuffs(dt * timeScale);
+    drawFlames(sdt);
+    drawPuffs(sdt);
 
     var placed = [];
     function freeY(text, x, y, font, dir) {
@@ -713,7 +728,7 @@
     });
 
     if (ball.visible) {
-      ball.rot += dt * timeScale * ball.spin;
+      ball.rot += sdt * ball.spin;
       var shR = Math.max(2.2, 8 - ball.h * 3.4);
       g.fillStyle = "rgba(0,20,60," + clamp(0.45 - ball.h * 0.11, 0.08, 0.45) + ")";
       g.beginPath(); g.ellipse(ball.x, ball.y, shR, shR * 0.55, 0, 0, Math.PI * 2); g.fill();
@@ -776,20 +791,28 @@
         return Math.max(0, 0.3 - (d - goodW / 2) * 4);
       }
       wrap.classList.remove("hidden");
-      var t0 = performance.now(), done = false, raf;
+      var t0 = gclock(), done = false, raf;
       function pos(now) { return (1 - Math.cos(((now - t0) / speedMs) * Math.PI * 2)) / 2; }
-      (function step(now) { if (done) return; mk.style.left = pos(now) * 100 + "%"; raf = requestAnimationFrame(step); })(t0);
+      (function step() {
+        if (done) return;
+        if (gclock() - t0 > speedMs * 2.4) { done = true; finish(0); return; }        // too late
+        mk.style.left = pos(gclock()) * 100 + "%"; raf = requestAnimationFrame(step);
+      })();
+      function finish(q) {
+        document.removeEventListener("pointerdown", stop, true);
+        document.removeEventListener("keydown", key, true);
+        wrap.classList.add("hidden"); timingPop(q); res(q);
+      }
       function stop(e) {
-        if (done) return; done = true;
+        if (done || paused || (e.target && e.target.closest && e.target.closest("#statsPanel, #rosterBtn"))) return;
+        done = true;
         e.preventDefault(); cancelAnimationFrame(raf);
         document.removeEventListener("pointerdown", stop, true);
         document.removeEventListener("keydown", key, true);
-        var q = quality(pos(performance.now()));
-        wrap.classList.add("hidden"); timingPop(q); res(q);
+        finish(quality(pos(gclock())));
       }
       function key(e) { if (e.key === " ") stop(e); }
       setTimeout(function () { document.addEventListener("pointerdown", stop, true); document.addEventListener("keydown", key, true); }, 120);
-      setTimeout(function () { if (!done) { done = true; cancelAnimationFrame(raf); wrap.classList.add("hidden"); timingPop(0); res(0); } }, speedMs * 2.4);
     });
   }
 
@@ -1598,6 +1621,30 @@
     return h + "</table>";
   }
 
+  // ---- live stats panel (pauses the match while open) ----
+  var statsTab = "sheet";
+  function renderStats() {
+    var body = $("statsBody");
+    document.querySelectorAll("#statsPanel [data-st]").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-st") === statsTab); });
+    if (statsTab === "sheet") {
+      body.innerHTML = "<p class='center'>" + U.esc((me.team.flag || "") + " " + me.team.name + "  " + score[0] + " : " + score[1] + "  " + opp.team.name + " " + (opp.team.flag || "")) + "</p>" +
+        VB.Stats.sheetHTML((me.team.flag || "") + " " + me.team.name, ROLES.map(function (r) { return lineFor(me, r); })) +
+        VB.Stats.sheetHTML((opp.team.flag || "") + " " + opp.team.name, ROLES.map(function (r) { return lineFor(opp, r); }));
+    } else {
+      body.innerHTML = rosterTable(me) + rosterTable(opp);
+    }
+  }
+  function openStats() {
+    if (!me || !opp) return;
+    setPaused(true);
+    renderStats();
+    $("statsPanel").classList.remove("hidden");
+  }
+  function closeStats() {
+    $("statsPanel").classList.add("hidden");
+    setPaused(false);
+  }
+
   function lineFor(s, role) {
     var Pl = s.roster[role];
     return Object.assign({ name: Pl.name, role: role, you: s === me && mode === "role" && role === myRole }, Pl.st);
@@ -1627,7 +1674,6 @@
     feed(-1, "— " + c.mine.name + " vs " + c.foe.name + " —");
     feed(0, "Stars: " + starList(me) + ". Libero: " + me.roster.L.name + ". Tallest: " + tallest(me).name + " " + tallest(me).height + "cm.");
     feed(1, "Stars: " + starList(opp) + ". Libero: " + opp.roster.L.name + ". Tallest: " + tallest(opp).name + " " + tallest(opp).height + "cm.");
-    $("rosterBox").innerHTML = "<div>" + rosterTable(me) + "</div><div>" + rosterTable(opp) + "</div>";
 
     score = [0, 0]; serving = Math.random() < 0.5 ? 0 : 1;
     me.rot = 0; opp.rot = 0;
@@ -1657,7 +1703,16 @@
   function init() {
     cv = $("court"); g = cv.getContext("2d");
     g.imageSmoothingEnabled = false;
-    $("rosterBtn").addEventListener("click", function () { $("rosterBox").classList.toggle("hidden"); });
+    $("rosterBtn").addEventListener("click", openStats);
+    $("statsClose").addEventListener("click", closeStats);
+    $("statsPanel").addEventListener("click", function (e) {
+      var t = e.target.closest("[data-st]");
+      if (t) { statsTab = t.getAttribute("data-st"); renderStats(); }
+      else if (e.target.id === "statsPanel") closeStats();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !$("statsPanel").classList.contains("hidden")) closeStats();
+    });
     lastFrame = performance.now();
     requestAnimationFrame(draw);
   }

@@ -381,3 +381,9 @@ table.standings tr.you td { background: #fff4d6; }
   position: absolute; left: 0; right: 0; bottom: 130px; z-index: 26; pointer-events: none;
   text-align: center; font-family: var(--pixel); font-size: 20px; text-shadow: 3px 3px 0 #13293f;
 }
+
+/* ---- live stats panel ---- */
+.stats-body { overflow: auto; background: #fff; border: 3px solid var(--blue-l); border-radius: 0 8px 8px 8px; padding: 10px; }
+.stats-body table { margin: 0 auto 14px; }
+.paused-tag { font-size: 9px; color: var(--pink); vertical-align: middle; margin-left: 8px; }
+#statsPanel .tabs { justify-content: flex-start; margin-top: 4px; }
