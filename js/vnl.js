@@ -130,6 +130,11 @@
       bonus[tour.champion] = (bonus[tour.champion] || 0) + 10;
       var list = VB.Stats.awards(tour.stats, tour.info, bonus);
       var champ = T(tour.champion);
+      var runner = last[0] === tour.champion ? last[1] : last[0], third = null;
+      (tour.ko[tour.ko.length - 2] || []).forEach(function (m) { var l = winner(m) === m[0] ? m[1] : m[0]; if (!third || T(l).ovr > T(third).ovr) third = l; });
+      function pod(id) { var t = T(id); return { id: id, name: t.name, kit: t.kit, kit2: t.kit2, faces: VB.ROLES.map(function (r) { return tour.rosters[id][r].face; }) }; }
+      await VB.Ceremony.play({ title: cfg.title + " AWARDS", sub: "FINAL: " + T(last[0]).name + " " + last[2] + ":" + last[3] + " " + T(last[1]).name,
+                               podium: [pod(tour.champion), pod(runner)].concat(third ? [pod(third)] : []), awards: VB.Ceremony.fromAwards(list) });
       await U.modal("🏆 " + cfg.title + " AWARDS",
         "<p class='center'>CHAMPIONS: <b>" + champ.flag + " " + champ.name + "</b> • FINAL " + T(last[0]).name + " " + last[2] + ":" + last[3] + " " + T(last[1]).name + "</p>" +
         VB.Stats.awardsHTML(list) + "<h3 class='mini'>TOURNAMENT LEADERS</h3>" + VB.Stats.leadersHTML(tour.stats, tour.info, 5),

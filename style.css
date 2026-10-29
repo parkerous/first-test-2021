@@ -428,3 +428,8 @@ table.standings tr.you td { background: #fff4d6; }
 .gbanner-t { font-family: var(--pixel); font-size: 11px; color: var(--pink); margin: 6px 0 10px; }
 .gfeat { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 .center-row { justify-content: center; margin-top: 8px; }
+
+/* ---- award ceremony ---- */
+#ceremonyFx { position: fixed; inset: 0; z-index: 1001; background: #05070b; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+#ceremonyFx canvas { width: min(96vw, 640px); max-height: 80vh; object-fit: contain; image-rendering: pixelated; cursor: pointer; }
+.cer-btns { display: flex; gap: 10px; }

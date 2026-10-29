@@ -42,16 +42,26 @@ build step, no server.
   year 3, and an ending depends on your final OVR and trophies.
 
 ### 🎴 Gacha & Showroom (Haikyuu!!)
-- Earn 🏐 coins from every match in any mode (wins pay most), story events and a
-  daily gift. Pull ×1 (100) or ×10 (900).
+- 500 free pulls to start. Every match pays: a win = 10 pulls, a loss = 5 pulls
+  (any mode), plus story events and a daily gift. Pull ×1 (100) or ×10 (900).
 - Rarities: Common, Rare, Epic, Legendary, Mythic. Limited variants include
-  Christmas Bokuto/Nishinoya/Hinata/Kenma, Festival Oikawa and Timeskip cards
-  (Ninja Shoyo, Kageyama, Bokuto, Oikawa, Atsumu, Ushijima, Kenma).
+  Christmas Bokuto/Nishinoya/Hinata/Kenma and Festival Oikawa (Legendary), and
+  the whole timeskip cast: Mythic Ninja Shoyo, Kageyama, Bokuto, Oikawa and
+  Ushijima; Legendary Atsumu, Sakusa, Hoshiumi, Kenma, Kuroo, Tsukishima,
+  Nishinoya, Azumane, Tanaka, Sawamura, Sugawara, Iwaizumi, Akaashi, Osamu, Yaku
+  and Lev. Mythic odds: 0.05%.
 - Genshin-style banner: two featured cards rotate daily; 50/50 with a guarantee,
-  Epic+ every 10 pulls, Legendary by 60, Mythic by 150. Duplicates level a card
+  Epic+ every 10 pulls, Legendary by 60, Mythic by 1000. Duplicates level a card
   (C1-C6).
 - Spike reveal animation (the trail colour shows the rarity) — skippable.
-- Showroom: up to 6 cards roam a wooden gym; the rest wait in storage.
+- Showroom: a classroom where up to 8 cards wander, sit at desks and hop; the
+  rest wait in storage.
+
+### 🏅 Award ceremonies
+- Tournaments and club seasons end with a podium (gold, silver, bronze teams),
+  confetti and a trophy, then each award presented in a spotlight with a medal.
+- Story mode: a team awards night every year (Team MVP, Most Improved, Rookie of
+  the Year, Fighting Spirit) and a podium when you win Spring Nationals.
 
 ### 🏟️ Club Career (SuperLega 🇮🇹 + SV.League 🇯🇵)
 - 3 save slots. Create a player: name, nationality, position (setter, outside,
@@ -107,7 +117,7 @@ build step, no server.
 ## Files
 `index.html` (layout) · `style.css` · `js/data.js` (teams, clubs, players) ·
 `js/haikyuu.js` (Spring Nationals teams) · `js/ui.js` · `js/stats.js` (box scores, sims, awards) · `js/engine.js` (match
-engine + arena) · `js/vnl.js` (tournaments) · `js/story.js` (Haikyuu story) · `js/gacha.js` (gacha + showroom) · `js/career.js` · `js/main.js` (menu).
+engine + arena) · `js/vnl.js` (tournaments) · `js/story.js` (Haikyuu story) · `js/gacha.js` (gacha + showroom) · `js/ceremony.js` (award ceremonies) · `js/career.js` · `js/main.js` (menu).
 
 ## Deploy to Netlify
 The repo root is the site. Leave **Base directory** empty and **Publish

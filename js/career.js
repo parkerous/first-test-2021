@@ -529,15 +529,26 @@
   }
 
   async function seasonEnd() {
-    var html = "";
+    var html = "", show = null;
     ["SL", "SV"].forEach(function (id) {
       var L = lg(id), agg = {}, info = {};
       Object.keys(C.sstats).forEach(function (pid) { var p = P(pid); if (p && p.club && club(p.club).league === id) { agg[pid] = C.sstats[pid]; info[pid] = infoFor(pid); } });
       var bonus = {}; if (L.champion) bonus[L.champion] = 12;
       var list = VB.Stats.awards(agg, info, bonus);
       list.forEach(function (a) { if (a.id === "you") { C.awardsWon.push(C.season + " " + L.name + " " + a.title); news("🏅 " + you().name + " wins " + a.title + " (" + L.name + ")!", "you"); } });
+      if (id === (C.club ? club().league : "SL")) show = { L: L, list: list };
       html += "<h3 class='mini'>" + L.flag + " " + L.name + " — CHAMPION: " + esc(L.champion ? club(L.champion).name : "—") + "</h3>" + VB.Stats.awardsHTML(list);
     });
+    if (show && show.L.champion) {
+      var L0 = show.L, f = L0.final, runner = f ? (f[0] === L0.champion ? f[1] : f[0]) : null, third = null;
+      (L0.semis || []).forEach(function (m) { if (m[2] == null) return; var l = winner(m) === m[0] ? m[1] : m[0]; if (!third) third = l; });
+      var pod = function (cid) {
+        var cl = club(cid), line = lineupFor(cl, true);
+        return { id: cid, name: cl.short, kit: cl.kit, kit2: cl.kit2, faces: VB.ROLES.map(function (r) { return line[r] ? line[r].face : VB.makeFace("ITA"); }) };
+      };
+      await VB.Ceremony.play({ title: L0.name + " AWARDS", sub: "SEASON " + C.season, podium: [L0.champion, runner, third].filter(Boolean).map(pod),
+                               awards: VB.Ceremony.fromAwards(show.list, function (cid) { return cid && C.clubs[cid] ? C.clubs[cid].kit2 : null; }) });
+    }
     var my = C.sstats.you || VB.Stats.newLine(), played = C.recent.filter(function (x) { return x !== null; });
     C.history.push({ season: C.season, club: C.club ? club().short : "FREE AGENT", league: C.club ? lg(club().league).name : "—",
                      mp: my.mp, pts: VB.Stats.pts(my), eff: VB.Stats.effTxt(my), dig: my.dig, blk: my.blk, ace: my.ace,

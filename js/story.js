@@ -261,10 +261,11 @@
       var bonus = q >= 1 ? 3 : q >= 0.5 ? 1 : 0;
       mine.ovr = VB.Stats.teamOvr(mine) + bonus;
       var s = VB.Stats.simSets(mine, foe, o.bestOf || 1), won = s.a > s.b;
-      if (won && VB.Gacha) VB.Gacha.earn(80);
+      var benchCoins = VB.Gacha ? VB.Gacha.earn(won ? 1000 : 500) : 0;
       await U.modal(won ? "WIN (FROM THE BENCH)" : "LOSS (FROM THE BENCH)",
         "<p>" + esc(coach()) + " went with the starters. " + (q >= 1 ? "Your pinch serve was an ACE — the bench went wild." : q >= 0.5 ? "Your pinch serve forced a free ball." : "Your pinch serve didn't do much.") + "</p>" +
-        "<p class='center big'>" + esc(mine.name + " " + s.a + " : " + s.b + " " + foe.name) + "</p><p class='center muted'>COACH TRUST " + Math.round(S.trust) + "</p>",
+        "<p class='center big'>" + esc(mine.name + " " + s.a + " : " + s.b + " " + foe.name) + "</p>" + (benchCoins ? "<p class='center'>+" + benchCoins + " 🏐 COINS</p>" : "") +
+        "<p class='center muted'>COACH TRUST " + Math.round(S.trust) + "</p>",
         [{ label: "CONTINUE", value: 1 }]);
       log((won ? "W " : "L ") + s.a + "-" + s.b + " vs " + foe.name + " (" + o.label + ") — bench.", "result");
       return won;
@@ -276,6 +277,7 @@
     U.showView("hub");
     var lineSt = res.stats.you, rating = VB.Stats.rating(lineSt, you().role, res.won);
     S.stats[S.year] = VB.Stats.addInto(st, lineSt);
+    S.rt = S.rt || {}; (S.rt[S.year] = S.rt[S.year] || []).push({ r: rating, nat: /NATIONALS/.test(o.label) });
     var before = ovr(you()), gains = grow(rating), after = ovr(you());
     S.trust = clamp(S.trust + (rating - 6) * 3 + (res.won ? 1 : 0), 0, 100);
     var flowed = res.flows.some(function (f) { return f.id === "you"; });
@@ -353,6 +355,7 @@
       var ph = PH[S.phase], t = school();
       if (ph === "april") {
         await U.modal(yearTxt(S.year) + " — APRIL", introText(), [{ label: "LET'S GO", value: 1 }]);
+        S.yStart = {}; S.squad.forEach(function (id) { S.yStart[id] = ovr(P(id)); });
         nextPhase();
       } else if (ph === "practice") {
         var rv = RIVAL[S.school] === S.school ? "NEK" : RIVAL[S.school];
@@ -436,6 +439,7 @@
           else if (S.step === 4) {
             S.spring = "SPRING NATIONALS CHAMPIONS"; S.trophies.push("Y" + S.year + " SPRING NATIONALS CHAMPIONS");
             log("🏆🏆 NATIONAL CHAMPIONS! " + t.name + " stands on top of Japan.", "you");
+            await nationalsCeremony(nf, S.bracket[3]);
             await U.modal("NATIONAL CHAMPIONS!", "<p class='center big'>🏆</p><p>The final whistle. Confetti. Somebody is crying — it might be you. <b>" + esc(t.name) + "</b> are the best high-school team in Japan.</p>", [{ label: "CONTINUE", value: 1 }]);
             S.bracket = null; nextPhase();
           } else { S.step++; save(); render(); }
@@ -448,6 +452,44 @@
   function nextPhase() {
     if (PH[S.phase] === "ih") S.pendingEval = "MID-YEAR";
     S.phase++; S.step = 0; save(); render();
+  }
+
+  // ================== CEREMONIES ==================
+  function avgRating(natOnly) {
+    var l = ((S.rt || {})[S.year] || []).filter(function (x) { return !natOnly || x.nat; });
+    return l.length ? l.reduce(function (a, x) { return a + x.r; }, 0) / l.length : 0;
+  }
+  function award(p, title, line) {
+    var t = school();
+    if (p.id === "you") { (S.awards = S.awards || []).push("Y" + S.year + " " + title); log("🏅 You win " + title + "!", "you"); }
+    return { title: title, name: p.name, team: t.flag + " " + t.name, kit: t.kit, kit2: t.kit2, teamId: t.id, face: p.face, line: line, you: p.id === "you" };
+  }
+  function podTeam(id, line) {
+    var t = team(id);
+    return { id: id, name: t.name, kit: t.kit, kit2: t.kit2, faces: VB.ROLES.map(function (r) { return line[r].face; }) };
+  }
+  async function nationalsCeremony(finalFoe, semiFoe) {
+    var mine = myLineup(false), me = you(), list = [];
+    var nr = avgRating(true), starters = VB.ROLES.map(function (r) { return mine[r]; });
+    var mvp = keyOf(mine) && nr >= 7.6 ? me : starters.filter(function (p) { return p.id !== "you"; }).sort(function (a, b) { return ovr(b) - ovr(a); })[0];
+    list.push(award(mvp, "SPRING NATIONALS MVP", mvp.id === "you" ? "AVG RATING " + nr.toFixed(1) + " AT NATIONALS" : "OVR " + ovr(mvp)));
+    if (keyOf(mine) && mvp.id !== "you" && nr >= 6.8) list.push(award(me, "BEST " + VB.FAMILY_NAMES[me.role], "AVG RATING " + nr.toFixed(1) + " AT NATIONALS"));
+    await VB.Ceremony.play({ title: "SPRING NATIONALS", sub: "YEAR " + S.year + " • TOKYO", awards: list,
+                             podium: [podTeam(S.school, mine), podTeam(finalFoe, oppDef(finalFoe).lineup)].concat(semiFoe ? [podTeam(semiFoe, oppDef(semiFoe).lineup)] : []) });
+  }
+  async function awardsNight() {
+    var ps = S.squad.map(P), line = myLineup(false), me = you(), list = [], ys = S.yStart || S.lastEval || {};
+    var starters = VB.ROLES.map(function (r) { return line[r]; });
+    var ar = avgRating(false), myGames = ((S.rt || {})[S.year] || []).length;
+    var mvp = keyOf(line) && myGames >= 3 && ar >= 7.8 ? me : starters.filter(function (p) { return p.id !== "you"; }).sort(function (a, b) { return ovr(b) - ovr(a); })[0];
+    list.push(award(mvp, "TEAM MVP", mvp.id === "you" ? "AVG RATING " + ar.toFixed(1) + " IN " + myGames + " MATCHES" : "OVR " + ovr(mvp) + " • " + yearTxt(S.years[mvp.id])));
+    var imp = ps.filter(function (p) { return ys[p.id] != null; }).sort(function (a, b) { return (ovr(b) - ys[b.id]) - (ovr(a) - ys[a.id]); })[0];
+    if (imp) list.push(award(imp, "MOST IMPROVED", "OVR " + ys[imp.id] + " → " + ovr(imp) + " THIS YEAR"));
+    var rook = ps.filter(function (p) { return S.years[p.id] === 1; }).sort(function (a, b) { return ovr(b) - ovr(a); })[0];
+    if (rook) list.push(award(rook, "ROOKIE OF THE YEAR", "OVR " + ovr(rook) + " AS A FIRST-YEAR"));
+    var spirit = S.trust >= 60 ? me : pick(ps.filter(function (p) { return p.id !== "you"; }));
+    list.push(award(spirit, "FIGHTING SPIRIT AWARD", spirit.id === "you" ? "COACH TRUST " + Math.round(S.trust) : "THE LOUDEST VOICE ON THE BENCH"));
+    await VB.Ceremony.play({ title: school().name + " AWARDS NIGHT", awards: list });
   }
 
   // ================== EVALUATIONS (twice a year) ==================
@@ -513,12 +555,12 @@
     function () { var rv = rivalStar(); if (!rv) return null; return { title: "RIVAL SIGHTING", html: "<p>At the convenience store you bump into <b>" + esc(rv.name) + "</b> from " + esc(rv.school) + ".</p>",
       choices: [{ label: "ASK FOR ADVICE", run: async function () { var a = FOCUS[you().role][0], g = addPts(a, 1.4); return rv.name + ": \"" + pick(TIPS) + "\"" + (g ? " (+" + g + " " + ATTR_TXT[a] + ")" : ""); } },
                 { label: "CHALLENGE THEM", run: async function () { var r = await drill("srv", "SERVE-OFF vs " + rv.name);
-                  if (r.q >= 0.5) { S.trust += 2; return "You win the serve-off! " + rv.name + " buys the meat buns. +" + coins(200) + " 🏐 coins."; }
+                  if (r.q >= 0.5) { S.trust += 2; return "You win the serve-off! " + rv.name + " buys the meat buns. +" + coins(500) + " 🏐 coins."; }
                   return rv.name + " laughs: \"Come back when you can hit the target.\""; } }] }; },
     function () { return { title: "MEAT BUNS", html: "<p>After a brutal practice, " + esc(senior()) + " treats the whole team to meat buns.</p>",
-      choices: [{ label: "THANKS, SENPAI!", run: async function () { S.trust += 2; return "Team spirit is up. +" + coins(120) + " 🏐 coins."; } }] }; },
+      choices: [{ label: "THANKS, SENPAI!", run: async function () { S.trust += 2; return "Team spirit is up. +" + coins(300) + " 🏐 coins."; } }] }; },
     function () { return { title: "FAN LETTER", html: "<p>There's a letter in your shoe locker: \"I saw your last match. Please keep playing!\"</p>",
-      choices: [{ label: "SMILE", run: async function () { return "You read it three times on the way home. +" + coins(300) + " 🏐 coins."; } }] }; },
+      choices: [{ label: "SMILE", run: async function () { return "You read it three times on the way home. +" + coins(1000) + " 🏐 coins."; } }] }; },
     function () { return { title: "ANKLE TWEAK", html: "<p>You land on someone's foot during a block drill. It hurts — but not that much?</p>",
       choices: [{ label: "REST IT", run: async function () { return "Two easy days with ice. Nothing lost."; } },
                 { label: "TAPE IT & PLAY", run: async function () {
@@ -528,13 +570,13 @@
       choices: [{ label: "PLAY WITH THEM", run: async function () { var r = await drill("rec", "PASSING vs THE ADULTS"); return r.g ? "Great reps. +" + r.g + " " + ATTR_TXT.rec + "." : "They run you ragged. Good lesson."; } },
                 { label: "JUST WATCH", run: async function () { var g = addPts(you().role === "S" ? "set" : "att", 0.8); return "You pick up a couple of veteran tricks" + (g ? " (+" + g + ")" : "") + "."; } }] }; },
     function () { return { title: "SUMMER FESTIVAL", html: "<p>The whole team is going to the festival tonight. Fireworks, takoyaki, goldfish scooping.</p>",
-      choices: [{ label: "GO WITH THE TEAM", run: async function () { S.trust += 1; return "A team photo you'll keep forever. +" + coins(200) + " 🏐 coins."; } },
+      choices: [{ label: "GO WITH THE TEAM", run: async function () { S.trust += 1; return "A team photo you'll keep forever. +" + coins(500) + " 🏐 coins."; } },
                 { label: "SHADOW PRACTICE", run: async function () { var g = addPts(S.focus, 1.2); return "You practise footwork alone by the river" + (g ? " (+" + g + " " + ATTR_TXT[S.focus] + ")" : "") + "."; } }] }; },
     function () { return { title: "SERVE CHALLENGE", html: "<p>" + esc(coach()) + " puts a towel on the floor in zone 1. \"Three serves. Hit it.\"</p>",
       choices: [{ label: "TAKE THE CHALLENGE", run: async function () {
         var hits = 0;
         for (var i = 0; i < 3; i++) { var r = await drill("srv", "TOWEL SERVE " + (i + 1) + "/3"); if (r.q >= 0.5) hits++; }
-        S.trust += hits; return hits + "/3 on the towel. +" + coins(100 + 120 * hits) + " 🏐 coins."; } }] }; },
+        S.trust += hits; return hits + "/3 on the towel. +" + coins(200 + 300 * hits) + " 🏐 coins."; } }] }; },
     function () { return { title: "VIDEO NIGHT", html: "<p>" + esc(coach()) + " wheels in a TV with tapes of the next opponents.</p>",
       choices: [{ label: "TAKE NOTES", run: async function () { S.trust += 2; var g = addPts("def", 0.9); return "You spot their favourite shot" + (g ? " (+" + g + " DEF)" : "") + "."; } }] }; }
   ];
@@ -551,6 +593,7 @@
 
   async function seasonEnd() {
     await evaluation("YEAR-END");
+    await awardsNight();
     var t = school(), line = S.stats[S.year] || VB.Stats.newLine(), me = you();
     var rec = { year: S.year, ovr: ovr(me), ih: S.ih || "—", spring: S.spring || "—", line: VB.Stats.lineText(line), mp: line.mp || 0 };
     S.history.push(rec);
@@ -645,6 +688,7 @@
     var cur = S.stats[S.year];
     return "<p><b>THIS YEAR:</b> " + esc(cur ? VB.Stats.lineText(cur) + " • " + (cur.mp || 0) + " MATCHES" : "no matches yet") + "</p>" +
       "<p>🏆 " + esc(S.trophies.join(", ") || "No trophies yet") + "</p>" +
+      "<p>🏅 " + esc((S.awards || []).join(", ") || "No individual awards yet") + "</p>" +
       (rows ? "<table class='standings'><tr><th>YEAR</th><th>OVR</th><th>INTERHIGH</th><th>SPRING</th><th>YOUR LINE</th></tr>" + rows + "</table>" : "");
   }
   function render() {

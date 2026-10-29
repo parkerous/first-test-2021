@@ -1854,7 +1854,7 @@
     }
     var won = setsWon[0] > setsWon[1];
     var finalScore = setNeed > 1 ? setsWon.slice() : score.slice();
-    var coins = VB.Gacha ? VB.Gacha.earn(won ? 250 + 40 * setsWon[0] : 80 + 40 * setsWon[0]) : 0;
+    var coins = VB.Gacha ? VB.Gacha.earn(won ? 1000 : 500) : 0;                 // a win = 10 pulls, a loss = 5
     ball.visible = false;
 
     var stats = {};

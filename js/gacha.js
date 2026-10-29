@@ -4,13 +4,13 @@
   "use strict";
   var U = VB.ui, $ = U.$, esc = U.esc, pick = VB.pick, rnd = VB.rnd;
 
-  var KEY = "hqGacha", COST1 = 100, COST10 = 900, MAX_ROAM = 6;
+  var KEY = "hqGacha", COST1 = 100, COST10 = 900, MAX_ROAM = 8, BASE_PULLS = 500;
   var RAR = {
     C: { name: "COMMON", col: "#9aa7b5", stars: 1 }, R: { name: "RARE", col: "#3d8bff", stars: 2 }, E: { name: "EPIC", col: "#a64dff", stars: 3 },
     L: { name: "LEGENDARY", col: "#ffc21e", stars: 4 }, M: { name: "MYTHIC", col: "#ff3d7f", stars: 5 }
   };
   var ORDER = ["M", "L", "E", "R", "C"];
-  var RATES = { M: 0.008, L: 0.04, E: 0.15, R: 0.3 };                 // the rest is Common
+  var RATES = { M: 0.0005, L: 0.04, E: 0.15, R: 0.3 };                 // the rest is Common
 
   var EPIC = ["HINATA", "KAGEYAMA", "NISHINOYA", "OIKAWA", "USHIJIMA", "ATSUMU", "KENMA", "KUROO", "BOKUTO", "SAKUSA", "HOSHIUMI"];
   var RARE = ["TANAKA", "SAWAMURA", "SUGAWARA", "AZUMANE", "TSUKISHIMA", "IWAIZUMI", "HANAMAKI", "MATSUKAWA", "KYOTANI", "SHIRABU", "GOSHIKI", "TENDO",
@@ -18,23 +18,40 @@
               "IIZUNA", "HIRUGAMI", "HAKUBA", "KIRYU", "HYAKUZAWA", "NAKASHIMA"];
   var EXTRA = { KAR: ["SUGAWARA", "YAMAGUCHI", "ENNOSHITA"], AOB: ["YAHABA", "KUNIMI"], SHI: ["SEMI"], NEK: ["SHIBAYAMA", "INUOKA"] };
   var MSBY = ["#1b1b1b", "#e8b923"], ADLERS = ["#203a6b", "#ffd21e"], XMAS = ["#c81e2a", "#ffffff"];
-  // limited variants: christmas, timeskip, festival
+  // limited variants: christmas and festival (Legendary) and the whole timeskip cast (Legendary or Mythic)
   var VARIANTS = [
     { id: "XMAS-BOKUTO", base: "BOKUTO", team: "FUK", r: "L", title: "CHRISTMAS BOKUTO", kit: XMAS, ex: ["santa"] },
     { id: "XMAS-NISHINOYA", base: "NISHINOYA", team: "KAR", r: "L", title: "CHRISTMAS NISHINOYA", kit: XMAS, ex: ["santa", "streak"] },
     { id: "XMAS-HINATA", base: "HINATA", team: "KAR", r: "L", title: "CHRISTMAS HINATA", kit: ["#1f7a3a", "#ffffff"], ex: ["santa"] },
     { id: "XMAS-KENMA", base: "KENMA", team: "NEK", r: "L", title: "CHRISTMAS KENMA", kit: XMAS, ex: ["santa", "roots"] },
     { id: "FEST-OIKAWA", base: "OIKAWA", team: "AOB", r: "L", title: "FESTIVAL OIKAWA", kit: ["#3a5aa8", "#ffffff"] },
-    { id: "TS-ATSUMU", base: "ATSUMU", team: "INA", r: "L", title: "TIMESKIP ATSUMU", sub: "MSBY BLACK JACKALS", kit: MSBY },
-    { id: "TS-USHIJIMA", base: "USHIJIMA", team: "SHI", r: "L", title: "TIMESKIP USHIJIMA", sub: "SCHWEIDEN ADLERS", kit: ADLERS },
-    { id: "TS-KENMA", base: "KENMA", team: "NEK", r: "L", title: "TIMESKIP KENMA", sub: "CEO KODZUKEN", kit: ["#d22630", "#1b1b1b"], face: { style: "long", hair: "#17120d" } },
+    // timeskip — Mythic
     { id: "TS-HINATA", base: "HINATA", team: "KAR", r: "M", title: "NINJA SHOYO", sub: "TIMESKIP • MSBY BLACK JACKALS", kit: MSBY, face: { style: "flat", skin: 2 } },
     { id: "TS-KAGEYAMA", base: "KAGEYAMA", team: "KAR", r: "M", title: "TIMESKIP KAGEYAMA", sub: "SCHWEIDEN ADLERS", kit: ADLERS, face: { style: "flat" } },
     { id: "TS-BOKUTO", base: "BOKUTO", team: "FUK", r: "M", title: "TIMESKIP BOKUTO", sub: "MSBY BLACK JACKALS", kit: MSBY },
-    { id: "TS-OIKAWA", base: "OIKAWA", team: "AOB", r: "M", title: "TIMESKIP OIKAWA", sub: "CA SAN JUAN", kit: ["#74b7e8", "#ffffff"], face: { skin: 1 } }
+    { id: "TS-OIKAWA", base: "OIKAWA", team: "AOB", r: "M", title: "TIMESKIP OIKAWA", sub: "CA SAN JUAN", kit: ["#74b7e8", "#ffffff"], face: { skin: 1 } },
+    { id: "TS-USHIJIMA", base: "USHIJIMA", team: "SHI", r: "M", title: "TIMESKIP USHIJIMA", sub: "SCHWEIDEN ADLERS", kit: ADLERS },
+    // timeskip — Legendary
+    { id: "TS-ATSUMU", base: "ATSUMU", team: "INA", r: "L", title: "TIMESKIP ATSUMU", sub: "MSBY BLACK JACKALS", kit: MSBY },
+    { id: "TS-SAKUSA", base: "SAKUSA", team: "ITC", r: "L", title: "TIMESKIP SAKUSA", sub: "MSBY BLACK JACKALS", kit: MSBY },
+    { id: "TS-HOSHIUMI", base: "HOSHIUMI", team: "KAM", r: "L", title: "TIMESKIP HOSHIUMI", sub: "SCHWEIDEN ADLERS", kit: ADLERS },
+    { id: "TS-KENMA", base: "KENMA", team: "NEK", r: "L", title: "TIMESKIP KENMA", sub: "CEO • BOUNCING BALL", kit: ["#d22630", "#1b1b1b"], face: { style: "long", hair: "#17120d" } },
+    { id: "TS-KUROO", base: "KUROO", team: "NEK", r: "L", title: "TIMESKIP KUROO", sub: "VOLLEYBALL ASSOCIATION", kit: ["#2b2b2b", "#d22630"] },
+    { id: "TS-TSUKISHIMA", base: "TSUKISHIMA", team: "KAR", r: "L", title: "TIMESKIP TSUKISHIMA", sub: "SENDAI FROGS", kit: ["#2f8f4f", "#ffffff"] },
+    { id: "TS-NISHINOYA", base: "NISHINOYA", team: "KAR", r: "L", title: "TIMESKIP NISHINOYA", sub: "WORLD TRAVELLER", kit: ["#3a7ab8", "#e8d27a"], ex: ["streak", "beard"] },
+    { id: "TS-AZUMANE", base: "AZUMANE", team: "KAR", r: "L", title: "TIMESKIP AZUMANE", sub: "FASHION DESIGNER", kit: ["#f0f0f0", "#2b2b2b"] },
+    { id: "TS-TANAKA", base: "TANAKA", team: "KAR", r: "L", title: "TIMESKIP TANAKA", sub: "STILL FIRED UP", kit: ["#1b1b1b", "#ff7a1a"] },
+    { id: "TS-SAWAMURA", base: "SAWAMURA", team: "KAR", r: "L", title: "TIMESKIP SAWAMURA", sub: "POLICE OFFICER", kit: ["#1d2b5a", "#ffd21e"] },
+    { id: "TS-SUGAWARA", base: "SUGAWARA", team: "KAR", r: "L", title: "TIMESKIP SUGAWARA", sub: "SCHOOL TEACHER", kit: ["#e8e4d0", "#3a5aa8"] },
+    { id: "TS-IWAIZUMI", base: "IWAIZUMI", team: "AOB", r: "L", title: "TIMESKIP IWAIZUMI", sub: "ATHLETIC TRAINER", kit: ["#1e4f9e", "#ffffff"] },
+    { id: "TS-AKAASHI", base: "AKAASHI", team: "FUK", r: "L", title: "TIMESKIP AKAASHI", sub: "MANGA EDITOR", kit: ["#3a3a3a", "#ffffff"] },
+    { id: "TS-OSAMU", base: "OSAMU", team: "INA", r: "L", title: "TIMESKIP OSAMU", sub: "ONIGIRI SHOP OWNER", kit: ["#f5f5f5", "#1b1b1b"], ex: ["headband"] },
+    { id: "TS-YAKU", base: "YAKU", team: "NEK", r: "L", title: "TIMESKIP YAKU", sub: "PLAYING IN RUSSIA", kit: ["#d81e36", "#1e4fd8"] },
+    { id: "TS-LEV", base: "LEV", team: "NEK", r: "L", title: "TIMESKIP LEV", sub: "FASHION MODEL", kit: ["#2b2b2b", "#d8d8d8"] }
   ];
   // featured pairs rotate every day (genshin-style banner with a 50/50 and a guarantee)
-  var FEATURED = [["XMAS-BOKUTO", "TS-HINATA"], ["XMAS-NISHINOYA", "TS-KAGEYAMA"], ["TS-ATSUMU", "TS-BOKUTO"], ["XMAS-KENMA", "TS-OIKAWA"]];
+  var FEATURED = [["XMAS-BOKUTO", "TS-HINATA"], ["TS-SAKUSA", "TS-KAGEYAMA"], ["TS-ATSUMU", "TS-BOKUTO"], ["XMAS-KENMA", "TS-OIKAWA"],
+                  ["TS-HOSHIUMI", "TS-USHIJIMA"], ["XMAS-NISHINOYA", "TS-HINATA"], ["TS-KUROO", "TS-BOKUTO"]];
 
   // ---------- card catalogue ----------
   var CARDS = [], BY = {};
@@ -72,7 +89,8 @@
   function load() {
     if (G) return G;
     try { G = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { G = null; }
-    if (!G) G = { coins: 1600, owned: {}, roam: [], pity: { e: 0, l: 0, m: 0 }, guar: false, pulls: 0, gift: "" };
+    if (!G) G = { coins: 0, owned: {}, roam: [], pity: { e: 0, l: 0, m: 0 }, guar: false, pulls: 0, gift: "" };
+    if (!G.base) { G.base = 1; G.coins += BASE_PULLS * COST1; G.welcome = 1; save(); }      // 500 free pulls to start
     return G;
   }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(G)); } catch (e) {} }
@@ -82,8 +100,8 @@
   // ---------- pulling ----------
   function rollRarity() {
     var p = G.pity;
-    if (p.m >= 149) return "M";
-    if (p.l >= 59) return Math.random() < 0.15 ? "M" : "L";
+    if (p.m >= 999) return "M";
+    if (p.l >= 59) return Math.random() < 0.01 ? "M" : "L";
     var soft = p.l >= 40 ? (p.l - 39) * 0.05 : 0;                 // soft pity
     var x = Math.random();
     if (x < RATES.M) return "M";
@@ -203,57 +221,101 @@
     });
   }
 
-  // ---------- showroom: favourites roam the gym ----------
+  // ---------- showroom: favourites hang out in a classroom ----------
   var room = null;
+  var DESK_X = [96, 226, 356, 486], DESK_Y = [200, 268, 336], DW = 58;
   function startRoom() {
     var cv = $("roomCv");
     if (!cv) return;
     var c = cv.getContext("2d"); c.imageSmoothingEnabled = false;
+    var seats = [];
+    DESK_Y.forEach(function (y) { DESK_X.forEach(function (x) { seats.push({ x: x + DW / 2, y: y - 4, taken: null }); }); });
     var bots = G.roam.filter(function (id) { return BY[id]; }).map(function (id, i) {
       return { id: id, card: BY[id], spr: VB.Engine.makeSprite(BY[id].kit[0], BY[id].face, BY[id].kit[1], VB.Engine.kitPattern(BY[id].team)),
-               x: 60 + i * 90, y: 200 + (i % 2) * 60, tx: 0, ty: 0, wait: rnd(0, 2), jump: 0, face: 1 };
+               x: 70 + (i % 5) * 130, y: 165 + Math.floor(i / 5) * 200, tx: 0, ty: 0, wait: rnd(0, 2), jump: 0, face: 1, seat: null, sit: 0 };
     });
     bots.forEach(function (b) { b.tx = b.x; b.ty = b.y; });
     var last = performance.now();
     room = { cv: cv, bots: bots };
+    function desk(x, y) {
+      c.fillStyle = "#7a5230"; c.fillRect(x + 4, y + 14, 4, 16); c.fillRect(x + DW - 8, y + 14, 4, 16);     // legs
+      c.fillStyle = "#c79a62"; c.fillRect(x, y, DW, 16); c.fillStyle = "#e0b57a"; c.fillRect(x, y, DW, 4);    // top
+      c.fillStyle = "#6b6f78"; c.fillRect(x + 6, y + 16, DW - 12, 6);                                         // drawer
+    }
+    function room0(now) {
+      // wall, chalkboard, clock, windows
+      c.fillStyle = "#efe6cf"; c.fillRect(0, 0, 640, 140);
+      c.fillStyle = "#c8b994"; c.fillRect(0, 132, 640, 8);
+      c.fillStyle = "#6b4a2a"; c.fillRect(126, 14, 348, 98);
+      c.fillStyle = "#2f5d46"; c.fillRect(132, 20, 336, 86);
+      c.fillStyle = "rgba(255,255,255,0.88)"; c.textAlign = "center";
+      c.font = '12px "Press Start 2P", monospace'; c.fillText("SHOWROOM", 300, 44);
+      c.font = '18px "VT323", monospace';
+      c.fillText("COLLECTION " + Object.keys(G.owned).length + "/" + CARDS.length + "  •  FLEX " + flex(), 300, 68);
+      c.fillText("TODAY'S DUTY: " + (bots[0] ? bots[0].card.name : "nobody"), 300, 90);
+      c.fillStyle = "#ffffff"; c.fillRect(150, 106, 30, 4); c.fillStyle = "#ffd21e"; c.fillRect(186, 106, 12, 4);   // chalk
+      c.fillStyle = "#ffffff"; c.beginPath(); c.arc(70, 50, 22, 0, 6.28); c.fill(); c.strokeStyle = "#3a3a3a"; c.lineWidth = 3; c.stroke();
+      var h = new Date(), ha = (h.getHours() % 12 + h.getMinutes() / 60) / 12 * 6.283, ma = h.getMinutes() / 60 * 6.283;
+      c.lineWidth = 3; c.beginPath(); c.moveTo(70, 50); c.lineTo(70 + Math.sin(ha) * 11, 50 - Math.cos(ha) * 11); c.stroke();
+      c.lineWidth = 2; c.beginPath(); c.moveTo(70, 50); c.lineTo(70 + Math.sin(ma) * 17, 50 - Math.cos(ma) * 17); c.stroke();
+      for (var w = 0; w < 2; w++) {
+        c.fillStyle = "#8a6a46"; c.fillRect(500 + w * 66, 16, 60, 100);
+        c.fillStyle = "#bfe3ff"; c.fillRect(504 + w * 66, 20, 24, 44); c.fillRect(532 + w * 66, 20, 24, 44); c.fillRect(504 + w * 66, 68, 24, 44); c.fillRect(532 + w * 66, 68, 24, 44);
+        c.fillStyle = "rgba(255,255,255,0.5)"; c.fillRect(506 + w * 66, 22, 6, 20);
+      }
+      // floor
+      c.fillStyle = "#c9935a"; c.fillRect(0, 140, 640, 260);
+      for (var y = 140; y < 400; y += 9) { c.fillStyle = "rgba(90,50,10,0.18)"; c.fillRect(0, y, 640, 1); for (var x = (y * 29) % 90; x < 640; x += 90) c.fillRect(x, y, 1, 9); }
+      // teacher's desk
+      c.fillStyle = "#8a5a32"; c.fillRect(262, 146, 76, 22); c.fillStyle = "#a8743f"; c.fillRect(262, 146, 76, 5);
+    }
     function frame(now) {
       if (!document.body.contains(cv)) { room = null; return; }
       var dt = Math.min(0.05, (now - last) / 1000); last = now;
-      // wooden gym floor
-      c.fillStyle = "#d6a263"; c.fillRect(0, 0, 640, 360);
-      for (var y = 0; y < 360; y += 8) { c.fillStyle = (y / 8) % 2 ? "rgba(120,70,20,0.09)" : "rgba(255,240,200,0.06)"; c.fillRect(0, y, 640, 8); c.fillStyle = "rgba(90,50,10,0.2)"; c.fillRect(0, y, 640, 1); }
-      c.fillStyle = "#3b4a63"; c.fillRect(0, 0, 640, 70);
-      c.fillStyle = "#ffd21e"; c.font = '12px "Press Start 2P", monospace'; c.textAlign = "center"; c.fillText("SHOWROOM", 320, 30);
-      c.fillStyle = "#9cc4ea"; c.font = '16px "VT323", monospace'; c.fillText("COLLECTION " + Object.keys(G.owned).length + "/" + CARDS.length + " • FLEX " + flex(), 320, 52);
-      c.strokeStyle = "rgba(255,255,255,0.7)"; c.lineWidth = 2; c.strokeRect(40, 90, 560, 250); c.beginPath(); c.moveTo(320, 90); c.lineTo(320, 340); c.stroke();
-      bots.sort(function (a, b) { return a.y - b.y; }).forEach(function (b) {
+      room0(now);
+      bots.forEach(function (b) {
         b.wait -= dt;
-        if (b.wait <= 0 && Math.hypot(b.tx - b.x, b.ty - b.y) < 2) {
-          if (Math.random() < 0.3) { b.jump = 0.6; b.wait = rnd(0.8, 2); }
-          else { b.tx = rnd(50, 590); b.ty = rnd(110, 320); b.wait = rnd(0.5, 2.5); }
+        var d0 = Math.hypot(b.tx - b.x, b.ty - b.y);
+        if (b.sit > 0) { b.sit -= dt; if (b.sit <= 0) { b.seat.taken = null; b.seat = null; b.ty += 22; } return; }
+        if (b.wait <= 0 && d0 < 2) {
+          if (b.seat) { b.sit = rnd(3, 7); return; }
+          var r = Math.random(), free = seats.filter(function (s) { return !s.taken; });
+          if (r < 0.35 && free.length) { b.seat = pick(free); b.seat.taken = b; b.tx = b.seat.x; b.ty = b.seat.y; }
+          else if (r < 0.5) { b.jump = 0.6; b.wait = rnd(0.8, 2); }
+          else { b.tx = pick([60, 190, 320, 450, 580, 600]) + rnd(-8, 8); b.ty = rnd(176, 384); b.wait = rnd(0.4, 2); }
         }
         var dx = b.tx - b.x, dy = b.ty - b.y, d = Math.hypot(dx, dy);
-        if (d > 1 && b.wait <= 0) { var sp = 55 * dt; b.x += dx / d * Math.min(sp, d); b.y += dy / d * Math.min(sp, d); b.face = dx < 0 ? -1 : 1; }
-        var hop = 0;
-        if (b.jump > 0) { b.jump -= dt; hop = Math.sin((0.6 - b.jump) / 0.6 * Math.PI) * 30; }
-        var walk = d > 1 && b.wait <= 0 ? Math.abs(Math.sin(now / 90)) * 3 : 0;
+        if (d > 1 && b.wait <= 0) { var sp = 55 * dt; b.x += dx / d * Math.min(sp, d); b.y += dy / d * Math.min(sp, d); b.face = dx < 0 ? -1 : 1; b.moving = true; }
+        else b.moving = false;
+      });
+      // depth-sorted desks and students
+      var items = [];
+      DESK_Y.forEach(function (y) { DESK_X.forEach(function (x) { items.push({ y: y + 2, desk: [x, y] }); }); });
+      bots.forEach(function (b) { items.push({ y: b.y, bot: b }); });
+      items.sort(function (a, b) { return a.y - b.y; }).forEach(function (it) {
+        if (it.desk) return desk(it.desk[0], it.desk[1]);
+        var b = it.bot, hop = 0;
+        if (b.jump > 0) { b.jump -= dt; hop = Math.sin((0.6 - b.jump) / 0.6 * Math.PI) * 26; }
+        var walk = b.moving ? Math.abs(Math.sin(now / 90)) * 3 : 0, sitDrop = b.sit > 0 ? 10 : 0;
         var col = b.card.r === "M" ? "hsl(" + Math.floor(now / 8) % 360 + ",100%,60%)" : RAR[b.card.r].col;
-        c.globalAlpha = 0.45; c.fillStyle = col; c.beginPath(); c.ellipse(b.x, b.y + 2, 26, 8, 0, 0, 6.28); c.fill(); c.globalAlpha = 1;
-        c.save(); c.translate(b.x, b.y - hop - walk); c.scale(b.face, 1); c.drawImage(b.spr, -24, -64, 48, 64); c.restore();
+        if (!b.sit) { c.globalAlpha = 0.4; c.fillStyle = col; c.beginPath(); c.ellipse(b.x, b.y + 2, 22, 7, 0, 0, 6.28); c.fill(); c.globalAlpha = 1; }
+        c.save(); c.translate(b.x, b.y - hop - walk + sitDrop); c.scale(b.face, 1); c.drawImage(b.spr, -21, -56, 42, 56); c.restore();
         if (b.card.r === "M" || b.card.r === "L") {
-          for (var k = 0; k < 3; k++) { var a = now / 300 + k * 2.1; c.fillStyle = col; c.fillRect(b.x + Math.cos(a) * 28, b.y - 34 - hop + Math.sin(a) * 30, 3, 3); }
+          for (var k = 0; k < 3; k++) { var a = now / 300 + k * 2.1; c.fillStyle = col; c.fillRect(b.x + Math.cos(a) * 24, b.y - 30 - hop + Math.sin(a) * 26, 3, 3); }
         }
-        c.font = '14px "VT323", monospace'; c.fillStyle = "rgba(10,14,22,0.7)";
-        var w = c.measureText(b.card.name).width + 8; c.fillRect(b.x - w / 2, b.y + 8, w, 14);
-        c.fillStyle = col; c.fillText(b.card.name, b.x, b.y + 19);
+        if (!b.sit) {
+          c.font = '14px "VT323", monospace'; c.textAlign = "center"; c.fillStyle = "rgba(10,14,22,0.7)";
+          var w = c.measureText(b.card.name).width + 8; c.fillRect(b.x - w / 2, b.y + 6, w, 14);
+          c.fillStyle = col; c.fillText(b.card.name, b.x, b.y + 17);
+        }
       });
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
     cv.onclick = function (e) {
-      var r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * 640 / r.width, y = (e.clientY - r.top) * 360 / r.height;
-      var hit = bots.find(function (b) { return Math.abs(b.x - x) < 26 && y > b.y - 70 && y < b.y + 20; });
-      if (hit) { hit.jump = 0.6; hit.wait = 1; }
+      var r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * 640 / r.width, y = (e.clientY - r.top) * 400 / r.height;
+      var hit = bots.find(function (b) { return Math.abs(b.x - x) < 24 && y > b.y - 60 && y < b.y + 18; });
+      if (hit && !hit.sit) { hit.jump = 0.6; hit.wait = 1; }
     };
   }
   function flex() {
@@ -266,22 +328,22 @@
   function render() {
     var f = featured().map(function (id) { return BY[id]; });
     var head = "<h2 class='hub-h'>HAIKYUU!! GACHA</h2>" +
-      "<div class='hub-status'>🏐 " + G.coins + " COINS • " + G.pulls + " PULLS • LEGENDARY PITY " + G.pity.l + "/60 • MYTHIC PITY " + G.pity.m + "/150</div>" +
+      "<div class='hub-status'>🏐 " + G.coins + " COINS • " + G.pulls + " PULLS • LEGENDARY PITY " + G.pity.l + "/60 • MYTHIC PITY " + G.pity.m + "/1000</div>" +
       "<div class='tabs'>" + [["pull", "PULL"], ["room", "SHOWROOM"]].map(function (t) { return "<button class='tab-btn" + (tab === t[0] ? " on" : "") + "' data-g='tab' data-v='" + t[0] + "'>" + t[1] + "</button>"; }).join("") + "</div>";
     var body;
     if (tab === "pull") {
       body = "<div class='gbanner'><div class='gbanner-t'>LIMITED BANNER • TODAY'S FEATURED</div><div class='gfeat'>" + f.map(function (c) {
           return "<div class='gcard r" + c.r + "'><img src='" + cardImg(c) + "' alt=''/><div class='gname'>" + esc(c.name) + "</div><div class='grar'>" + "★".repeat(RAR[c.r].stars) + " " + RAR[c.r].name + "</div></div>";
         }).join("") + "</div>" +
-        "<p class='muted'>Rates: Mythic 0.8% • Legendary 4% • Epic 15% • Rare 30% • Common 50%. Every 10 pulls guarantees Epic+. Legendary guaranteed by pull 60, Mythic by 150. " +
+        "<p class='muted'>Rates: Mythic 0.05% • Legendary 4% • Epic 15% • Rare 30% • Common ~51%. Every 10 pulls guarantees Epic+. Legendary guaranteed by pull 60, Mythic by pull 1000. " +
         "Won a Legendary/Mythic but not the featured one? Your next one IS featured. Featured cards change daily.</p>" +
         "<div class='hub-actions'><button class='btn big' data-g='pull' data-v='1'>PULL ×1 • " + COST1 + " 🏐</button><button class='btn big' data-g='pull' data-v='10'>PULL ×10 • " + COST10 + " 🏐</button></div>" +
-        "<p class='center muted'>Earn coins by playing matches in any mode (wins pay the most) and from story events.</p></div>";
+        "<p class='center muted'>Every match pays: a WIN = 10 pulls (1000 🏐), a LOSS = 5 pulls (500 🏐). Story events pay too.</p></div>";
     } else {
       var owned = CARDS.filter(function (c) { return G.owned[c.id] && (filter === "ALL" || c.r === filter); })
         .sort(function (a, b) { return ORDER.indexOf(a.r) - ORDER.indexOf(b.r) || a.name.localeCompare(b.name); });
-      body = "<canvas id='roomCv' class='room' width='640' height='360'></canvas>" +
-        "<p class='center muted'>Up to " + MAX_ROAM + " cards roam the gym (" + G.roam.length + "/" + MAX_ROAM + "). Tap a card below to send it out or back to storage.</p>" +
+      body = "<canvas id='roomCv' class='room' width='640' height='400'></canvas>" +
+        "<p class='center muted'>Up to " + MAX_ROAM + " cards hang out in the classroom (" + G.roam.length + "/" + MAX_ROAM + "). Tap a card below to send it out or back to storage.</p>" +
         "<div class='focus center-row'>" + ["ALL"].concat(ORDER).map(function (r) { return "<button class='btn" + (filter === r ? " on" : "") + "' data-g='filter' data-v='" + r + "'>" + (RAR[r] ? RAR[r].name : "ALL") + "</button>"; }).join("") + "</div>" +
         "<div class='gstore'>" + (owned.length ? owned.map(function (c) {
           var on = G.roam.indexOf(c.id) >= 0;
@@ -321,9 +383,13 @@
         U.showView("hub");
         $("hub").onclick = onClick;
         tab = "pull"; render();
+        if (G.welcome) {
+          G.welcome = 0; save();
+          await U.modal("WELCOME GIFT", "<p class='center big'>+" + BASE_PULLS + " PULLS</p><p class='center'>" + (BASE_PULLS * COST1) + " 🏐 coins to build your collection. Good luck!</p>");
+        }
         if (G.gift !== today()) {
-          G.gift = today(); G.coins += 500; save(); render();
-          await U.modal("DAILY GIFT", "<p class='center big'>+500 🏐</p><p class='center'>Come back tomorrow for more. Today's featured: " +
+          G.gift = today(); G.coins += 1000; save(); render();
+          await U.modal("DAILY GIFT", "<p class='center big'>+1000 🏐 (10 PULLS)</p><p class='center'>Come back tomorrow for more. Today's featured: " +
             esc(featured().map(function (id) { return BY[id].name; }).join(" & ")) + ".</p>");
         }
       });
