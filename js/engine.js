@@ -748,24 +748,37 @@
     var d = shotDir(originX, target);
     return d === "cross" ? "the cross" : d === "line" ? "straight down the line" : "the angle";
   }
+  // NCAA-style set calls. x is written from the bottom team's view (left pin ≈ 105, right pin ≈ 375,
+  // setter's spot 292); back-row sets (back:true) are hit from behind the 3m line.
+  var CALLS = [
+    { id: "one",   fam: "MB", label: "1 QUICK",  say: "a 1 (quick in front)",      tempo: 0.4,  needPass: 1, x: 262, peak: 0.25 },
+    { id: "31",    fam: "MB", label: "31",       say: "a 31 (inside quick)",       tempo: 0.5,  needPass: 1, x: 190, peak: 0.35 },
+    { id: "slide", fam: "MB", label: "SLIDE",    say: "a slide behind the setter", tempo: 0.55, needPass: 2, x: 345, peak: 0.45 },
+    { id: "high",  fam: "OH", label: "4 HIGH",   say: "a 4 (high outside)",        tempo: 1.0,  needPass: 0, x: 105, peak: 1.7 },
+    { id: "go",    fam: "OH", label: "GO",       say: "a Go (fast outside)",       tempo: 0.7,  needPass: 1, x: 112, peak: 0.75 },
+    { id: "five",  fam: "OP", label: "5 BACK",   say: "a 5 (high back set)",       tempo: 0.95, needPass: 0, x: 375, peak: 1.5 },
+    { id: "red",   fam: "OP", label: "RED",      say: "a Red (fast back set)",     tempo: 0.65, needPass: 1, x: 370, peak: 0.6 },
+    { id: "d",     fam: "OP", label: "D BALL",   say: "a D (back-row right side)", tempo: 0.85, needPass: 1, x: 360, peak: 1.0, back: true },
+    { id: "pipe",  fam: "OH", label: "PIPE",     say: "a pipe",                    tempo: 0.85, needPass: 1, x: 240, peak: 1.0, back: true },
+    { id: "bic",   fam: "OH", label: "BIC",      say: "a bic (quick pipe)",        tempo: 0.6,  needPass: 2, x: 255, peak: 0.55, back: true }
+  ];
   function setOptions(s, grade) {
     var front = frontRoles(s);
-    var mb = front.find(function (r) { return r.indexOf("MB") === 0; });
-    var oh = front.find(function (r) { return r.indexOf("OH") === 0; });
-    var opFront = front.indexOf("OP") >= 0;
-    var xs = s.side === 0 ? { left: 120, mid: 240, right: 330, slideX: 300 } : { left: W - 120, mid: W - 240, right: W - 330, slideX: W - 300 };
-    var opts = [
-      { id: "quick", label: "QUICK", hitter: mb, tempo: 0.45, needPass: 2, x: xs.mid, pipe: false, peak: 0.3 },
-      { id: "slide", label: "SLIDE", hitter: mb, tempo: 0.55, needPass: 2, x: xs.slideX, pipe: false, peak: 0.5 },
-      opFront ? { id: "medium", label: "MEDIUM", hitter: "OP", tempo: 0.75, needPass: 1, x: xs.right, pipe: false, peak: 0.9 }
-              : { id: "pipe", label: "PIPE", hitter: "OP", tempo: 0.8, needPass: 1, x: xs.mid, pipe: true, peak: 1.0 },
-      { id: "high", label: "HIGH", hitter: oh, tempo: 1.0, needPass: 0, x: xs.left, pipe: false, peak: 1.7 }
-    ];
+    var opts = [];
+    CALLS.forEach(function (c) {
+      // front-row calls need that hitter in the front row; back-row calls need them in the back row
+      var hitter = s.onCourt.find(function (r) { return VB.FAMILY[r] === c.fam && (front.indexOf(r) >= 0) !== !!c.back; });
+      if (!hitter) return;
+      opts.push({ id: c.id, label: c.label, say: c.say, hitter: hitter, tempo: c.tempo, needPass: c.needPass,
+                  x: s.side === 0 ? c.x : W - c.x, pipe: !!c.back, peak: c.peak });
+    });
     if (s.roster.S.skill === "dump") {
-      opts.push({ id: "dump", label: "DUMP", hitter: "S", tempo: 0.3, needPass: 1, x: setterSpot(s.side).x, pipe: false, dump: true, notReady: s.roster.S.cd > 0 });
+      opts.push({ id: "dump", label: "DUMP", say: "a dump", hitter: "S", tempo: 0.3, needPass: 1, x: setterSpot(s.side).x, pipe: false, dump: true, notReady: s.roster.S.cd > 0 });
     }
     return opts.map(function (o) { o.disabled = grade < o.needPass || !!o.notReady; return o; });
   }
+  // attacking near a sideline: pin hitters, who tool the block off the outside hand
+  function isPin(st) { return !st.dump && Math.min(Math.abs(st.x - CL), Math.abs(CR - st.x)) < 90; }
   function autoTiming(attr) { return clamp01(rnd(0.25, 1) * (0.75 + attr / 400)); }
   function aiTarget(defSide, ovr) {
     var best = null, bestScore = -1;
@@ -795,22 +808,40 @@
     return best;
   }
   function tipClamp(t) { var d = t.y - NET; return Math.abs(d) > ATK + 35 ? { x: t.x, y: NET + Math.sign(d) * (ATK + 35) } : t; }
+  // weighted pick: better teams run more tempo, everyone feeds their stars, nobody repeats the same call forever
   function aiPickSet(s, opts) {
     var ok = opts.filter(function (o) { return !o.disabled; });
     var d = ok.find(function (o) { return o.dump; });
     if (d && Math.random() < 0.1) return d;
     var nonDump = ok.filter(function (o) { return !o.dump; });
     if (!nonDump.length) return ok[0] || opts[opts.length - 1];
-    var st = nonDump[Math.random() < s.team.ovr / 140 ? 0 : nonDump.length - 1];
-    if (Math.random() < 0.5) st = nonDump[irnd(0, nonDump.length - 1)];
-    return st;
+    var fastLove = Math.pow(s.team.ovr / 88, 3);
+    var w = nonDump.map(function (o) {
+      var P0 = s.roster[o.hitter];
+      var x = o.tempo < 0.7 ? fastLove : 1;
+      if (o.pipe) x *= 0.6;
+      if (P0.skill === "spike" || P0.flow) x *= 1.6;
+      x *= 0.6 + P0.att / 160;
+      if (o.id === s.lastCall) x *= 0.5;
+      return x;
+    });
+    var sum = w.reduce(function (a, b) { return a + b; }, 0), r = Math.random() * sum;
+    for (var i = 0; i < nonDump.length; i++) { r -= w[i]; if (r <= 0) { s.lastCall = nonDump[i].id; return nonDump[i]; } }
+    return nonDump[0];
   }
-  function aiAttackPlan(atk, def, A, n) {
-    var r = Math.random(), type = "spike";
-    if (r < 0.12) type = "tip";
-    else if (n >= 2 && r < 0.24) type = "wipe";
+  function aiAttackPlan(atk, def, A, n, st, setQ) {
+    var r = Math.random(), type = "spike", pin = isPin(st);
+    // pin hitters facing a block on an imperfect set look to wipe it off the hands
+    var wipeP = pin && n >= 1 ? 0.06 + (setQ < 1 ? 0.07 : 0) + (n >= 2 ? 0.04 : 0) : 0;
+    if (r < 0.1) type = "tip";
+    else if (r < 0.1 + wipeP) type = "wipe";
     if (type === "spike" && ready(A, "spike") && Math.random() < 0.7) type = "super";
-    return { type: type, target: type === "tip" ? tipTarget(def) : type === "wipe" ? null : aiTarget(def, atk.team.ovr) };
+    var target = type === "tip" ? tipTarget(def) : type === "wipe" ? null : aiTarget(def, atk.team.ovr);
+    // pins sometimes go straight at the outside hand on purpose
+    if (type !== "tip" && type !== "wipe" && pin && n && Math.random() < 0.25) {
+      target = clampHalf(def, { x: st.x + rnd(-18, 18), y: NET + (def.side === 0 ? 1 : -1) * rnd(120, 230) });
+    }
+    return { type: type, target: target };
   }
   function blockCount(st) {
     var r = Math.random();
@@ -1005,7 +1036,7 @@
     setterRole = setterRole || "S";
     var def = other(atk), SN = atk.roster[setterRole].name, emergency = setterRole !== "S";
     var opts = setOptions(atk, grade);
-    if (emergency) opts = opts.filter(function (o) { return o.id === "high"; });
+    if (emergency) opts = opts.filter(function (o) { return o.id === "high" || o.id === "five"; });
     var st = null;
     if (atk === me && !emergency && iControl("S")) {
       msg(SN + " TO SET — PICK HITTER & BALL (" + GRADE_TXT[grade] + ")");
@@ -1023,7 +1054,7 @@
           .concat([{ label: "LET " + SN + " DECIDE", value: "auto" }]));
         if (call !== "auto") {
           var want = mine.find(function (o) { return o.id === call; });
-          feed(0, me.roster[myRole].name + " (YOU) calls for a " + want.label.toLowerCase() + " ball!");
+          feed(0, me.roster[myRole].name + " (YOU) calls for " + want.say + "!");
           if (Math.random() < 0.6 + grade * 0.15) st = want; else feed(0, SN + " goes elsewhere...");
         }
       }
@@ -1073,14 +1104,15 @@
     var n = blockCount(st), blockers = chooseBlockers(def, st.x, n);
     var lean = Math.random() < 0.5 ? "cross" : "line";
     var controlled = iAttack && iControl(hitter);
-    var plan = controlled ? null : aiAttackPlan(atk, def, A, n);
+    var plan = controlled ? null : aiAttackPlan(atk, def, A, n, st, grade === 2 ? 1 : grade === 1 ? 0.75 : 0.5);
     if (!iAttack && n && plan.target) {
       var actual = shotDir(st.x, plan.target);
       var myBlk = blockers.reduce(function (a, r) { return a + me.roster[r].blk; }, 0) / n;
       if (actual !== "angle" && Math.random() < clamp01((0.3 + myBlk / 300) * st.tempo)) lean = actual;
     }
     placeDefense(def, st.x, blockers, lean);
-    feed(atk.side, SN + " gives a " + st.label.toLowerCase() + " ball to " + zoneName(atk.side, st.x) + " for " + A.name + (A.skill ? " ★" : "") + "...");
+    feed(atk.side, SN + " sets " + st.say + " for " + A.name + (A.skill ? " ★" : "") + "...");
+    if (n === 0 && st.tempo < 0.6) feed(def.side, "...the middle is late — nobody up to block!");
     jump(atk, setterRole, 420, 2, "set");
     var setFlight = flyBall(setFrom, contact, 380 + st.tempo * 420, { h0: 1.1, h1: 1.4, peak: st.peak });
     var blockInfo = BLOCK_TXT[n] + (n && st.tempo >= 0.7 ? ", LEANING " + lean.toUpperCase() : "");
@@ -1148,6 +1180,7 @@
     var Btouch = n ? def.roster[BtouchRole] : null;
     var blockPt = { x: bx, y: n ? def.tgt[blockers[0]].y - 24 : NET };
     var shot = shotName(st.x, target);
+    var pin = isPin(st), quickMB = VB.FAMILY[hitter] === "MB" && st.tempo < 0.6;
     A.st.att++;
 
     // a tight, poor set can turn into a joust over the net
@@ -1165,7 +1198,13 @@
     var errP = 0.05 + (1 - setQ) * 0.08 + st.tempo * 0.02 - A.att / 1200 + (superSpike ? 0.03 : 0) + (type === "wipe" ? 0.05 : 0) - (type === "tip" ? 0.03 : 0);
     if (Math.random() < errP) {
       A.st.ae++;
-      if (Math.random() < 0.4) {
+      if (pin && dir === "line" && Math.random() < 0.35) {
+        var ant = { x: st.x < W / 2 ? CL : CR, y: NET };
+        await flyBall(contact, ant, 200, { h0: 1.4, h1: 1.2 });
+        netShakeAt = gt;
+        await flyBall(ant, { x: ant.x + (st.x < W / 2 ? -30 : 30), y: NET + dirA * 40 }, 300, { h0: 1.2, h1: 0 });
+        msg("OFF THE ANTENNA!"); feed(atk.side, "and " + A.name + " clips the antenna — error!");
+      } else if (Math.random() < 0.4) {
         var np = { x: contact.x, y: NET + dirA * 6 };
         await flyBall(contact, np, 200, { h0: 1.4, h1: 0.6 });
         netShakeAt = gt;
@@ -1203,12 +1242,17 @@
       netShakeAt = gt;
       var r = Math.random(), outcome;
       if (type === "wipe") {
-        var wipeP = clamp(0.38 + A.att / 350 - blkAvg / 700, 0.2, 0.75);
+        var wipeP = clamp(0.3 + A.att / 400 - blkAvg / 700 + (pin ? 0.12 : -0.12) + reachDiff / 300, 0.12, 0.72);
         outcome = r < wipeP ? "tool" : r < wipeP + 0.3 ? "stuff" : "soft";
       } else if (type === "tip") outcome = "soft";
       else {
-        var stuffP = clamp(0.3 + (blkAvg - A.att) / 250 + (n - 1) * 0.06 + (superBlock ? 0.15 : 0) - (superSpike ? 0.1 : 0) + stuffAdj, 0.12, 0.6);
-        var toolP = clamp(0.15 + (A.att - blkAvg) / 400, 0.05, 0.3);
+        var stuffP = clamp(0.18 + (blkAvg - A.att) / 250 + (n - 1) * 0.05 + (superBlock ? 0.15 : 0) - (superSpike ? 0.1 : 0) + stuffAdj, 0.08, 0.5);
+        var toolP = (quickMB ? 0.04 : pin ? 0.16 : 0.08) +
+                    (pin && dir === "line" ? 0.06 : 0) +             // swinging into the outside hand
+                    (A.att - blkAvg) / 400 +
+                    clamp(reachDiff / 250, -0.06, 0.08) +           // hitting off high hands
+                    (n === 1 ? 0.03 : 0) - (readRight ? 0.04 : 0);
+        toolP = clamp(toolP, 0.03, 0.34);
         outcome = r < stuffP ? "stuff" : r < stuffP + toolP ? "tool" : r < stuffP + toolP + 0.12 ? "offblock" : Math.random() < 0.25 ? "rebound" : "soft";
       }
       var who = Btouch.name + (superBlock ? " ★" : "");
@@ -1220,11 +1264,15 @@
         return credit(def, BtouchRole);
       }
       if (outcome === "tool") {
-        var sideOut = { x: bx < W / 2 ? CL - 28 : CR + 28, y: NET + dirD * rnd(70, 220) };
-        await flyBall(blockPt, sideOut, 420, { h0: 0.6, h1: 0, peak: 0.5 });
+        var outside = type === "wipe" || Math.random() < (pin ? 0.7 : 0.3);
+        var toolPt = outside ? { x: st.x < W / 2 ? CL - 28 : CR + 28, y: NET + dirD * rnd(70, 220) }
+                             : { x: clamp(bx + rnd(-60, 60), CL - 20, CR + 20), y: def.side === 0 ? CB + 30 : CT - 30 };
+        await flyBall(blockPt, toolPt, outside ? 420 : 520, { h0: 0.6, h1: 0, peak: outside ? 0.5 : 1.2, spin: 20 });
         A.st.k++; assist(atk, setterRole, hitter);
-        msg("OFF THE BLOCK — OUT!"); cheer();
-        feed(atk.side, "and " + A.name + (type === "wipe" ? " WIPES it off " : " tools ") + Btouch.name + "'s hands — out!", true);
+        msg(type === "wipe" ? "WIPED OFF THE BLOCK!" : "TOOLED!"); cheer();
+        feed(atk.side, "and " + A.name + (type === "wipe" ? " WIPES it off " + Btouch.name + "'s hands — out!"
+                       : outside ? " TOOLS it off " + Btouch.name + "'s outside hand — out!"
+                       : " TOOLS it off " + Btouch.name + "'s fingertips into the stands!"), true);
         return credit(atk, hitter);
       }
       if (outcome === "offblock") {

@@ -29,7 +29,11 @@ build step, no server.
 
 ## Gameplay
 - 5-1 rotations, libero swaps, home/base formations, perimeter defense.
+- NCAA-style set calls: 1, 31 and slide for middles; 4 and Go for outsides;
+  5 and Red for the opposite; pipe, bic and D from the back row.
 - Height and vertical jump create spike reach vs block reach duels.
+- Tools depend on the situation: pin hitters swinging line into the outside
+  hand tool often, middle quicks rarely; pins can clip the antenna.
 - Single/double/triple blocks, block reads, seams, tools, wipes, tips,
   one-touches, waterfalls, overpasses, joust battles, free balls, dolphin dives,
   no-touch kills, shanks; poor passes can land anywhere, and the libero sets
