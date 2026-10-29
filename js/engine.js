@@ -863,10 +863,12 @@
   function timingBar(label, speedMs, goodW) {
     goodW = clamp(goodW || 0.28, 0.12, 0.42);
     var perfW = goodW * 0.26;                                     // GOOD is easy to hit, PERFECT is not
+    var rawMs = speedMs;
     speedMs *= 1.8;                                               // a calm, readable marker
     return new Promise(function (res) {
       var wrap = $("timing"), mk = $("marker");
-      $("timingLabel").textContent = label + "  [" + (goodW >= 0.32 ? "EASY" : goodW >= 0.24 ? "NORMAL" : goodW >= 0.17 ? "HARD" : "BRUTAL") + "]";
+      var pace = rawMs < 850 ? "  ⚡⚡ VERY FAST" : rawMs < 1100 ? "  ⚡ FAST" : rawMs > 1500 ? "  🐢 SLOW" : "";
+      $("timingLabel").textContent = label + "  [" + (goodW >= 0.32 ? "EASY" : goodW >= 0.24 ? "NORMAL" : goodW >= 0.17 ? "HARD" : "BRUTAL") + "]" + pace;
       var center = rnd(0.15 + goodW / 2, 0.85 - goodW / 2);
       $("zoneG").style.left = (center - goodW / 2) * 100 + "%"; $("zoneG").style.width = goodW * 100 + "%";
       $("zoneP").style.left = (center - perfW / 2) * 100 + "%"; $("zoneP").style.width = perfW * 100 + "%";
@@ -924,7 +926,12 @@
     var errP = kind === "spin" ? 0.1 - quality * 0.06 : 0.05 - quality * 0.03;
     return { power: clamp01(power), wobble: wobble, errP: Math.max(0.02, errP) };
   }
-  function barSpeed(attacker) { return Math.round(1500 - (attacker.team.ovr - 65) * 16); }
+  // the OVR duel: a better hitter/server than your passer means a faster marker (ms per sweep, before the calm-down factor)
+  function duelSpeed(atkVal, defVal, hot) {
+    var ms = 1350 - (atkVal - defVal) * 14 - (atkVal - 75) * 7;
+    if (hot) ms *= 0.85;                                           // star skills and flow state hit harder
+    return Math.round(clamp(ms, 650, 1900));
+  }
   function zoneName(side, x) {
     var left = x < 180, right = x > 300;
     if (side === 1) { var t = left; left = right; right = t; }
@@ -1189,7 +1196,8 @@
     var RP = rcv.roster[rcvRole], timing = null;
     if (!errKind && rcv === me && iControl(rcvRole)) {
       await sleep(150); slow();
-      timing = await timingBar("RECEIVE — " + RP.name + "!", barSpeed(srv),
+      timing = await timingBar("RECEIVE — " + RP.name + " vs " + Sv.name + " (SRV " + Sv.srv + ")!",
+        duelSpeed(Sv.srv + (kind === "spin" ? sp.power * 12 : 0), RP.rec, superServe || Sv.flow),
         0.28 + (RP.rec - Sv.srv) / 250 - sp.power * 0.08 - (superServe ? 0.04 : 0) - (kind === "float" ? 0.02 : 0));
       fast();
     } else if (rcv === me) timing = autoTiming(RP.rec);
@@ -1676,8 +1684,8 @@
     var timing;
     if (controlled) {
       await sleep(60); slow();
-      timing = await timingBar((o.soft ? "PLAY THE TOUCH — " : o.type === "tip" ? "CHASE THE TIP — " : "DIG — ") + D.name + "!",
-                               barSpeed(atk) * (o.soft ? 1.25 : o.type === "tip" ? 1.1 : 0.9),
+      timing = await timingBar((o.soft ? "PLAY THE TOUCH — " : o.type === "tip" ? "CHASE THE TIP — " : "DIG — ") + D.name + " vs " + o.A.name + " (ATT " + o.A.att + ")!",
+                               duelSpeed(o.A.att, D.def, o.superSpike || o.A.flow) * (o.soft ? 1.25 : o.type === "tip" ? 1.1 : 0.9),
                                0.26 + (D.def - o.A.att) / 250 - (o.superSpike ? 0.03 : 0) - (o.type === "spike" ? (1 - o.st.tempo) * 0.05 : 0) +
                                (o.soft ? 0.08 : 0) + (o.type === "tip" ? 0.05 : 0));
       fast();

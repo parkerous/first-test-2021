@@ -110,7 +110,10 @@ build step, no server.
   block can still slide toward your shot; deep swings clear short blocks.
 - One-player mode adds extra timing steps: serve toss, the setter's touch,
   the hitter's approach jump and the blocker's jump timing.
-- Timing bar: a slow, steady marker judged on what you see (screen/input lag is
+- Timing bar speed is an OVR duel: the hitter's attack (or the server's serve)
+  vs your player's dig (or receive). A star hitter vs a weak passer is ⚡ FAST,
+  the reverse is 🐢 SLOW; star skills and flow state speed it up.
+- Timing bar: a steady marker judged on what you see (screen/input lag is
   forgiven). GOOD is fair; PERFECT is a narrow band. The green zone shrinks for
   harder serves and attacks and grows when your player out-rates the hitter.
 
