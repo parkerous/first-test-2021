@@ -139,7 +139,20 @@
     function row(x1, x2, y, col) { q.fillStyle = col; q.fillRect(x1, y, x2 - x1 + 1, 1); }
     var hs = typeof face.style === "string" ? face.style : STYLE_IDX[face.style || 0] || "buzz";
     var H = face.hair, H2 = face.hair2 || mix(H, "#000000", 0.45), ex = face.ex || [];
-    var topFace = { flat: 3, long: 3, bowl: 3, bedhead: 3, fluffy: 3 }[hs] || 2;
+    var topFace = { flat: 3, long: 3, bowl: 3, bedhead: 3, fluffy: 3, crew: 3, fringe: 3, middle: 3, crop: 3, afro: 3, wavy: 3, braids: 3 }[hs] || 2;
+    var HL = mix(H, "#ffffff", 0.22), HD = mix(H, "#000000", 0.35);
+    // realistic cuts
+    if (hs === "crew") { row(3, 8, 1, H); row(3, 8, 2, H); p(2, 2, HD); p(9, 2, HD); }
+    if (hs === "sidepart") { row(3, 8, 0, H); p(4, 0, HL); row(2, 9, 1, H); p(2, 2, H); p(9, 2, H); row(5, 8, 2, H); }
+    if (hs === "fringe") { row(3, 8, 0, H); row(2, 9, 1, H); row(2, 9, 2, H); }
+    if (hs === "middle") { row(3, 8, 0, H); p(5, 0, HD); p(6, 0, HD); row(2, 9, 1, H); row(2, 4, 2, H); row(7, 9, 2, H); }
+    if (hs === "undercut") { row(3, 8, 0, H); row(3, 8, 1, H); p(4, 0, HL); p(2, 2, HD); p(9, 2, HD); }
+    if (hs === "crop") { row(3, 8, 0, H); p(4, 0, HL); p(7, 0, HL); row(2, 9, 1, H); row(3, 8, 2, H); }
+    if (hs === "afro") { row(2, 9, 0, H); row(1, 10, 1, H); row(1, 10, 2, H); p(3, 0, HL); p(7, 1, HL); }
+    if (hs === "slick") { row(3, 8, 0, H); p(5, 0, HL); p(6, 0, HL); row(2, 9, 1, H); }
+    if (hs === "bun") { p(5, 0, HD); p(6, 0, HD); row(3, 8, 1, H); }
+    if (hs === "wavy") { row(3, 8, 0, H); row(2, 9, 1, H); row(2, 9, 2, H); p(4, 1, HL); p(7, 1, HL); }
+    if (hs === "braids") { for (var bx = 3; bx <= 8; bx++) { p(bx, 0, bx % 2 ? H : HD); p(bx, 1, bx % 2 ? HD : H); } row(2, 9, 2, H); }
     if (hs === "long") { for (var yy = 2; yy <= 7; yy++) { p(2, yy, H); p(9, yy, H); } }
     if (hs === "buzz") row(3, 8, 1, H);
     if (hs === "flat" || hs === "long") { row(2, 9, 1, H); row(2, 9, 2, H); }
@@ -151,7 +164,11 @@
     for (var y = topFace; y <= 5; y++) row(3, 8, y, face.skin);
     if (hs !== "bald" && hs !== "mohawk") { p(3, topFace, H); p(8, topFace, H); }
     if (hs === "bowl") row(3, 8, 3, H);                                   // heavy fringe
-    if (hs === "fluffy" || hs === "long" || hs === "curly") { p(2, 3, H); p(9, 3, H); }
+    if (hs === "fluffy" || hs === "long" || hs === "curly" || hs === "middle" || hs === "wavy") { p(2, 3, H); p(9, 3, H); }
+    if (hs === "afro") { p(2, 3, H); p(9, 3, H); p(1, 3, H); p(10, 3, H); }
+    if (hs === "braids") { p(2, 3, HD); p(9, 3, HD); p(2, 4, H); p(9, 4, H); }
+    if (hs === "wavy") { p(2, 4, H); p(9, 4, H); }
+    if (hs === "fringe") row(3, 5, 3, H);                                 // bangs
     if (hs === "curly") { p(2, 2, H); p(9, 2, H); }
     if (ex.indexOf("roots") >= 0) row(3, 8, 1, H2);                       // two-tone, dark roots
     if (ex.indexOf("streak") >= 0) { p(5, 1, H2); p(6, 1, H2); p(6, 0, H2); }   // coloured fringe streak
@@ -160,6 +177,7 @@
     if (ex.indexOf("sunglasses") >= 0) { row(3, 8, 4, "#111111"); p(4, 4, "#3a5a8a"); p(7, 4, "#3a5a8a"); }
     row(5, 6, 5, face.mouth ? "#a33d4d" : face.skin);
     if (ex.indexOf("beard") >= 0) { p(3, 5, H); p(4, 5, H); p(7, 5, H); p(8, 5, H); }
+    if (ex.indexOf("stubble") >= 0) { var SB = mix(face.skin, H, 0.4); p(3, 5, SB); p(4, 5, SB); p(7, 5, SB); p(8, 5, SB); }
     if (ex.indexOf("vampire") >= 0) { p(5, 5, "#ffffff"); p(6, 5, "#ffffff"); }
     if (ex.indexOf("santa") >= 0) { row(3, 8, 0, "#d62828"); row(2, 9, 1, "#d62828"); row(2, 9, 2, "#ffffff"); p(9, 0, "#d62828"); p(10, 0, "#ffffff"); }
     if (ex.indexOf("headband") >= 0) row(2, 9, 2, face.band || "#ffffff");
@@ -218,7 +236,7 @@
       roster[role] = {
         ref: rec, name: rec.name, num: num, face: rec.face, skill: rec.skill || null, skillName: rec.skillName || null,
         cd: 0, ph: rnd(0, Math.PI * 2), streak: 0, flow: false, flowLeft: 0,
-        srv: rec.srv, rec: rec.rec, set: rec.set, att: rec.att, blk: rec.blk, def: rec.def,
+        srv: rec.srv, rec: rec.rec, set: rec.set, att: rec.att, blk: rec.blk, def: rec.def, men: rec.men || 70, tec: rec.tec || 70,
         height: rec.height, vert: rec.vert, spikeReach: reach.spike, blockReach: reach.block,
         sprite: makeSprite(role === "L" ? libKit : kit, rec.face, role === "L" ? kit : (kit === team.kit ? team.kit2 : team.kit), kitPattern(team.id)),
         st: newStat()
@@ -987,9 +1005,16 @@
     var errP = kind === "spin" ? 0.1 - quality * 0.06 : 0.05 - quality * 0.03;
     return { power: clamp01(power), wobble: wobble, errP: Math.max(0.02, errP) };
   }
+  // mental: composure in tight moments (and the confidence a story/career brings in) widens your green zone a little
+  function clutchAdj(Pl) {
+    var to = (cfg && cfg.setsTo) || 15, tight = Math.max(score[0], score[1]) >= to - 3 && Math.abs(score[0] - score[1]) <= 2;
+    return (tight ? ((Pl.men || 70) - 70) / 300 : 0) + ((cfg && cfg.confAdj) || 0);
+  }
+  // technique: clean contacts mean fewer shanks
+  function techShank(Pl) { return clamp(1.7 - (Pl.tec || 70) / 100, 0.6, 1.4); }
   // the OVR duel: a better hitter/server than your passer means a faster marker (ms per sweep, before the calm-down factor)
   function duelSpeed(atkVal, defVal, hot) {
-    var ms = 1350 - (atkVal - defVal) * 14 - (atkVal - 75) * 7;
+    var ms = 1350 - (atkVal - defVal) * 14 - (atkVal - 70) * 7;
     if (hot) ms *= 0.85;                                           // star skills and flow state hit harder
     return Math.round(clamp(ms, 650, 1900));
   }
@@ -1261,7 +1286,7 @@
       await sleep(150); slow();
       timing = await timingBar("RECEIVE — " + RP.name + " vs " + Sv.name + " (SRV " + Sv.srv + ")!",
         duelSpeed(Sv.srv + (kind === "spin" ? sp.power * 12 : 0), RP.rec, superServe || Sv.flow),
-        0.28 + (RP.rec - Sv.srv) / 250 - sp.power * 0.08 - (superServe ? 0.04 : 0) - (kind === "float" ? 0.02 : 0));
+        0.28 + (RP.rec - Sv.srv) / 250 - sp.power * 0.08 - (superServe ? 0.04 : 0) - (kind === "float" ? 0.02 : 0) + clutchAdj(RP));
       fast();
     } else if (rcv === me) timing = autoTiming(RP.rec);
     await flight;
@@ -1272,7 +1297,7 @@
     var rq = rcv === me ? clamp01(timing * 0.72 + RP.rec / 320 - sp.power * 0.28 + rnd(-0.04, 0.06))
                         : clamp01(RP.rec / 110 - sp.power * 0.45 + rnd(-0.12, 0.18));
     if (useRec) rq = clamp01(rq + 0.15);
-    var shank = Math.random() < (useRec ? SHANK_P / 2 : SHANK_P);
+    var shank = Math.random() < (useRec ? SHANK_P / 2 : SHANK_P) * techShank(RP);
     var grade = shank ? -1 : passGrade(rq);
     RP.st.rc++;
     if (grade < 0) {
@@ -1630,7 +1655,8 @@
 
   async function resolveHit(atk, def, hitter, st, plan, blockers, lean, superBlock, grade, contact, setterRole) {
     var A = atk.roster[hitter], dirA = atk.side === 0 ? 1 : -1, dirD = -dirA, n = blockers.length;
-    var setQ = clamp((grade === 2 ? 1 : grade === 1 ? 0.75 : 0.5) + (st.setAdj || 0), 0.4, 1.1);
+    var SP = atk.roster[setterRole] || atk.roster.S;
+    var setQ = clamp((grade === 2 ? 1 : grade === 1 ? 0.75 : 0.5) + (st.setAdj || 0) + ((SP.tec || 70) - 72) / 300, 0.4, 1.1);   // the setter's technique
     var Bs = blockers.map(function (r) { return def.roster[r]; });
     var blkAvg = n ? Bs.reduce(function (a, b) { return a + b.blk; }, 0) / n : 0;
     var superSpike = plan.type === "super", type = superSpike ? "spike" : plan.type, target = plan.target;
@@ -1818,7 +1844,7 @@
       timing = await timingBar((o.soft ? "PLAY THE TOUCH — " : o.type === "tip" ? "CHASE THE TIP — " : "DIG — ") + D.name + " vs " + o.A.name + " (ATT " + o.A.att + ")!",
                                duelSpeed(o.A.att, D.def, o.superSpike || o.A.flow) * (o.soft ? 1.25 : o.type === "tip" ? 1.1 : 0.9),
                                0.26 + (D.def - o.A.att) / 250 - (o.superSpike ? 0.03 : 0) - (o.type === "spike" ? (1 - o.st.tempo) * 0.05 : 0) +
-                               (o.soft ? 0.08 : 0) + (o.type === "tip" ? 0.05 : 0));
+                               (o.soft ? 0.08 : 0) + (o.type === "tip" ? 0.05 : 0) + clutchAdj(D));
       fast();
     } else timing = autoTiming(D.def);
     await flight;
@@ -1857,7 +1883,7 @@
         (o.seam ? " — SPLITS THE SEAM!!" : o.readWrong ? " — the block bit on the wrong side!!" : "!!"),
         o.soft ? "IT DROPS!" : o.type === "tip" ? (o.dump ? "DUMP KILL!" : "TIP KILL!") : "KILL!!");
     }
-    if (Math.random() < SHANK_P) {
+    if (Math.random() < SHANK_P * techShank(D)) {
       var how = await shankFx(def, digRole, to);
       o.A.st.k++; assist(atk, o.setterRole, o.hitterRole);
       msg("SHANKED!"); feed(def.side, D.name + " shanks it " + how);
@@ -1908,13 +1934,13 @@
 
   function rosterTable(s) {
     var h = "<table class='roster'><tr><th>" + U.esc((s.team.flag || "") + " " + s.team.name) +
-      "</th><th>HT</th><th>VERT</th><th>REACH</th><th>SRV</th><th>REC</th><th>SET</th><th>ATT</th><th>BLK</th><th>DEF</th></tr>";
+      "</th><th>HT</th><th>VERT</th><th>REACH</th><th>SRV</th><th>REC</th><th>SET</th><th>ATT</th><th>BLK</th><th>DEF</th><th>MEN</th><th>TEC</th></tr>";
     ROLES.forEach(function (role) {
       var r = s.roster[role];
       h += "<tr><td><img src='" + r.sprite.toDataURL() + "' alt=''/>" + role + " " + U.esc(r.name) +
         (r.skill ? " <span class='star'>★" + skillLabel(r) + "</span>" : "") +
         "</td><td>" + r.height + "</td><td>" + r.vert + "</td><td>" + r.spikeReach + "/" + r.blockReach + "</td><td>" + r.srv + "</td><td>" + r.rec + "</td><td>" + r.set +
-        "</td><td>" + r.att + "</td><td>" + r.blk + "</td><td>" + r.def + "</td></tr>";
+        "</td><td>" + r.att + "</td><td>" + r.blk + "</td><td>" + r.def + "</td><td>" + r.men + "</td><td>" + r.tec + "</td></tr>";
     });
     return h + "</table>";
   }
@@ -1968,7 +1994,30 @@
   }
 
   // cfg: { mine, foe, homeSide (0 = mine), mode, myRole, label, league, setsTo }
+  // play it, or quick-sim it (a little worse without you calling the shots: ~5-10% lower win chance)
+  async function quickSim(c) {
+    var mine = Object.assign({}, c.mine), bo = c.bestOf || 1;
+    mine.ovr = VB.Stats.teamOvr(c.mine) - (bo > 1 ? 1 : 1.5);
+    var s = VB.Stats.simSets(mine, c.foe, bo), won = s.a > s.b;
+    var coins = VB.Gacha ? VB.Gacha.earn(won ? 1000 : 500) : 0;
+    var top = Object.keys(s.stats).filter(function (id) { return VB.ROLES.some(function (r) { return c.mine.lineup[r] && c.mine.lineup[r].id === id; }); })
+      .sort(function (a, b) { return VB.Stats.pts(s.stats[b]) - VB.Stats.pts(s.stats[a]); }).slice(0, 3);
+    await U.modal(won ? "QUICK SIM — WIN" : "QUICK SIM — LOSS",
+      "<p class='center big'>" + U.esc(c.mine.name + " " + s.a + " : " + s.b + " " + c.foe.name) + "</p>" +
+      (bo > 1 ? "<p class='center muted'>SETS " + s.sets.map(function (x) { return x[0] + "-" + x[1]; }).join(", ") + "</p>" : "") +
+      "<p class='center'>TOP SCORERS: " + top.map(function (id) { return U.esc(s.stats[id].name) + " " + VB.Stats.pts(s.stats[id]); }).join(" • ") + "</p>" +
+      (coins ? "<p class='center'>+" + coins + " 🏐 COINS</p>" : ""), [{ label: "CONTINUE", value: 1 }]);
+    return { score: [s.a, s.b], sets: s.sets, won: won, stats: s.stats, flows: [], coins: coins, simmed: true };
+  }
+
   async function playMatch(c) {
+    try { Object.assign(TAC, JSON.parse(localStorage.getItem("retroVB.tactics") || "{}")); } catch (e) {}
+    if (!c.noSimChoice) {
+      var how = await U.modal("MATCH DAY", "<p class='center big'>" + U.esc(c.mine.name + " vs " + c.foe.name) + "</p><p class='center'>" + U.esc(c.label || "") + "</p>" +
+        "<p class='center muted'>⏩ QUICK SIM plays it out instantly — but without you calling the shots your team is a little worse (about 5-10% lower win chance).</p>",
+        [{ label: "▶ PLAY MATCH", value: "play" }, { label: "⏩ QUICK SIM", value: "sim", cls: "pink" }]);
+      if (how === "sim") return await quickSim(c);
+    }
     cfg = c;
     mode = c.mode || "full"; myRole = c.myRole || null;
     var mineKit = c.mine.kit, foeKit = kitClash(c.mine.kit, c.foe.kit) ? (c.foe.kit2 && !kitClash(c.mine.kit, c.foe.kit2) ? c.foe.kit2 : "#f5f5f5") : c.foe.kit;

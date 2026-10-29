@@ -8,15 +8,15 @@
   var COMP = { S: 2, OH: 4, MB: 3, OP: 2, L: 1 };                       // a 12-player squad
   var CAL = ["window-pre", "R1", "R2", "R3", "window-mid", "R4", "R5", "R6", "R7", "SF", "F", "end"];
   var CAL_TXT = { "window-pre": "PRE-SEASON TRANSFER WINDOW", "window-mid": "MID-SEASON TRANSFER WINDOW", SF: "PLAYOFF SEMIFINALS", F: "PLAYOFF FINAL", end: "SEASON REVIEW" };
-  var FOCUS = { S: ["set", "def", "srv", "blk", "vert"], OH: ["att", "rec", "def", "srv", "blk", "vert"], MB: ["blk", "att", "srv", "vert"],
-                OP: ["att", "srv", "blk", "def", "vert"], L: ["rec", "def", "set"] };
-  var ATTR_TXT = { srv: "SERVE", rec: "RECEIVE", set: "SET", att: "ATTACK", blk: "BLOCK", def: "DEFENCE", vert: "VERTICAL" };
+  var FOCUS = { S: ["set", "def", "srv", "blk", "tec", "men", "vert"], OH: ["att", "rec", "def", "srv", "blk", "tec", "men", "vert"], MB: ["blk", "att", "srv", "tec", "men", "vert"],
+                OP: ["att", "srv", "blk", "def", "tec", "men", "vert"], L: ["rec", "def", "set", "tec", "men"] };
+  var ATTR_TXT = { srv: "SERVE", rec: "RECEIVE", set: "SET", att: "ATTACK", blk: "BLOCK", def: "DEFENCE", vert: "VERTICAL", men: "MENTAL", tec: "TECHNIQUE" };
 
   var C = null, exitCareer = null, busy = false, tab = "news";
   // season storylines fit the club's stature
   function arcFor(prestige) {
-    return prestige >= 86 ? pick(["TITLE FAVOURITES", "TITLE FAVOURITES", "UNDER PRESSURE", "NEW COACH, NEW IDEAS"])
-         : prestige >= 79 ? pick(["DARK HORSES", "UNDER PRESSURE", "NEW COACH, NEW IDEAS", "REBUILDING WITH YOUTH"])
+    return prestige >= 78 ? pick(["TITLE FAVOURITES", "TITLE FAVOURITES", "UNDER PRESSURE", "NEW COACH, NEW IDEAS"])
+         : prestige >= 72 ? pick(["DARK HORSES", "UNDER PRESSURE", "NEW COACH, NEW IDEAS", "REBUILDING WITH YOUTH"])
          : pick(["REBUILDING WITH YOUTH", "DARK HORSES", "FINANCIAL TROUBLE", "NEW COACH, NEW IDEAS"]);
   }
 
@@ -30,7 +30,7 @@
   function P(id) { return C.players[id]; }
   function ovr(p) { return VB.ovr(p); }
   function lg(id) { return C.leagues[id]; }
-  function salaryFor(p) { return Math.round(Math.pow(Math.max(8, ovr(p) - 55), 1.7)); }
+  function salaryFor(p) { return Math.round(Math.pow(Math.max(8, ovr(p) - 48), 1.7)); }
   function payroll(cl) { return cl.roster.reduce(function (a, id) { return a + (P(id).salary || 0); }, 0); }
   function famCount(cl, fam) { return cl.roster.filter(function (id) { return P(id).role === fam; }).length; }
   function news(text, tag) {
@@ -96,7 +96,7 @@
           club: null, form: 0, recent: [], history: [], trophies: [], awardsWon: [], focus: FOCUS[setup.role][0], prog: {},
           sstats: {}, interest: 0, injured: 0, vertGain: 0, skillUnlocked: false, season0: true, name: setup.name };
     VB.CLUBS.forEach(buildClub);
-    for (var f = 0; f < 8; f++) addPlayer(genPlayer(pick(VB.IMPORT_NATS), pick(Object.keys(COMP)), irnd(64, 74), irnd(20, 30)), null);
+    for (var f = 0; f < 8; f++) addPlayer(genPlayer(pick(VB.IMPORT_NATS), pick(Object.keys(COMP)), irnd(57, 66), irnd(20, 30)), null);
     newSeasonLeagues();
     setupCareer(setup);
   }
@@ -150,7 +150,7 @@
     if (ups) news("⬆ LEVEL " + C.lvl + "! +" + ups + " SKILL POINT" + (ups > 1 ? "S" : "") + " to spend in DEVELOP.", "you");
     return ups;
   }
-  function spCost(a) { var v = a === "vert" ? 90 : you()[a]; return v < 75 ? 1 : v < 85 ? 2 : 3; }
+  function spCost(a) { var v = a === "vert" ? 90 : you()[a]; return v < 70 ? 1 : v < 79 ? 2 : 3; }
   var OBJ_STAT = { OH: ["pts", 45, "SCORE 45 POINTS"], OP: ["pts", 55, "SCORE 55 POINTS"], MB: ["blk", 10, "MAKE 10 BLOCKS"], S: ["ast", 70, "70 ASSISTS"], L: ["dig", 30, "30 DIGS"] };
   function newObjectives() {
     var st = OBJ_STAT[you().role];
@@ -168,10 +168,10 @@
     var fam = setup.role, h = VB.HEIGHT[fam], v = VB.VERT[fam], b = setup.build;
     var height = b === "tower" ? h[1] + irnd(0, 4) : b === "jumper" ? h[0] + irnd(0, 3) : Math.round((h[0] + h[1]) / 2) + irnd(-2, 2);
     var vert = b === "tower" ? v[0] + irnd(0, 4) : b === "jumper" ? v[1] + irnd(2, 8) : Math.round((v[0] + v[1]) / 2) + irnd(-2, 2);
-    var me = VB.makePlayer({ id: "you", name: setup.name, nat: setup.nat, role: fam, base: 66, age: 19, height: height, vert: vert });
+    var me = VB.makePlayer({ id: "you", name: setup.name, nat: setup.nat, role: fam, base: 60, age: 19, height: height, vert: vert });
     if (b === "jumper") me.def = clamp(me.def + 3, 25, 99);
     if (b === "tower") me.blk = clamp(me.blk + 3, 25, 99);
-    me.pot = irnd(88, 95);
+    me.pot = irnd(82, 89);
     me.build = b;
     var ar = ARCH[setup.arch] || ARCH.power;
     Object.keys(ar.boost).forEach(function (a) { me[a] = clamp(me[a] + ar.boost[a], 25, 99); });
@@ -261,7 +261,7 @@
         gains[a] = (gains[a] || 0) + 1;
       }
     });
-    if (!C.skillUnlocked && ovr(p) >= 78) {
+    if (!C.skillUnlocked && ovr(p) >= 72) {
       C.skillUnlocked = true;
       p.skill = VB.ROLE_SKILL[p.role];
       news("★ SIGNATURE MOVE UNLOCKED: " + p.name + " learns " + VB.SKILL_TXT[p.skill] + "!", "you");
@@ -397,7 +397,7 @@
       if (!dests.length) continue;
       var to = club(pick(dests));
       moveTo(pid, to.id);
-      var big = ovr(p) >= 86;
+      var big = ovr(p) >= 78;
       var line = (big ? "💥 BLOCKBUSTER: " : "🔁 TRANSFER: ") + p.name + " (" + flagOf(p.nat) + " " + p.role + ", " + ovr(p) + ") moves from " + from.short + " to " + to.short + ".";
       news(line, "transfer"); lines.push(line);
     }
@@ -415,7 +415,7 @@
     for (var k = 0; k < n; k++) {
       var fam = pick(Object.keys(COMP)), phenom = Math.random() < 0.08, young = !phenom && Math.random() < 0.55;
       var nat = pick(VB.IMPORT_NATS.concat(["ITA", "JPN"]));
-      var p = genPlayer(nat, fam, phenom ? irnd(85, 89) : young ? irnd(66, 74) : irnd(74, 83), phenom ? irnd(20, 24) : young ? irnd(18, 20) : irnd(23, 28));
+      var p = genPlayer(nat, fam, phenom ? irnd(77, 80) : young ? irnd(59, 66) : irnd(66, 73), phenom ? irnd(20, 24) : young ? irnd(18, 20) : irnd(23, 28));
       if (young) p.pot = clamp(ovr(p) + irnd(10, 20), 0, 96);
       var dests = Object.keys(C.clubs).sort(function (a, b) { return famCount(club(a), fam) - famCount(club(b), fam); });
       var to = phenom ? Object.keys(C.clubs).sort(function (a, b) { return club(b).budget - club(a).budget; })[0] : dests[0];
@@ -818,7 +818,7 @@
 
   // ================== SLOTS & NEW CAREER ==================
   function renderSlots() {
-    var html = "<h2 class='hub-h'>PLAYER CAREER</h2><p class='center muted'>SuperLega 🇮🇹 • SV.League 🇯🇵 • PlusLiga 🇵🇱 • Efeler Ligi 🇹🇷 • Superliga 🇧🇷 • one player • archetypes, skill points, manager objectives</p><div class='slots'>";
+    var html = "<h2 class='hub-h'>PLAYER CAREER</h2><p class='center muted'>🇮🇹 🇯🇵 🇵🇱 🇹🇷 🇧🇷 🇫🇷 🇩🇪 🇰🇷 — 8 leagues • one player • archetypes, skill points, manager objectives</p><div class='slots'>";
     for (var s = 1; s <= SLOTS; s++) {
       var c = load(s);
       if (c) {
@@ -864,7 +864,7 @@
       save(); return render();
     }
     if (act === "menu" || act === "exit") { if (C) save(); C = null; $("hub").onclick = null; var r = exitCareer; exitCareer = null; return r && r(); }
-    if (act === "load") { C = load(+arg); ensureLeagues(); save(); tab = "news"; return render(); }
+    if (act === "load") { C = load(+arg); Object.keys(C.players).forEach(function (id) { VB.fillAttrs(C.players[id]); }); ensureLeagues(); save(); tab = "news"; return render(); }
     if (act === "del") {
       var ok = await U.modal("DELETE CAREER?", "<p>Slot " + arg + " will be erased for good.</p>", [{ label: "DELETE", value: true, cls: "pink" }, { label: "KEEP IT", value: false }]);
       if (ok) localStorage.removeItem(SLOT_KEY + arg);

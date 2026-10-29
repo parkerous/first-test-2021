@@ -17,7 +17,7 @@
         "<button class='card menu-card' data-act='gacha'><div class='menu-icon'>🎴</div><div class='pname'>GACHA &amp; SHOWROOM</div>" +
           "<div class='muted'>🏐 " + VB.Gacha.coins() + " coins. Pull Haikyuu!! cards from Common to Mythic (Christmas Bokuto, Timeskip Hinata...) and show them off.</div></button>" +
         "<button class='card menu-card' data-act='career'><div class='menu-icon'>🏟️</div><div class='pname'>PLAYER CAREER</div>" +
-          "<div class='muted'>FIFA-style: pick an archetype, earn XP and skill points, hit your manager's objectives and move between 5 leagues (Italy, Japan, Poland, Türkiye, Brazil).</div></button>" +
+          "<div class='muted'>FIFA-style: pick an archetype, earn XP and skill points, hit your manager's objectives and move between 8 leagues (Italy, Japan, Poland, Türkiye, Brazil, France, Germany, Korea).</div></button>" +
       "</div>" +
       "<div class='hub-actions'><button class='btn' data-act='floor'>COURT FLOOR: " + VB.FLOORS[localStorage.getItem("retroVB.floor") || "auto"] + "</button></div>" +
       "<div class='hub-actions'><button class='link-btn' data-act='resetVnl'>RESET TOURNAMENT RECORDS</button></div>";

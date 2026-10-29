@@ -19,27 +19,42 @@ window.VB = window.VB || {};
   VB.ROLES = ["S", "OH1", "OH2", "MB1", "MB2", "OP", "L"];             // the seven lineup slots
   VB.FAMILY = { S: "S", OH1: "OH", OH2: "OH", MB1: "MB", MB2: "MB", OP: "OP", L: "L" };
   VB.FAMILY_NAMES = { S: "SETTER", OH: "OUTSIDE HITTER", MB: "MIDDLE BLOCKER", OP: "OPPOSITE", L: "LIBERO" };
-  VB.ATTRS = ["srv", "rec", "set", "att", "blk", "def"];
+  // men = mental (composure in tight moments, confidence), tec = technique (clean contacts, fewer shanks, better sets)
+  VB.ATTRS = ["srv", "rec", "set", "att", "blk", "def", "men", "tec"];
   VB.MODS = {
-    S:  { srv: -2,  rec: -4,  set: 9,   att: -18, blk: -4,  def: 3 },
-    OH: { srv: 1.5, rec: 6,   set: -9,  att: 3,   blk: 0,   def: 3.5 },
-    MB: { srv: -4,  rec: -14, set: -14, att: 5.5, blk: 9.5, def: -7 },
-    OP: { srv: 4,   rec: -9,  set: -11, att: 8,   blk: 3,   def: -2 },
-    L:  { srv: -30, rec: 12,  set: -4,  att: -40, blk: -40, def: 12 }
+    S:  { srv: -2,  rec: -4,  set: 9,   att: -18, blk: -4,  def: 3,   men: 1, tec: 6 },
+    OH: { srv: 1.5, rec: 6,   set: -9,  att: 3,   blk: 0,   def: 3.5, men: 0, tec: 1 },
+    MB: { srv: -4,  rec: -14, set: -14, att: 5.5, blk: 9.5, def: -7,  men: 0, tec: -2 },
+    OP: { srv: 4,   rec: -9,  set: -11, att: 8,   blk: 3,   def: -2,  men: 1, tec: 0 },
+    L:  { srv: -30, rec: 12,  set: -4,  att: -40, blk: -40, def: 12,  men: 2, tec: 4 }
   };
   var OVR_W = {
-    S:  { set: .45, def: .15, srv: .1, blk: .1, rec: .1, att: .1 },
-    OH: { att: .3, rec: .25, def: .15, srv: .15, blk: .15 },
-    MB: { blk: .4, att: .35, srv: .15, def: .1 },
-    OP: { att: .45, srv: .2, blk: .2, def: .15 },
-    L:  { rec: .45, def: .45, set: .1 }
+    S:  { set: .4, def: .13, srv: .09, blk: .09, rec: .09, att: .08, men: .05, tec: .07 },
+    OH: { att: .27, rec: .23, def: .13, srv: .13, blk: .13, men: .05, tec: .06 },
+    MB: { blk: .37, att: .32, srv: .13, def: .08, men: .05, tec: .05 },
+    OP: { att: .41, srv: .18, blk: .18, def: .13, men: .05, tec: .05 },
+    L:  { rec: .4, def: .4, set: .08, men: .06, tec: .06 }
   };
-  var OVR_OFF = { S: 1.7, OH: 3.15, MB: 4.4, OP: 4.7, L: 10.4 };     // keeps ovr ≈ the base it was built from
+  var OVR_OFF = {};                                                   // keeps ovr ≈ the base it was built from
+  Object.keys(OVR_W).forEach(function (f) { var o = 0; Object.keys(OVR_W[f]).forEach(function (a) { o += OVR_W[f][a] * VB.MODS[f][a]; }); OVR_OFF[f] = o; });
+  // older saves: players made before mental/technique existed get values from their skill level
+  VB.fillAttrs = function (p) {
+    if (p.men != null && p.tec != null) return p;
+    var w = OVR_W[p.role], s = 0, n = 0;
+    ["srv", "rec", "set", "att", "blk", "def"].forEach(function (a) { if (w[a]) { s += p[a] - VB.MODS[p.role][a]; n++; } });
+    var base = n ? s / n : 70;
+    if (p.men == null) p.men = clamp(Math.round(base + VB.MODS[p.role].men), 25, 99);
+    if (p.tec == null) p.tec = clamp(Math.round(base + VB.MODS[p.role].tec), 25, 99);
+    return p;
+  };
   VB.ovr = function (p) {
+    if (p.men == null || p.tec == null) VB.fillAttrs(p);
     var w = OVR_W[p.role], s = 0;
     Object.keys(w).forEach(function (a) { s += p[a] * w[a]; });
     return Math.round(s - OVR_OFF[p.role]);
   };
+  // the ratings scale: elite pros sit around 80-85
+  VB.scaleOvr = function (x) { return Math.round(40 + (x - 40) * 0.82); };
   // reach in cm: standing reach ≈ 1.335 × height; jumping adds the vertical
   VB.reach = function (p) {
     var stand = p.height * 1.335;
@@ -103,12 +118,22 @@ window.VB = window.VB || {};
   var SKIN_BY = { JPN: [0, 0, 1], CHN: [0, 0, 1], KOR: [0, 0, 1], BRA: [1, 2, 3, 4], CUB: [2, 3, 4], USA: [0, 1, 2, 3, 4],
                   FRA: [0, 1, 2, 3, 4], MLI: [3, 4], TUN: [1, 2], IRI: [1, 2], ARG: [0, 1, 2], ITA: [0, 0, 1, 2] };
   var DARK_HAIR = { JPN: 1, CHN: 1, KOR: 1, BRA: 1, CUB: 1, MLI: 1, TUN: 1, IRI: 1 };
+  // 15 realistic haircuts for everyday players (anime styles stay with the famous faces)
+  VB.HAIR_STYLES = ["buzz", "crew", "sidepart", "fringe", "middle", "undercut", "crop", "curly", "afro", "slick", "bun", "wavy", "braids", "flat", "bald"];
+  VB.HAIR_TXT = { buzz: "BUZZ CUT", crew: "CREW CUT", sidepart: "SIDE PART", fringe: "FRINGE", middle: "MIDDLE PART", undercut: "UNDERCUT", crop: "TEXTURED CROP",
+                  curly: "SHORT CURLS", afro: "AFRO", slick: "SLICKED BACK", bun: "MAN BUN", wavy: "WAVY", braids: "BRAIDS", flat: "CLASSIC", bald: "BALD", bedhead: "OWL (BOKUTO)" };
+  var CURLY_OK = { BRA: 1, CUB: 1, MLI: 1, USA: 1, FRA: 1, TUN: 1, ARG: 1 };
   VB.makeFace = function (nat) {
-    var sk = SKIN_BY[nat] || [0, 0, 1];
+    var sk = SKIN_BY[nat] || [0, 0, 1], skin = VB.SKINS[pick(sk)], dark = VB.SKINS.indexOf(skin) >= 3;
+    var styles = ["buzz", "crew", "crew", "sidepart", "fringe", "middle", "undercut", "undercut", "crop", "crop", "slick", "bun", "wavy", "flat", "bald"];
+    if (dark || CURLY_OK[nat]) styles = styles.concat(["curly", "afro", "braids", "buzz"]);
+    var ex = [], r = Math.random();
+    if (r < 0.1) ex.push("beard"); else if (r < 0.22) ex.push("stubble");
+    if (Math.random() < 0.05) ex.push("glasses");
     return {
-      skin: VB.SKINS[pick(sk)],
-      hair: DARK_HAIR[nat] ? pick(["#17120d", "#17120d", "#3a2416"]) : VB.HAIRC[irnd(0, 5)],
-      style: irnd(0, 3), mouth: Math.random() < 0.4
+      skin: skin,
+      hair: DARK_HAIR[nat] || dark ? pick(["#17120d", "#17120d", "#3a2416"]) : VB.HAIRC[irnd(0, 5)],
+      style: pick(styles), ex: ex, mouth: Math.random() < 0.4
     };
   };
 
@@ -235,7 +260,7 @@ window.VB = window.VB || {};
     { id: "CHN", name: "CHINA", ovr: 72, kit: "#e3342f", kit2: "#ffd21e", players: { S: "YU", OH1: "ZHANG", OH2: "LIU", MB1: "PENG", MB2: "WANG", OP: "JIANG", L: "QU" }, stars: { OH1: "spike", MB1: "block" } },
     { id: "KOR", name: "KOREA", ovr: 68, kit: "#2f6fd6", kit2: "#ffffff", players: { S: "HAN", OH1: "JEONG", OH2: "HEO", MB1: "KIM", MB2: "SHIN", OP: "LIM", L: "PARK" }, stars: { OH1: "spike", OH2: "rec" } }
   ];
-  VB.NATIONAL.forEach(function (t) { t.flag = VB.FLAGS[t.id] || ""; });
+  VB.NATIONAL.forEach(function (t) { t.flag = VB.FLAGS[t.id] || ""; t.ovr = VB.scaleOvr(t.ovr); });
   VB.nationalById = function (id) { return VB.NATIONAL.find(function (t) { return t.id === id; }); };
 
   // seven player records for a team, rebuilt each tournament. Optional per-role overrides:
@@ -262,7 +287,10 @@ window.VB = window.VB || {};
     SV: { id: "SV", name: "SV.LEAGUE", flag: "🇯🇵", nat: "JPN" },
     PL: { id: "PL", name: "PLUSLIGA", flag: "🇵🇱", nat: "POL" },
     EF: { id: "EF", name: "EFELER LIGI", flag: "🇹🇷", nat: "TUR" },
-    SB: { id: "SB", name: "SUPERLIGA", flag: "🇧🇷", nat: "BRA" }
+    SB: { id: "SB", name: "SUPERLIGA", flag: "🇧🇷", nat: "BRA" },
+    LA: { id: "LA", name: "LIGUE A", flag: "🇫🇷", nat: "FRA" },
+    BL: { id: "BL", name: "BUNDESLIGA", flag: "🇩🇪", nat: "GER" },
+    VL: { id: "VL", name: "V-LEAGUE", flag: "🇰🇷", nat: "KOR" }
   };
   // seeds: [name, nat, family, skill?] — an arcade homage, not real rosters
   VB.CLUBS = [
@@ -343,5 +371,40 @@ window.VB = window.VB || {};
    "CRU:fast", "SES:power", "MIN:creative", "PRA:fast", "REN:serve", "JOI:defense", "SJO:balanced", "MAR:ace"].forEach(function (k) {
     k = k.split(":"); VB.PLAY_OF[k[0]] = k[1];
   });
+  // Ligue A, Bundesliga and the Korean V-League
+  [
+    ["TOU", "LA", "TOURS VB", "TOURS", "#e30613", "#ffffff", 87, "BOURDON", "France's most decorated club, always in the hunt.", [["TILLIE", "FRA", "OH", "spike"]]],
+    ["MON2", "LA", "MONTPELLIER HSC", "MONTPELLIER", "#0b3a8a", "#f39200", 85, "TILLIE", "Sun, style and a fast offence.", []],
+    ["CHA", "LA", "CHAUMONT 52", "CHAUMONT", "#009640", "#ffffff", 84, "PATRY", "A small town with a champion's habit.", []],
+    ["PAR", "LA", "PARIS VOLLEY", "PARIS", "#0b2a6f", "#e30613", 82, "LEGRAND", "The capital's comeback project.", []],
+    ["POI", "LA", "POITIERS", "POITIERS", "#ffd200", "#1b1b1b", 80, "MARTIN", "Gritty defence, loud fans.", []],
+    ["SET", "LA", "SETE", "SETE", "#1e63ff", "#ffffff", 78, "ROUX", "The seaside spoilers.", []],
+    ["NIC", "LA", "NICE VB", "NICE", "#d4001a", "#1b1b1b", 76, "BLANC", "Riviera underdogs with flair.", []],
+    ["NAR", "LA", "NARBONNE", "NARBONNE", "#ff7a00", "#1b1b1b", 73, "FAURE", "Where young players get their first chance.", []],
+    ["BRV", "BL", "BERLIN RECYCLING VOLLEYS", "BERLIN", "#e30613", "#1b1b1b", 88, "SERNIOTTI", "The German machine — titles every spring.", []],
+    ["FRH", "BL", "VFB FRIEDRICHSHAFEN", "FRIEDRICHSHAFEN", "#0b3a8a", "#ffffff", 85, "HAUSER", "The lakeside giants, hungry again.", []],
+    ["LUN", "BL", "SVG LUNEBURG", "LUNEBURG", "#009640", "#ffffff", 81, "HUBNER", "A loud little arena that scares favourites.", []],
+    ["FRA2", "BL", "UNITED VOLLEYS FRANKFURT", "FRANKFURT", "#1b1b1b", "#ffd200", 79, "WAGNER", "Big city, bigger ambitions.", []],
+    ["DUR", "BL", "POWERVOLLEYS DUREN", "DUREN", "#e30613", "#ffffff", 77, "SCHMIDT", "Hard serving and harder work.", []],
+    ["GIE", "BL", "GRIZZLYS GIESEN", "GIESEN", "#7a4a1a", "#ffd200", 75, "KOCH", "The bears from the north.", []],
+    ["HER", "BL", "VOLLEYS HERRSCHING", "HERRSCHING", "#00a0e9", "#ffffff", 74, "BECKER", "Party volleyball, serious points.", []],
+    ["NET", "BL", "NETZHOPPERS", "NETZHOPPERS", "#ff7a00", "#0b3a8a", 71, "FISCHER", "A club that loves an upset.", []],
+    ["JUM", "VL", "KOREAN AIR JUMBOS", "JUMBOS", "#0b3a8a", "#e8f1ff", 86, "TOMMI", "Incheon's dynasty, built on quick sets.", []],
+    ["SKY", "VL", "HYUNDAI SKYWALKERS", "SKYWALKERS", "#0060a8", "#ffffff", 84, "BLANCO", "Cheonan's powerhouse, full of national players.", []],
+    ["WIB", "VL", "WOORI CARD WIBEE", "WIBEE", "#00a0e9", "#ffffff", 80, "PARK", "A young, exciting team on the rise.", []],
+    ["KBS", "VL", "KB STARS", "KB STARS", "#ffd200", "#3a2a1a", 79, "KIM", "Steady, tough and hard to beat at home.", []],
+    ["OKS", "VL", "OK SAVINGS BANK", "OK MAN", "#ff7a00", "#1b1b1b", 78, "OH", "Busan's fighters.", []],
+    ["BLU", "VL", "SAMSUNG BLUEFANGS", "BLUEFANGS", "#1e4fd8", "#ffffff", 77, "LEE", "A proud old club chasing past glory.", []],
+    ["VIX", "VL", "KEPCO VIXTORM", "VIXTORM", "#e30613", "#ffffff", 75, "KWON", "Power-hitting underdogs.", []],
+    ["SST", "VL", "SEOUL STARS", "SEOUL", "#7a1fa2", "#ffd200", 72, "CHOI", "The newest club in the league.", []]
+  ].forEach(function (c) {
+    VB.CLUBS.push({ id: c[0], league: c[1], name: c[2], short: c[3], kit: c[4], kit2: c[5], prestige: c[6], coach: c[7], story: c[8], seeds: c[9] });
+  });
+  ["TOU:creative", "MON2:fast", "CHA:defense", "PAR:balanced", "POI:defense", "SET:creative", "NIC:balanced", "NAR:fast",
+   "BRV:power", "FRH:serve", "LUN:wall", "FRA2:balanced", "DUR:serve", "GIE:power", "HER:creative", "NET:balanced",
+   "JUM:fast", "SKY:power", "WIB:fast", "KBS:defense", "OKS:serve", "BLU:balanced", "VIX:power", "SST:creative"].forEach(function (k) {
+    k = k.split(":"); VB.PLAY_OF[k[0]] = k[1];
+  });
+  VB.CLUBS.forEach(function (c) { c.prestige = VB.scaleOvr(c.prestige); });
   VB.IMPORT_NATS = ["BRA", "POL", "FRA", "USA", "SRB", "ARG", "CUB", "IRI", "GER", "SLO", "NED", "CAN", "BUL", "TUR", "TUN", "MLI"];
 })(window.VB);

@@ -34,6 +34,15 @@ build step, no server.
   grade (S-D). Random events (night practice, exams, rival sightings, fan
   letters, festivals, serve challenges...) keep each year different.
 - Change your look any time (also in Club Career).
+- A personal RIVAL (a canon player from a rival school) with scenes before
+  matches against them: challenge them, stay focused or ask for advice — each
+  pays off differently. When they graduate, a new rival steps up.
+- CONFIDENCE (0-100) rises and falls with ratings, wins, rival moments and
+  friendships. It slightly widens or narrows your timing window and nudges the
+  coach's selection — a small factor, never a big one.
+- HANG OUT with any teammate at any school once per stretch of the season:
+  canon characters have their own lines; bonds build confidence, and a bonded
+  setter gives you a little lift in matches.
 - You play only yourself. The coach starts the best players, weighted by coach
   trust: good matches, drills and pinch serves raise it. Benched? You still
   get a pinch-serve moment.
@@ -69,12 +78,12 @@ build step, no server.
 - Story mode: a team awards night every year (Team MVP, Most Improved, Rookie of
   the Year, Fighting Spirit) and a podium when you win Spring Nationals.
 
-### 🏟️ Player Career (SuperLega 🇮🇹, SV.League 🇯🇵, PlusLiga 🇵🇱, Efeler Ligi 🇹🇷, Superliga 🇧🇷)
+### 🏟️ Player Career (8 leagues: 🇮🇹 SuperLega, 🇯🇵 SV.League, 🇵🇱 PlusLiga, 🇹🇷 Efeler Ligi, 🇧🇷 Superliga, 🇫🇷 Ligue A, 🇩🇪 Bundesliga, 🇰🇷 V-League)
 - FIFA-style: pick an archetype (Powerhouse, The Wall, Maestro, Guardian, Serve
   Bomber), earn XP from matches and weekly training drills, level up and spend
   skill points, and chase three manager objectives each season (they raise your
   manager rating, which earns more starts, salary and coins).
-- Five leagues of 8 clubs; older saves get the new leagues automatically.
+- Eight leagues of 8 clubs; older saves get the new leagues automatically.
 - 3 save slots. Create a player: name, nationality, position (setter, outside,
   middle, opposite, libero) and build (tower, balanced, jumper).
 - You control only yourself; coaches pick lineups from form and ratings.
@@ -117,6 +126,15 @@ build step, no server.
   in a YOUR MOVE panel beside it (a bottom dock on phones).
 - Setter menu: up to four plain options (QUICK / OUTSIDE / RIGHT SIDE / BACK
   ROW → hitter) with the setter's 👍 pick; MORE CALLS opens the full playbook.
+- Ratings scale: elite pros sit around 80-85 OVR, high schoolers below that.
+- Two new attributes: MENTAL (composure in tight moments: a wider window at the
+  end of close sets) and TECHNIQUE (cleaner contacts: fewer shanks, better sets).
+- Every match starts with a choice: ▶ PLAY or ⏩ QUICK SIM (instant result, about
+  5-10% lower win chance without you calling the shots).
+- 15 realistic haircuts (buzz, crew, side part, fringe, middle part, undercut,
+  textured crop, curls, afro, slicked back, bun, wavy, braids, classic, bald)
+  plus stubble/beards for everyday players; anime hair stays with the famous
+  faces (and Bokuto's OWL is in the look editor).
 - Every team has a playstyle (FAST TEMPO, POWER ATTACK, IRON WALL, ACE-CENTRIC,
   DEFENSIVE GRIND, SERVE & PRESSURE, CREATIVE, BALANCED) that shapes its set
   choices, tips, serves, blocking and defence.

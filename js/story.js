@@ -10,9 +10,9 @@
   var PH_TXT = { april: "APRIL — NEW SCHOOL YEAR", practice: "PRACTICE MATCH", gw: "GOLDEN WEEK CAMP", ih: "INTERHIGH QUALIFIERS",
                  camp: "TOKYO SUMMER CAMP", spring: "SPRING QUALIFIERS", nationals: "SPRING NATIONALS", end: "SEASON REVIEW" };
   var COMP = { S: 2, OH: 4, MB: 3, OP: 2, L: 2 };
-  var FOCUS = { S: ["set", "def", "srv", "blk"], OH: ["att", "rec", "def", "srv", "blk"], MB: ["blk", "att", "srv"],
-                OP: ["att", "srv", "blk", "def"], L: ["rec", "def", "set"] };
-  var ATTR_TXT = { srv: "SERVE", rec: "RECEIVE", set: "SET", att: "ATTACK", blk: "BLOCK", def: "DEFENCE", vert: "VERTICAL" };
+  var FOCUS = { S: ["set", "def", "srv", "blk", "tec", "men"], OH: ["att", "rec", "def", "srv", "blk", "tec", "men"], MB: ["blk", "att", "srv", "tec", "men"],
+                OP: ["att", "srv", "blk", "def", "tec", "men"], L: ["rec", "def", "set", "tec", "men"] };
+  var ATTR_TXT = { srv: "SERVE", rec: "RECEIVE", set: "SET", att: "ATTACK", blk: "BLOCK", def: "DEFENCE", vert: "VERTICAL", men: "MENTAL", tec: "TECHNIQUE" };
 
   // canon school year (as of the story's first spring)
   var HQ_YEARS = {
@@ -93,7 +93,7 @@
     if (region(t.id) === "LOCAL") {
       shuffle(LOCAL_NAMES.slice()).slice(0, 4).forEach(function (n, i) {
         var k = LOCAL_KITS[i % LOCAL_KITS.length];
-        S.locals.push({ id: "LOC" + i, name: n, short: n, flag: "🏫", ovr: irnd(74, 82), kit: k[0], kit2: k[1], players: {}, stars: {},
+        S.locals.push({ id: "LOC" + i, name: n, short: n, flag: "🏫", ovr: irnd(64, 71), kit: k[0], kit2: k[1], players: {}, stars: {},
                         nat: "JPN", ages: [16, 18], heightAdj: -9, play: pick(["balanced", "defense", "power", "fast"]) });
       });
     }
@@ -116,9 +116,11 @@
     var vert = Math.round((v[0] + v[1]) / 2) - 4 + (st.build === "tower" ? -8 : st.build === "jumper" ? 11 : 0);
     var me = VB.makePlayer({ id: "you", name: st.name, nat: "JPN", role: fam, base: t.ovr - 11, age: 15, height: height, vert: vert,
                              face: { skin: VB.SKINS[st.skin], hair: st.hairC, style: st.hairS, mouth: true } });
-    me.pot = clamp(t.ovr + irnd(9, 13), 60, 99);
+    me.pot = clamp(t.ovr + irnd(8, 12), 55, 99);
     S.players.you = me; S.squad.push("you"); S.years.you = 1;
     S.startOvr = ovr(me);
+    S.conf = 50; S.bond = {};
+    pickRival();
     snapEval();
     log("You join " + t.name + " as a first-year " + VB.FAMILY_NAMES[fam] + ".", "you");
   }
@@ -143,7 +145,7 @@
   // ================== LINEUPS ==================
   function selScore(p) {
     var s = ovr(p) + (S.years[p.id] - 1) * 1.2;
-    if (p.id === "you") s += S.trust * 0.09 + (S.captain ? 3 : 0);
+    if (p.id === "you") s += S.trust * 0.09 + (S.captain ? 3 : 0) + ((S.conf || 50) - 50) * 0.04;   // confidence counts, a little
     else if (S.slotOf[p.id]) s += 2;      // canon starters get the benefit of the doubt
     return s;
   }
@@ -253,6 +255,7 @@
 
   // ================== MATCHES ==================
   async function playStory(foeId, o) {
+    var bet = rivalHere(foeId) ? await rivalScene(o) : null;
     var line = myLineup(o.practice), key = keyOf(line), mine = myDef(line), foe = oppDef(foeId);
     var st = S.stats[S.year] = S.stats[S.year] || VB.Stats.newLine();
     if (!key) {
@@ -268,18 +271,21 @@
         "<p class='center muted'>COACH TRUST " + Math.round(S.trust) + "</p>",
         [{ label: "CONTINUE", value: 1 }]);
       log((won ? "W " : "L ") + s.a + "-" + s.b + " vs " + foe.name + " (" + o.label + ") — bench.", "result");
+      addConf(won ? 0 : -1.5);
+      if (bet) await rivalAfter(bet, won, false);
       return won;
     }
     U.showView("match");
     $("recordLine").textContent = yearTxt(S.year) + " • " + school().name + " • " + o.label;
     var res = await VB.Engine.playMatch({ mine: mine, foe: foe, homeSide: o.away ? 1 : 0, mode: "role", myRole: key, label: o.label + (o.bestOf > 1 ? " • BEST OF 3" : ""), league: o.league || "HARUKO",
-                                          bestOf: o.bestOf || 1, floor: o.floor || "wood" });
+                                          bestOf: o.bestOf || 1, floor: o.floor || "wood", confAdj: confAdj(line) + (bet && bet.focus || 0) });
     U.showView("hub");
     var lineSt = res.stats.you, rating = VB.Stats.rating(lineSt, you().role, res.won);
     S.stats[S.year] = VB.Stats.addInto(st, lineSt);
     S.rt = S.rt || {}; (S.rt[S.year] = S.rt[S.year] || []).push({ r: rating, nat: /NATIONALS/.test(o.label) });
     var before = ovr(you()), gains = grow(rating), after = ovr(you());
     S.trust = clamp(S.trust + (rating - 6) * 3 + (res.won ? 1 : 0), 0, 100);
+    addConf((rating - 6.5) * 3 + (res.won ? 1.5 : -1.5));
     var flowed = res.flows.some(function (f) { return f.id === "you"; });
     var skillNew = checkSkill();
     log((res.won ? "W " : "L ") + res.score[0] + "-" + res.score[1] + " vs " + foe.name + " (" + o.label + ") — rating " + rating + ".", "result");
@@ -293,8 +299,9 @@
       (gainTxt(gains) ? "<p class='center gain'>GROWTH: " + esc(gainTxt(gains)) + "</p>" : "") +
       (after > before ? "<p class='center gain'>OVR " + before + " → " + after + "</p>" : "") +
       (skillNew ? "<p class='center gain'>★ NEW MOVE: " + esc(you().skillName) + "</p>" : "") +
-      "<p class='center muted'>COACH TRUST " + Math.round(S.trust) + "</p>",
+      "<p class='center muted'>COACH TRUST " + Math.round(S.trust) + " • CONFIDENCE " + Math.round(S.conf) + "</p>",
       [{ label: "CONTINUE", value: 1 }]);
+    if (bet) await rivalAfter(bet, res.won, true, rating);
     return res.won;
   }
   function checkSkill() {
@@ -355,6 +362,7 @@
       var ph = PH[S.phase], t = school();
       if (ph === "april") {
         await U.modal(yearTxt(S.year) + " — APRIL", introText(), [{ label: "LET'S GO", value: 1 }]);
+        if (S.rival && !S.rival.met) await rivalIntro();
         S.yStart = {}; S.squad.forEach(function (id) { S.yStart[id] = ovr(P(id)); });
         nextPhase();
       } else if (ph === "practice") {
@@ -454,6 +462,119 @@
     S.phase++; S.step = 0; save(); render();
   }
 
+  // ================== CONFIDENCE ==================
+  function addConf(n) { S.conf = clamp((S.conf || 50) + n, 0, 100); }
+  function confBar() {
+    var n = Math.round((S.conf || 50) / 10);
+    return "<span class='form" + (S.conf >= 65 ? " good" : S.conf < 35 ? " bad" : "") + "'>" + "▰".repeat(n) + "▱".repeat(10 - n) + "</span>";
+  }
+  // confidence and chemistry nudge your timing window a little (never a big swing)
+  function confAdj(line) {
+    var a = ((S.conf || 50) - 50) / 1250;
+    var setter = line && line.S && line.S.id !== "you" ? line.S.id : null;
+    if (setter && (S.bond[setter] || 0) >= 3) a += 0.01;
+    return clamp(a, -0.04, 0.05);
+  }
+
+  // ================== RIVAL ==================
+  function pickRival(exclude) {
+    var me = you(), fam = me.role, home = RIVAL[S.school] || "AOB", pool = [];
+    [home].concat(VB.HQ_TEAMS.map(function (t) { return t.id; }).filter(function (id) { return id !== home && id !== S.school; })).forEach(function (tid, k) {
+      var t = team(tid); if (!t) return;
+      var names = Object.keys(t.players || {}).map(function (r) { return [t.players[r], VB.FAMILY[r]]; }).concat((BENCH[tid] || []).map(function (b) { return [b[0], b[1]]; }));
+      names.forEach(function (nf) {
+        var yr = HQ_YEARS[nf[0]];
+        if (!yr || nf[0] === exclude || yr + S.year - 1 > 3) return;
+        var star = Object.keys(t.players || {}).some(function (r) { return t.players[r] === nf[0] && (t.stars || {})[r]; });
+        var score = (tid === home ? 6 : 0) + (nf[1] === fam ? 5 : 0) + (yr + S.year - 1 <= 2 ? 3 : 0) + (star ? 2.5 : 0) + Math.random() * 2 - (k > 3 ? 2 : 0);
+        pool.push({ name: nf[0], school: tid, fam: nf[1], yr: yr, score: score });
+      });
+    });
+    pool.sort(function (a, b) { return b.score - a.score; });
+    var r = pool[0];
+    S.rival = r ? { name: r.name, school: r.school, fam: r.fam, yr: r.yr, w: 0, l: 0, heat: 0, met: false } : null;
+  }
+  function rivalHere(foeId) { return S.rival && S.rival.school === foeId && S.rival.yr + S.year - 1 <= 3; }
+  async function rivalIntro() {
+    var R0 = S.rival, t = team(R0.school);
+    S.rival.met = true;
+    var k = await U.modal("⚡ YOUR RIVAL", "<p>On the first weekend you watch a practice match at " + esc(t.name) + ". One player — <b>" + esc(R0.name) + "</b>, a " +
+      VB.FAMILY_NAMES[R0.fam].toLowerCase() + " — makes the whole gym go quiet.</p><p>On the way out you cross paths. They look you up and down.</p>",
+      [{ label: "\"I'LL BEAT YOU.\"", value: 0 }, { label: "NOD AND WALK ON", value: 1 }]);
+    if (k === 0) { addConf(5); S.rival.heat += 2; log("You told " + R0.name + " you'll beat them. Now you have to.", "you"); }
+    else { addConf(1); S.rival.heat += 1; log("You and " + R0.name + " size each other up. This isn't over.", "you"); }
+  }
+  // before a match against your rival's school: a moment, a choice, a different reward
+  async function rivalScene(o) {
+    var R0 = S.rival, t = team(R0.school), line = ["They're waiting at the entrance.", "They're warming up right by the net.", "They catch your eye during the anthem."][Math.min(2, R0.heat)];
+    var k = await U.modal("⚡ RIVAL: " + R0.name, "<p>" + esc(o.label) + " — " + esc(t.name) + ". " + line + "</p><p class='muted'>Record vs " + esc(R0.name) + ": " + R0.w + "W-" + R0.l + "L. Confidence " + Math.round(S.conf) + ".</p>",
+      [{ label: "CHALLENGE THEM", value: "bet" }, { label: "STAY FOCUSED", value: "focus" }, { label: "ASK FOR ADVICE", value: "ask" }]);
+    if (k === "focus") { addConf(2); return { kind: "focus", focus: 0.015 }; }
+    if (k === "ask") {
+      var a = FOCUS[you().role][0], g = addPts(a, 1.2); addConf(-1);
+      log(R0.name + " gives you a pointer before the match" + (g ? " (+" + g + " " + ATTR_TXT[a] + ")" : "") + ".", "story");
+      await U.modal("⚡ " + R0.name, "<p>\"" + esc(pick(TIPS)) + "\"</p><p class='muted'>Humbling. Useful.</p>" + (g ? "<p class='center gain'>+" + g + " " + ATTR_TXT[a] + "</p>" : ""));
+      return { kind: "ask", focus: 0 };
+    }
+    log("You challenge " + R0.name + " before the match.", "you");
+    return { kind: "bet", focus: 0.01 };
+  }
+  async function rivalAfter(bet, won, played, rating) {
+    var R0 = S.rival;
+    if (won) R0.w++; else R0.l++;
+    R0.heat = Math.min(2, R0.heat + 1);
+    var txt;
+    if (bet.kind === "bet") {
+      if (won) { addConf(played ? 8 : 4); txt = "You won the bet. " + R0.name + " shakes your hand without a word. +" + (VB.Gacha ? VB.Gacha.earn(500) : 0) + " 🏐 coins."; }
+      else { addConf(played ? -6 : -3); txt = R0.name + " walks past you: \"Talk is cheap.\" That one stings."; }
+    } else if (bet.kind === "focus") {
+      addConf(won ? 3 : -1); txt = won ? "Calm and steady — it paid off." : "You stayed composed even in defeat.";
+    } else { addConf(won ? 2 : 0); txt = won ? "You used their advice against them. They grin." : "Still a step behind. For now."; }
+    if (played && rating >= 8) txt += " Your " + rating + " rating didn't go unnoticed.";
+    log("⚡ vs " + R0.name + ": " + txt, "you");
+    await U.modal("⚡ RIVALRY", "<p>" + esc(txt) + "</p><p class='center muted'>RECORD vs " + esc(R0.name) + ": " + R0.w + "W-" + R0.l + "L • CONFIDENCE " + Math.round(S.conf) + "</p>");
+  }
+  async function rivalFarewell() {
+    var R0 = S.rival, old = R0.name;
+    addConf(3);
+    await U.modal("⚡ " + old + " GRADUATES", "<p>" + esc(old) + " finds you after their last match. \"" + (R0.w >= R0.l ? "You got me more than I'd like. Don't stop." : "Catch up to me someday.") +
+      "\"</p><p class='muted'>Final record: " + R0.w + "W-" + R0.l + "L.</p>");
+    log(old + " graduates — the rivalry ends " + R0.w + "-" + R0.l + ".", "you");
+    S.year++; pickRival(old); S.year--;                    // the next rival is someone still around next year
+    if (S.rival) { S.rival.met = true; log("A new rival emerges: " + S.rival.name + " (" + team(S.rival.school).name + ").", "you"); }
+  }
+
+  // ================== TEAMMATES ==================
+  var TALK = {
+    HINATA: ["\"Did you see that jump?! Again, again!\"", "\"I want to beat everyone. Even you!\""], KAGEYAMA: ["\"Your approach was late. Fix it.\"", "\"...Want to toss a few after practice?\""],
+    TSUKISHIMA: ["\"It's just a club. ...But don't get blocked, it's embarrassing.\""], NISHINOYA: ["\"Leave the back row to me! You just hit!\""], TANAKA: ["\"OSSU! Let's eat after this!\""],
+    SAWAMURA: ["\"Good team, good food. That's all we need.\""], SUGAWARA: ["\"Don't mind! The next one's yours.\""], AZUMANE: ["\"I-I'll take the hard balls. Promise.\""],
+    OIKAWA: ["\"Six strong players beat one genius. Remember that.\""], IWAIZUMI: ["\"Hit through the block. Don't think, swing.\""], KYOTANI: ["\"...Tch. Fine. You're not bad.\""],
+    USHIJIMA: ["\"Strength is simple. Train.\""], TENDO: ["\"Guess right and the whole gym is yours~\""], GOSHIKI: ["\"I'll be the ace after Ushijima-san!\""], SHIRABU: ["\"Hit what I give you.\""],
+    ATSUMU: ["\"Nice serve's a weapon. Make 'em fear yours.\""], OSAMU: ["\"Practice, then onigiri. That's the order.\""], SUNA: ["\"...Just tilt your body. Easy.\""],
+    KENMA: ["\"...If we lose, we just try another strategy.\""], KUROO: ["\"Blocking's a game of patience. Annoy them.\""], LEV: ["\"I'm going to be the ace of Nekoma!\""], YAKU: ["\"Receive. Practice. Now.\""], TAKETORA: ["\"YEAAAH! Let's GO!\""],
+    BOKUTO: ["\"HEY HEY HEY! Spike with me!\""], AKAASHI: ["\"Bokuto-san works best when he's having fun. So do you.\""], KONOHA: ["\"Being good at everything is underrated.\""],
+    SAKUSA: ["\"Wash your hands. Then we'll talk receive.\""], KOMORI: ["\"Cousin's a clean freak, ignore him!\""], IIZUNA: ["\"A setter's job is to make hitters look great.\""],
+    HOSHIUMI: ["\"Height isn't everything. I'll prove it.\""], HIRUGAMI: ["\"Play your game. Calmly.\""], FUTAKUCHI: ["\"Don't let Aone scare you. He's nice.\""], AONE: ["(...a silent, firm nod)"],
+    TERUSHIMA: ["\"Volleyball's supposed to be FUN, right?\""], DAISHO: ["\"Don't be too honest on court. Feint.\""], KIRYU: ["\"Hit it with everything. Every time.\""]
+  };
+  var GENERIC = ["\"Ramen after practice?\"", "\"Your serve's getting scary.\"", "\"We'll get them next time.\"", "\"Can you help me with receive drills?\"", "\"I believe in this team. In you too.\""];
+  var SPOTS = ["the convenience store", "the river bank", "a ramen shop", "the school roof", "the gym after hours", "the station on the way home"];
+  function hangDone() { return S.hangAt === S.year + "-" + S.phase; }
+  async function hangOut(id) {
+    if (hangDone() || !P(id)) return;
+    var p = P(id), b = (S.bond[id] || 0);
+    S.hangAt = S.year + "-" + S.phase;
+    S.bond[id] = Math.min(5, b + 1);
+    addConf(2); S.trust = clamp(S.trust + 1, 0, 100);
+    var line = pick(TALK[p.name] || GENERIC), bonus = "";
+    if (S.bond[id] === 3) bonus = p.role === "S" ? "CHEMISTRY: when " + p.name + " sets, you get a little lift in matches." : "You and " + p.name + " are real friends now.";
+    if (S.bond[id] === 5) { var g = addPts(FOCUS[you().role][0], 1.5); bonus = "Best friends. You push each other every day" + (g ? " (+" + g + " " + ATTR_TXT[FOCUS[you().role][0]] + ")" : "") + "."; }
+    log("Hung out with " + p.name + " at " + pick(SPOTS) + ".", "story");
+    await U.modal("🤝 " + p.name, "<p>You and " + esc(p.name) + " (" + yearTxt(S.years[id]) + ") hang out at " + esc(pick(SPOTS)) + ".</p><p>" + esc(line) + "</p>" +
+      "<p class='center'><span class='bond'>" + "♥".repeat(S.bond[id]) + "</span> BOND " + S.bond[id] + "/5 • CONFIDENCE " + Math.round(S.conf) + "</p>" + (bonus ? "<p class='center gain'>" + esc(bonus) + "</p>" : ""));
+  }
+
   // ================== CEREMONIES ==================
   function avgRating(natOnly) {
     var l = ((S.rt || {})[S.year] || []).filter(function (x) { return !natOnly || x.nat; });
@@ -534,6 +655,7 @@
   }
   function coins(n) { return VB.Gacha ? VB.Gacha.earn(n) : 0; }
   function rivalStar() {
+    if (S.rival && S.rival.yr + S.year - 1 <= 3 && Math.random() < 0.6) return { name: S.rival.name, school: team(S.rival.school).name, fam: S.rival.fam };
     var list = [];
     VB.HQ_TEAMS.forEach(function (t) {
       if (t.id === S.school) return;
@@ -599,7 +721,9 @@
     S.history.push(rec);
     var grads = S.squad.filter(function (id) { return id !== "you" && S.years[id] >= 3; });
     var html = "<p><b>" + yearTxt(S.year) + " IN REVIEW</b></p><ul><li>INTERHIGH: " + esc(rec.ih) + "</li><li>SPRING: " + esc(rec.spring) + "</li>" +
-      "<li>YOU: OVR " + rec.ovr + " • " + esc(rec.line) + " • " + rec.mp + " MATCHES PLAYED</li></ul>";
+      "<li>YOU: OVR " + rec.ovr + " • " + esc(rec.line) + " • " + rec.mp + " MATCHES PLAYED • CONFIDENCE " + Math.round(S.conf) + "</li>" +
+      (S.rival ? "<li>RIVAL " + esc(S.rival.name) + " (" + esc(team(S.rival.school).name) + "): " + S.rival.w + "W-" + S.rival.l + "L vs you</li>" : "") + "</ul>";
+    if (S.rival && S.year < 3 && S.rival.yr + S.year > 3) await rivalFarewell();
     if (S.year === 3) {
       html += endingHTML();
       S.done = true; save();
@@ -634,11 +758,11 @@
   function endingHTML() {
     var o = ovr(you()), champs = S.trophies.length, tr = S.trophies.join(", ");
     var title, txt;
-    if (o >= 93 || S.trophies.some(function (x) { return /SPRING/.test(x); }) && o >= 88) {
+    if (o >= 84 || S.trophies.some(function (x) { return /SPRING/.test(x); }) && o >= 80) {
       title = "STRAIGHT TO THE PROS"; txt = "SV.League scouts were in the stands all spring. You sign your first professional contract before graduation day.";
-    } else if (o >= 88 || champs) {
+    } else if (o >= 80 || champs) {
       title = "UNIVERSITY ACE"; txt = "A top university offers you a place on their team. The national youth coach has your name on a list.";
-    } else if (o >= 82) {
+    } else if (o >= 75) {
       title = "STILL CLIMBING"; txt = "You keep playing at university. You're not done — the small giant inside you is just getting started.";
     } else {
       title = "THE ONE WHO LOVED THE GAME"; txt = "You never became the star, but every weekend you're back in a gym somewhere, chasing the ball you could never quite let fall.";
@@ -667,9 +791,11 @@
     VB.ROLES.forEach(function (r) { if (line[r]) starters[line[r].id] = r; });
     var rows = S.squad.map(P).sort(function (a, b) { return a.role.localeCompare(b.role) || ovr(b) - ovr(a); }).map(function (p) {
       return "<tr class='" + (p.id === "you" ? "you" : "") + "'><td><img src='" + VB.Engine.spriteURL(p.face, school().kit) + "' alt=''/>" + esc(p.name) + (p.skill ? " <span class='star'>★</span>" : "") +
-        "</td><td>" + p.role + "</td><td>" + S.years[p.id] + "</td><td>" + ovr(p) + "</td><td>" + p.height + "</td><td>" + VB.reach(p).spike + "</td><td>" + (starters[p.id] ? "START" : "") + "</td></tr>";
+        "</td><td>" + p.role + "</td><td>" + S.years[p.id] + "</td><td>" + ovr(p) + "</td><td>" + p.height + "</td><td>" + VB.reach(p).spike + "</td><td>" + (starters[p.id] ? "START" : "") +
+        "</td><td>" + (p.id === "you" ? "" : "<span class='bond'>" + "♥".repeat(S.bond[p.id] || 0) + "</span> <button class='btn tiny' data-act='hang' data-arg='" + p.id + "'" + (hangDone() ? " disabled" : "") + ">HANG OUT</button>") + "</td></tr>";
     }).join("");
-    return "<p class='muted'>Style: <b>" + esc((VB.STYLES[VB.PLAY_OF[S.school]] || VB.STYLES.balanced).name) + "</b>" + (school().combo ? " • Signature: " + esc(school().combo.label) : "") + "</p>" +
+    return "<p class='muted'>" + (hangDone() ? "You've already hung out with someone this stretch of the season." : "Hang out with a teammate once per stretch of the season: bonds build confidence and chemistry (a bonded setter or captain gives you a little lift in matches).") + "</p>" +
+      "<p class='muted'>Style: <b>" + esc((VB.STYLES[VB.PLAY_OF[S.school]] || VB.STYLES.balanced).name) + "</b>" + (school().combo ? " • Signature: " + esc(school().combo.label) : "") + "</p>" +
       "<table class='roster'><tr><th>PLAYER</th><th>POS</th><th>YR</th><th>OVR</th><th>HT</th><th>REACH</th><th></th></tr>" + rows + "</table>";
   }
   function logHTML() {
@@ -701,11 +827,13 @@
           "<div class='muted'>" + VB.FAMILY_NAMES[me.role] + " • " + yearTxt(S.year) + " • AGE " + me.age + "</div>" +
           "<div class='ovr'>OVR " + ovr(me) + " <span class='muted'>POT ~" + Math.round(me.pot / 5) * 5 + "</span></div>" +
           "<div class='muted'>HT " + me.height + "cm • VERT " + me.vert + "cm • REACH " + rch.spike + "/" + rch.block + "</div>" +
+          "<div>CONFIDENCE " + confBar() + "</div>" +
           "<div>COACH TRUST " + trustBar() + (me.skill ? " <span class='star'>★ " + esc(me.skillName || VB.SKILL_TXT[me.skill]) + "</span>" : S.pendingSkill ? " <span class='muted'>(learning " + esc(S.pendingSkill.name) + ")</span>" : "") + "</div>" +
           "<div class='muted'>" + VB.ATTRS.map(function (a) { return a.toUpperCase() + " " + me[a]; }).join(" • ") + "</div></div></div>" +
         "<div class='card club-card' style='border-color:" + t.kit + "'><div class='pname'>" + esc(t.flag + " " + t.name) + "</div>" +
           "<div class='muted'>" + esc(region(S.school) === "LOCAL" ? "PREFECTURE QUALIFIERS vs LOCAL SCHOOLS" : region(S.school) + " PREFECTURE") + " • " + esc(coach().toUpperCase()) + "</div>" +
           "<div>" + (keyOf(myLineup(false)) ? "<b class='gain'>IN THE STARTING SIX</b>" : "<b>FIGHTING FOR A SPOT</b>") + "</div>" +
+          (S.rival ? "<div>⚡ RIVAL: <b>" + esc(S.rival.name) + "</b> <span class='muted'>(" + esc(team(S.rival.school).name) + ") • " + S.rival.w + "-" + S.rival.l + "</span></div>" : "") +
           "<div class='muted'>🏆 " + S.trophies.length + " • INTERHIGH: " + esc(S.ih || "—") + " • SPRING: " + esc(S.spring || "—") + "</div></div>" +
       "</div>" +
       "<div class='hub-status'>STORY SLOT " + S.slot + " • " + yearTxt(S.year) + " • " + esc(PH_TXT[PH[S.phase]] || "") + " • " + esc(nextTxt()) + "</div>" +
@@ -732,7 +860,7 @@
     html += "</div><div class='hub-actions'><button class='btn pink' data-act='exit'>BACK TO MENU</button></div>";
     $("hub").innerHTML = html;
   }
-  var HAIR_S = ["spiky", "flat", "bowl", "fluffy", "bedhead", "buzz", "long", "mohawk", "curly"];
+  var HAIR_S = VB.HAIR_STYLES.concat(["bedhead"]);                 // realistic cuts + Bokuto's owl
   var HAIR_C = [["BLACK", "#17120d"], ["BROWN", "#3a2416"], ["CHESTNUT", "#6b4423"], ["BLOND", "#e8d27a"], ["ORANGE", "#ff7a1a"], ["SILVER", "#d8d8d8"]];
   function renderNew() {
     var t = VB.HQ_TEAMS.find(function (x) { return x.id === setup.school; });
@@ -748,7 +876,7 @@
         "<div>BUILD</div><div class='focus'>" + [["tower", "TOWER — tall, lower jump"], ["balanced", "BALANCED"], ["jumper", "JUMPER — short, huge vertical"]].map(function (b) {
           return "<button class='btn" + (setup.build === b[0] ? " on" : "") + "' data-act='setBuild' data-arg='" + b[0] + "'>" + b[1] + "</button>"; }).join("") + "</div>" +
         "<div>HAIR</div><div class='focus'>" + HAIR_S.map(function (h) {
-          return "<button class='btn" + (setup.hairS === h ? " on" : "") + "' data-act='setHairS' data-arg='" + h + "'>" + h.toUpperCase() + "</button>"; }).join("") + "</div>" +
+          return "<button class='btn" + (setup.hairS === h ? " on" : "") + "' data-act='setHairS' data-arg='" + h + "'>" + VB.HAIR_TXT[h] + "</button>"; }).join("") + "</div>" +
         "<div class='focus'>" + HAIR_C.map(function (h) {
           return "<button class='btn" + (setup.hairC === h[1] ? " on" : "") + "' data-act='setHairC' data-arg='" + h[1] + "'>" + h[0] + "</button>"; }).join("") +
           VB.SKINS.map(function (s, i) { return "<button class='btn" + (setup.skin === i ? " on" : "") + "' data-act='setSkin' data-arg='" + i + "' style='background:" + s + (setup.skin === i ? ";outline:3px solid #ff4fa0" : "") + "'>&nbsp;</button>"; }).join("") + "</div>" +
@@ -764,16 +892,21 @@
     if (act === "advance") return advance();
     if (act === "tab") { tab = arg; return render(); }
     if (act === "focus") { S.focus = arg; save(); return render(); }
+    if (act === "hang") { busy = true; try { await hangOut(arg); } finally { busy = false; } save(); return render(); }
     if (act === "look") { busy = true; await VB.editLook(you().face, school().kit, school().kit2, VB.Engine.kitPattern(S.school)); busy = false; save(); return render(); }
     if (act === "menu" || act === "exit") { if (S) save(); S = null; $("hub").onclick = null; var r = exitStory; exitStory = null; return r && r(); }
-    if (act === "load") { S = load(+arg); tab = "team"; return render(); }
+    if (act === "load") {
+      S = load(+arg); Object.keys(S.players).forEach(function (id) { VB.fillAttrs(S.players[id]); });
+      if (S.conf == null) S.conf = 50; S.bond = S.bond || {}; if (!S.rival) pickRival();
+      tab = "team"; return render();
+    }
     if (act === "del") {
       var ok = await U.modal("DELETE STORY?", "<p>Slot " + arg + " will be erased for good.</p>", [{ label: "DELETE", value: true, cls: "pink" }, { label: "KEEP IT", value: false }]);
       if (ok) localStorage.removeItem(SLOT_KEY + arg);
       return renderSlots();
     }
     if (act === "slots") return renderSlots();
-    if (act === "new") { setup = { slot: +arg, name: "NEW KID", school: "KAR", fam: "OH", build: "balanced", hairS: "spiky", hairC: "#17120d", skin: 0 }; return renderNew(); }
+    if (act === "new") { setup = { slot: +arg, name: "NEW KID", school: "KAR", fam: "OH", build: "balanced", hairS: "crop", hairC: "#17120d", skin: 0 }; return renderNew(); }
     var setters = { setSchool: "school", setFam: "fam", setBuild: "build", setHairS: "hairS", setHairC: "hairC", setSkin: "skin" };
     if (setters[act]) {
       setup.name = ($("sName").value || "NEW KID").toUpperCase().slice(0, 12);
@@ -791,12 +924,12 @@
   VB.editLook = function (face, kit, kit2, pat) {
     return new Promise(function (res) {
       var hub = $("hub"), prev = hub.onclick, saved = hub.innerHTML;
-      var EXTRAS = [["glasses", "GLASSES"], ["headband", "HEADBAND"], ["beard", "BEARD"]];
+      var EXTRAS = [["glasses", "GLASSES"], ["headband", "HEADBAND"], ["beard", "BEARD"], ["stubble", "STUBBLE"]];
       function draw() {
         var ex = face.ex || [];
         hub.innerHTML = "<h2 class='hub-h'>CHANGE YOUR LOOK</h2><div class='newcareer'>" +
           "<div class='center'><img class='pix big' src='" + VB.Engine.spriteURL(face, kit, kit2, pat) + "' alt=''/></div>" +
-          "<div>HAIR</div><div class='focus'>" + HAIR_S.map(function (h) { return "<button class='btn" + (face.style === h ? " on" : "") + "' data-lk='s' data-v='" + h + "'>" + h.toUpperCase() + "</button>"; }).join("") + "</div>" +
+          "<div>HAIR</div><div class='focus'>" + HAIR_S.map(function (h) { return "<button class='btn" + (face.style === h ? " on" : "") + "' data-lk='s' data-v='" + h + "'>" + VB.HAIR_TXT[h] + "</button>"; }).join("") + "</div>" +
           "<div class='focus'>" + HAIR_C.map(function (h) { return "<button class='btn" + (face.hair === h[1] ? " on" : "") + "' data-lk='c' data-v='" + h[1] + "'>" + h[0] + "</button>"; }).join("") + "</div>" +
           "<div>SKIN</div><div class='focus'>" + VB.SKINS.map(function (s, i) { return "<button class='btn' data-lk='k' data-v='" + i + "' style='background:" + s + (face.skin === s ? ";outline:3px solid #ff4fa0" : "") + "'>&nbsp;</button>"; }).join("") + "</div>" +
           "<div>EXTRAS</div><div class='focus'>" + EXTRAS.map(function (e) { return "<button class='btn" + (ex.indexOf(e[0]) >= 0 ? " on" : "") + "' data-lk='x' data-v='" + e[0] + "'>" + e[1] + "</button>"; }).join("") + "</div>" +
