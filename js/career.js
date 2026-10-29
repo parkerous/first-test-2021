@@ -107,7 +107,7 @@
       C.clubs[cl.id] = cl;
       seed.seeds.forEach(function (s) {
         C.taken[s[0]] = 1;
-        addPlayer(VB.makePlayer({ name: s[0], nat: s[1], role: s[2], skill: s[3] || null, base: seed.prestige + irnd(-1, 3) }), cl.id);
+        addPlayer(VB.makePlayer({ name: s[0], nat: s[1], role: s[2], skill: s[3] || null, base: seed.prestige + irnd(-1, 3) + (s[3] ? VB.STAR_PRO : 0) }), cl.id);
       });
       var home = VB.LEAGUES[seed.league].nat;
       Object.keys(COMP).forEach(function (fam) {
@@ -171,7 +171,7 @@
     var me = VB.makePlayer({ id: "you", name: setup.name, nat: setup.nat, role: fam, base: 60, age: 19, height: height, vert: vert });
     if (b === "jumper") me.def = clamp(me.def + 3, 25, 99);
     if (b === "tower") me.blk = clamp(me.blk + 3, 25, 99);
-    me.pot = irnd(82, 89);
+    me.pot = irnd(84, 93);
     me.build = b;
     var ar = ARCH[setup.arch] || ARCH.power;
     Object.keys(ar.boost).forEach(function (a) { me[a] = clamp(me[a] + ar.boost[a], 25, 99); });

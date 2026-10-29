@@ -55,6 +55,8 @@ window.VB = window.VB || {};
   };
   // the ratings scale: elite pros sit around 80-85
   VB.scaleOvr = function (x) { return Math.round(40 + (x - 40) * 0.82); };
+  // star players stand above their team: world-class pros reach 90+, high-school aces sit a bit lower
+  VB.STAR_PRO = 7; VB.STAR_HS = 4;
   // reach in cm: standing reach ≈ 1.335 × height; jumping adds the vertical
   VB.reach = function (p) {
     var stand = p.height * 1.335;
@@ -274,7 +276,7 @@ window.VB = window.VB || {};
       if (t.skin && t.skin[r] != null) face.skin = VB.SKINS[t.skin[r]];
       if (t.style && t.style[r] != null) face.style = t.style[r];
       lineup[r] = VB.makePlayer({ id: t.id + "-" + r, name: (t.players || {})[r] || VB.genName(nat, taken), nat: nat, role: VB.FAMILY[r],
-                                  base: t.ovr, skill: (t.stars || {})[r], skillName: (t.skillNames || {})[r],
+                                  base: t.ovr + ((t.stars || {})[r] ? (t.ages ? VB.STAR_HS : VB.STAR_PRO) : 0), skill: (t.stars || {})[r], skillName: (t.skillNames || {})[r],
                                   age: t.ages ? irnd(t.ages[0], t.ages[1]) : irnd(23, 32), face: face, heightAdj: t.heightAdj || 0 });
     });
     return lineup;
