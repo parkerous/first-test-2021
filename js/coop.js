@@ -101,8 +101,8 @@
   function newCode() { var c = "", A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; for (var i = 0; i < 6; i++) c += A[Math.floor(Math.random() * A.length)]; return c; }
   function inviteURL() { return location.origin + location.pathname + "?coop=" + code; }
   function startHost(o) {
-    opts = o || {};
-    if (role === "host") return;
+    opts = o || {};                                               // the mode you're in now (career or story) takes over the link
+    if (role === "host") { if (connected) send({ t: "welcome", re: true, host: opts.hostName ? opts.hostName() : "HOST", info: opts.info ? opts.info() : {} }); return; }
     role = "host"; code = newCode();
     setStatus("🟡 WAITING FOR YOUR FRIEND…");
     listenLocal(); listenPeer();
@@ -156,7 +156,7 @@
   // the invite dialog (host)
   async function invite() {
     var url = inviteURL();
-    var html = "<p>Send this link to your friend. When you're both online at the same time, they join <b>your career</b> as a second player on your club and control their own player in every match.</p>" +
+    var html = "<p>Send this link to your friend. When you're both online at the same time, they join <b>your " + esc(opts.what || "career") + "</b> as a second player on your team and control their own player in every match.</p>" +
       "<p><input id='coopLink' class='text-in coop-link' readonly value='" + esc(url) + "'/></p>" +
       "<p class='center'><button class='btn' id='coopCopy'>📋 COPY LINK</button></p>" +
       "<p class='center big' id='coopStatus'>" + esc(statusTxt) + "</p>" +
@@ -195,7 +195,7 @@
   function joinForm(w) {
     var blocked = w.info && w.info.single ? w.info.single : [];
     var face = { skin: VB.SKINS[jf.skin], hair: jf.hc, style: jf.hair, mouth: true };
-    guestShell("<h2 class='hub-h'>JOIN " + esc(w.host) + "'S CAREER</h2>" +
+    guestShell("<h2 class='hub-h'>JOIN " + esc(w.host) + "'S " + esc((w.info && w.info.what || "career").toUpperCase()) + "</h2>" +
       "<p class='center'>" + esc(w.info && w.info.club ? "You'll play for " + w.info.club + " alongside " + w.host + "." : "") + "</p>" +
       (w.info && w.info.mate ? "<p class='center gain'>Your player is already on the team: " + esc(w.info.mate) + ". Rejoin to pick up where you left off.</p>" +
         "<div class='hub-actions'><button class='btn big' data-coop='rejoin'>REJOIN AS " + esc(w.info.mate) + "</button></div>" :
@@ -236,7 +236,7 @@
   var court = null, cg = null, img = new Image();
   img.onload = function () { if (cg) cg.drawImage(img, 0, 0, 640, 900); };
   function guestMsg(m) {
-    if (m.t === "welcome") { if (!gState.joined) joinForm(m); return; }
+    if (m.t === "welcome") { if (m.re) gState.joined = false; if (!gState.joined) joinForm(m); return; }
     if (m.t === "joined") {
       if (!m.ok) { U.modal("CAN'T JOIN", "<p>" + esc(m.msg || "") + "</p>"); return; }
       gState.joined = true; mirrorShell(); return;

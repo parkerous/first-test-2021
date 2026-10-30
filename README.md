@@ -3,8 +3,11 @@
 A bird's-eye, pixel-art volleyball game with two modes. Pure HTML/CSS/JS: no
 build step, no server.
 
-## 🤝 Co-op career (online, two players)
-- In PLAYER CAREER press 🤝 CO-OP and send your friend the link. When you're
+## 🤝 Co-op (online, two players) — Player Career and Haikyuu!! Story
+- In PLAYER CAREER or HAIKYUU!! STORY MODE press 🤝 CO-OP and send your friend
+  the link. In story mode they transfer into your school as a first-year in
+  your year (same position rules), both of you start every story match, and
+  P2 grows from their own ratings; the youth camp and the timeskip stay solo. When you're
   both online at the same time, they join YOUR career as a second player on
   your club: they pick a name, position (not your setter/opposite/libero
   spot) and look, and both of you start every match.
