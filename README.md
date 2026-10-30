@@ -190,6 +190,23 @@ build step, no server.
 - Timing bar: a steady marker judged on what you see (screen/input lag is
   forgiven). GOOD is fair; PERFECT is a narrow band. The green zone shrinks for
   harder serves and attacks and grows when your player out-rates the hitter.
+- The block is a wall: blockers line up in position order, hand to hand, at
+  the same depth, and slide together (they never pass through each other).
+  A block leaning LINE seals the line; leaning CROSS gives the line away, so
+  pin hitters can punish it straight down the line. A triple block shuts most
+  deep cross swings; only sharp, short angles get around it, and those miss
+  more often.
+
+## Camera & impact
+- 🎥 CAM (beside the court, or CAMERA on the menu) cycles CLASSIC (top-down),
+  BROADCAST (experimental: behind your team, looking over the net) and HIGH
+  (experimental: steep, close behind the baseline). The experimental views use
+  a bigger player model with a contact shadow and team rim; aiming works by
+  clicking the floor in any view.
+- Boom jumps: big spikes, blocks and wipes kick up a shockwave and dust (orange
+  when the player is in flow or firing a star skill). Kills, stuffs and aces
+  shake the screen, with a short hit-stop freeze on the hardest hits, and hot
+  spikes leave a trail of embers.
 
 ## Files
 `index.html` (layout) · `style.css` · `js/data.js` (teams, clubs, players) ·

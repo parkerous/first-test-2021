@@ -19,7 +19,8 @@
         "<button class='card menu-card' data-act='career'><div class='menu-icon'>🏟️</div><div class='pname'>PLAYER CAREER</div>" +
           "<div class='muted'>FIFA-style: pick an archetype, earn XP and skill points, hit your manager's objectives and move between 8 leagues (Italy, Japan, Poland, Türkiye, Brazil, France, Germany, Korea).</div></button>" +
       "</div>" +
-      "<div class='hub-actions'><button class='btn' data-act='floor'>COURT FLOOR: " + VB.FLOORS[localStorage.getItem("retroVB.floor") || "auto"] + "</button></div>" +
+      "<div class='hub-actions'><button class='btn' data-act='floor'>COURT FLOOR: " + VB.FLOORS[localStorage.getItem("retroVB.floor") || "auto"] + "</button>" +
+        "<button class='btn' data-act='cam'>CAMERA: " + VB.CAMS[localStorage.getItem("retroVB.cam") || "classic"] + "</button></div>" +
       "<div class='hub-actions'><button class='link-btn' data-act='resetVnl'>RESET TOURNAMENT RECORDS</button></div>";
   }
 
@@ -33,6 +34,11 @@
     if (act === "floor") {
       var cur = localStorage.getItem("retroVB.floor") || "auto", keys = Object.keys(VB.FLOORS);
       localStorage.setItem("retroVB.floor", keys[(keys.indexOf(cur) + 1) % keys.length]);
+      return renderMenu();
+    }
+    if (act === "cam") {
+      var curC = localStorage.getItem("retroVB.cam") || "classic", ck = Object.keys(VB.CAMS);
+      VB.Engine.setCam(ck[(ck.indexOf(curC) + 1) % ck.length]);
       return renderMenu();
     }
     if (act === "story") { $("hub").onclick = null; await VB.Story.start(); return menu(); }
