@@ -57,11 +57,20 @@
   var popups = [], puffs = [];
   var cheerAt = -9999, refFlagSide = 0, refFlagAt = -9999, netShakeAt = -99;
   var flames = [], lastScorer = null, flowLog = [];
-  var mode = "full", myRole = null;
+  var mode = "full", myRole = null, mateRole = null;           // mateRole: the co-op partner's player (P2), controlled remotely
   var bg = null, crowdFrames = [], fans = [], arenaTheme = null;
   var lastFrame = 0;
 
-  function iControl(role) { return mode === "full" || role === myRole; }
+  function iControl(role) { return mode === "full" || role === myRole || (!!mateRole && role === mateRole); }
+  function isMate(role) { return !!mateRole && role === mateRole && VB.Coop && VB.Coop.live(); }
+  function humans() { return [myRole, mateRole].filter(Boolean); }
+  // every decision goes to whoever controls that player: you, here — or P2, over the co-op link
+  function askB(role, list) {
+    if (!isMate(role)) return U.buttons(list);
+    var def = (list.find(function (o) { return !o.disabled; }) || list[0]).value;
+    $("actions").innerHTML = "<div class='coop-wait'>⏳ P2 IS DECIDING…</div>";
+    return VB.Coop.ask("buttons", { list: list, msg: $("msg").textContent }, def).then(function (v) { $("actions").innerHTML = ""; return v; });
+  }
   // pausing (stats panel open) freezes the ball, players, timers and the timing bar
   var paused = false, pausedTotal = 0, pauseStart = 0;
   function setPaused(on) {
@@ -956,7 +965,7 @@
       var sway = moving ? 0 : Math.sin(gt * 1.6 + Pl.ph * 2) * 1.6;
       var x = p.x + sway, y = p.y - bob - lift;
       it.dx = x; it.dy = y; it.fx = p.x + sway;
-      var mine = s.side === 0, isYou = mine && mode === "role" && it.r === myRole;
+      var mine = s.side === 0, isYou = mine && mode === "role" && (it.r === myRole || it.r === mateRole);
       if (lift > 0) { g.fillStyle = "rgba(0,20,60,0.3)"; g.beginPath(); g.ellipse(x, p.y + 17, 10, 4, 0, 0, Math.PI * 2); g.fill(); }
       g.strokeStyle = isYou ? "#ffd21e" : mine ? "#0e9e45" : "#e0348a";
       g.lineWidth = isYou ? 3.5 : 2;
@@ -1002,10 +1011,10 @@
       return y;
     }
     list.slice().reverse().forEach(function (it) {
-      var Pl = it.s.roster[it.r], mine = it.s.side === 0, isYou = mine && mode === "role" && it.r === myRole;
+      var Pl = it.s.roster[it.r], mine = it.s.side === 0, isYou = mine && mode === "role" && (it.r === myRole || it.r === mateRole);
       var nm = Pl.name.length > 11 ? Pl.name.slice(0, 10) + "." : Pl.name;
       var star = Pl.skill ? (Pl.cd ? " ★" + Pl.cd : " ★") : "";
-      var label = (isYou ? "YOU " : "") + (Pl.flow ? "FLOW " : "") + nm + star;
+      var label = (isYou ? (mateRole ? (it.r === mateRole ? "P2 " : "P1 ") : "YOU ") : "") + (Pl.flow ? "FLOW " : "") + nm + star;
       pill(label, it.dx, freeY(label, it.dx, it.dy - 34, LABEL_FONT, -1), LABEL_FONT,
            isYou ? "#13293f" : Pl.flow ? "#d8f7ff" : (Pl.skill && !Pl.cd) ? "#ffd21e" : "#ffffff",
            isYou ? "#ffd21e" : Pl.flow ? "#0b49d6" : "rgba(10,30,60,0.85)");
@@ -1076,7 +1085,7 @@
       var t = sd.tgt[it.r], moving = t && dist(p, t) > 4, bob = moving ? Math.abs(Math.sin(gt * 14 + Pl.ph)) * 2 : 0;
       var hsc = clamp((Pl.height || 195) / 195, 0.8, 1.12), f0 = proj(p.x, p.y, 0), hh = SPR_H * hsc * f0.s, ww = hh * 0.75;
       var up = Math.max(0, lift) * LIFT * f0.s + bob * f0.s;
-      var isYou = sd.side === 0 && mode === "role" && it.r === myRole;
+      var isYou = sd.side === 0 && mode === "role" && (it.r === myRole || it.r === mateRole);
       // the "model": soft contact shadow, team-coloured rim light, slightly larger sprite
       g.fillStyle = "rgba(0,10,30," + (0.35 - Math.min(0.2, up / 300)) + ")";
       g.beginPath(); g.ellipse(f0.x, f0.y, ww * 0.42, ww * 0.14, 0, 0, Math.PI * 2); g.fill();
@@ -1172,15 +1181,23 @@
   function cycleCam() { var ks = Object.keys(VB.CAMS); setCam(ks[(ks.indexOf(CAM) + 1) % ks.length]); feed(-1, "🎥 Camera: " + VB.CAMS[CAM]); }
 
   // ================== INPUT ==================
-  function aimClick(half) {
+  function courtAt(px, py, half) {
+    var w0 = CAM === "classic" ? { x: px - OX, y: py - OY } : unproj(px, py);
+    var x = clamp(w0.x, CL + 10, CR - 10), y = w0.y;
+    y = half === "top" ? clamp(y, CT + 10, NET - 16) : clamp(y, NET + 16, CB - 10);
+    return { x: x, y: y };
+  }
+  function aimClick(half, role) {
+    if (isMate(role)) {
+      var fb = { x: rnd(CL + 40, CR - 40), y: half === "top" ? rnd(CT + 40, NET - 60) : rnd(NET + 60, CB - 40) };
+      $("actions").innerHTML = "<div class='coop-wait'>🎯 P2 IS AIMING…</div>";
+      return VB.Coop.ask("aim", { half: half, msg: $("msg").textContent }, null).then(function (a) { $("actions").innerHTML = ""; return a ? courtAt(a.px, a.py, half) : fb; });
+    }
     return new Promise(function (res) {
       cv.classList.add("aiming");
       function toCourt(e) {
-        var r = cv.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * CW, py = (e.clientY - r.top) / r.height * CH;
-        var w0 = CAM === "classic" ? { x: px - OX, y: py - OY } : unproj(px, py);
-        var x = clamp(w0.x, CL + 10, CR - 10), y = w0.y;
-        y = half === "top" ? clamp(y, CT + 10, NET - 16) : clamp(y, NET + 16, CB - 10);
-        return { x: x, y: y };
+        var r = cv.getBoundingClientRect();
+        return courtAt((e.clientX - r.left) / r.width * CW, (e.clientY - r.top) / r.height * CH, half);
       }
       function onMove(e) { aimPreview = toCourt(e); }
       function onClick(e) {
@@ -1202,16 +1219,22 @@
     timingPop.t = setTimeout(function () { el.classList.add("hidden"); }, 750);
   }
   // goodW: width of the green zone (0..1 of the bar) — shrinks against fast balls and better opponents
-  function timingBar(label, speedMs, goodW) {
+  function timingBar(label, speedMs, goodW, role) {
     goodW = clamp(goodW || 0.28, 0.12, 0.42);
-    var perfW = goodW * 0.26;                                     // GOOD is easy to hit, PERFECT is not
-    var rawMs = speedMs;
-    speedMs *= 1.8;                                               // a calm, readable marker
+    var pace = speedMs < 850 ? "  ⚡⚡ VERY FAST" : speedMs < 1100 ? "  ⚡ FAST" : speedMs > 1500 ? "  🐢 SLOW" : "";
+    var spec = { label: label + "  [" + (goodW >= 0.32 ? "EASY" : goodW >= 0.24 ? "NORMAL" : goodW >= 0.17 ? "HARD" : "BRUTAL") + "]" + pace,
+                 speedMs: speedMs * 1.8, goodW: goodW, perfW: goodW * 0.26, center: rnd(0.15 + goodW / 2, 0.85 - goodW / 2) };   // a calm, readable marker; GOOD is easy, PERFECT is not
+    if (isMate(role)) {
+      $("actions").innerHTML = "<div class='coop-wait'>⏱️ P2: " + U.esc(label) + "</div>";
+      return VB.Coop.ask("timing", spec, 0.4).then(function (q) { $("actions").innerHTML = ""; timingPop(q); return q; });
+    }
+    return runTiming(spec);
+  }
+  function runTiming(spec) {
+    var goodW = spec.goodW, perfW = spec.perfW, speedMs = spec.speedMs, center = spec.center;
     return new Promise(function (res) {
       var wrap = $("timing"), mk = $("marker");
-      var pace = rawMs < 850 ? "  ⚡⚡ VERY FAST" : rawMs < 1100 ? "  ⚡ FAST" : rawMs > 1500 ? "  🐢 SLOW" : "";
-      $("timingLabel").textContent = label + "  [" + (goodW >= 0.32 ? "EASY" : goodW >= 0.24 ? "NORMAL" : goodW >= 0.17 ? "HARD" : "BRUTAL") + "]" + pace;
-      var center = rnd(0.15 + goodW / 2, 0.85 - goodW / 2);
+      $("timingLabel").textContent = spec.label;
       $("zoneG").style.left = (center - goodW / 2) * 100 + "%"; $("zoneG").style.width = goodW * 100 + "%";
       $("zoneP").style.left = (center - perfW / 2) * 100 + "%"; $("zoneP").style.width = perfW * 100 + "%";
       function quality(p) {
@@ -1330,7 +1353,7 @@
     return blockers.map(function (r) {
       var B = def.roster[r], x = def.tgt[r].x;
       var hw = 10 + B.blk / 30 + (B.height - 190) / 9 + (def.superBlocker === r ? 4 : 0);
-      if (def.jumpQ && def.jumpQ.role === r) hw *= 0.7 + 0.5 * def.jumpQ.q;   // your block jump timing
+      if (def.jumpQ && def.jumpQ[r] != null) hw *= 0.7 + 0.5 * def.jumpQ[r];   // your (and P2's) block jump timing
       return { lo: x - hw, hi: x + hw, r: r };
     }).sort(function (a, b) { return a.lo - b.lo; });
   }
@@ -1412,7 +1435,7 @@
       x *= 0.6 + P0.att / 160;
       if (o.id === s.lastCall) x *= 0.5;
       if (o.combo) x *= 1.8;
-      if (mode === "role" && s === me && o.hitter === myRole) x *= 1.6;   // your setter looks for you more
+      if (mode === "role" && s === me && (o.hitter === myRole || o.hitter === mateRole)) x *= 1.6;   // your setter looks for you more
       return x;
     });
     var sum = w.reduce(function (a, b) { return a + b; }, 0), r = Math.random() * sum;
@@ -1525,11 +1548,11 @@
       msg(Sv.name + " TO SERVE — PICK THE SERVE");
       var o = [{ label: "FLOAT SERVE", value: "float" }, { label: "TOPSPIN SERVE", value: "spin" }];
       if (Sv.skill === "serve") o.push({ label: "★ " + skillLabel(Sv) + (Sv.cd ? " (" + Sv.cd + ")" : ""), value: "super", disabled: !ready(Sv, "serve") });
-      kind = await U.buttons(o);
+      kind = await askB(sr, o);
       msg("CLICK WHERE TO SERVE");
-      target = await aimClick("top");
+      target = await aimClick("top", sr);
       if (mode === "role") {
-        var tossQ = await timingBar("TOSS & SERVE — " + Sv.name + "!", 1000, 0.24 + (Sv.srv - 70) / 300);
+        var tossQ = await timingBar("TOSS & SERVE — " + Sv.name + "!", 1000, 0.24 + (Sv.srv - 70) / 300, sr);
         tossMod = tossQ;
       }
     } else {
@@ -1583,7 +1606,7 @@
       await sleep(150); slow();
       timing = await timingBar("RECEIVE — " + RP.name + " vs " + Sv.name + " (SRV " + Sv.srv + ")!",
         duelSpeed(Sv.srv + (kind === "spin" ? sp.power * 12 : 0), RP.rec, superServe || Sv.flow),
-        0.28 + (RP.rec - Sv.srv) / 250 - sp.power * 0.08 - (superServe ? 0.07 : 0) - (kind === "float" ? 0.02 : 0) + clutchAdj(RP));
+        0.28 + (RP.rec - Sv.srv) / 250 - sp.power * 0.08 - (superServe ? 0.07 : 0) - (kind === "float" ? 0.02 : 0) + clutchAdj(RP), rcvRole);
       fast();
     } else if (rcv === me) timing = autoTiming(RP.rec);
     await flight;
@@ -1760,7 +1783,7 @@
   // up to four plain-English options (one per hitter), the setter's suggestion first, and the full playbook behind MORE
   var FRIENDLY = { MB: "QUICK", OH: "OUTSIDE", OP: "RIGHT SIDE" };
   var SIMPLE_PREF = ["combo", "one", "high", "five", "pipe", "go", "red", "31", "slide", "d", "bic"];
-  function simpleSetMenu(opts, atk) {
+  function simpleSetMenu(opts, atk, role) {
     var avail = opts.filter(function (o) { return !o.disabled && !o.dump; });
     var rec = aiPickSet(atk, opts);
     if (!rec || rec.dump || rec.disabled) rec = null;
@@ -1780,7 +1803,7 @@
     var d = opts.find(function (o) { return o.dump; });
     if (d) btns.push({ label: "★ " + skillLabel(atk.roster.S) + (atk.roster.S.cd ? " (" + atk.roster.S.cd + ")" : ""), value: d.id, disabled: d.disabled });
     btns.push({ label: "MORE CALLS ▸", value: "__more" });
-    return U.buttons(btns);
+    return askB(role || "S", btns);
   }
 
   async function offense(atk, grade, setterRole) {
@@ -1792,10 +1815,10 @@
     var st = null;
     if (atk === me && !emergency && iControl(setterRole)) {
       msg(SN + " TO SET (" + GRADE_TXT[grade] + ") — 👍 = SETTER'S PICK");
-      var choice = await simpleSetMenu(opts, atk);
+      var choice = await simpleSetMenu(opts, atk, setterRole);
       if (choice === "__more") {
         msg(SN + " — FULL PLAYBOOK (" + GRADE_TXT[grade] + ")");
-        choice = await U.buttons(opts.map(function (o) {
+        choice = await askB(setterRole, opts.map(function (o) {
           if (o.dump) return { label: "★ " + skillLabel(me.roster.S) + (me.roster.S.cd ? " (" + me.roster.S.cd + ")" : ""), value: o.id, disabled: o.disabled };
           var HP = me.roster[o.hitter];
           return { label: o.label + " · " + HP.name + (HP.skill === "spike" ? " ★" : ""), value: o.id, disabled: o.disabled };
@@ -1803,23 +1826,25 @@
       }
       st = opts.find(function (o) { return o.id === choice; });
       if (mode === "role" && !st.dump) {
-        var setTq = await timingBar("SET — SOFT HANDS, " + SN + "!", 1000, 0.24 + (me.roster[setterRole].set - 70) / 300);
+        var setTq = await timingBar("SET — SOFT HANDS, " + SN + "!", 1000, 0.24 + (me.roster[setterRole].set - 70) / 300, setterRole);
         st = Object.assign({}, st, { setAdj: setTq >= 1 ? 0.12 : setTq >= 0.5 ? 0 : -0.18 });
         if (setTq < 0.5) feed(0, SN + "'s set is a little off...");
       }
     } else if (atk === me && mode === "role" && !emergency) {
-      var mine = opts.filter(function (o) { return !o.disabled && !o.dump && o.hitter === myRole; });
+      var callers = humans().filter(function (h) { return opts.some(function (o) { return !o.disabled && !o.dump && o.hitter === h; }); });
+      var caller = callers.length ? pick(callers) : myRole;           // co-op: either of you can call for it
+      var mine = opts.filter(function (o) { return !o.disabled && !o.dump && o.hitter === caller; });
       if (mine.length && TAC.call === "feed") {
         var auto = mine.slice().sort(function (a, b) { return SIMPLE_PREF.indexOf(a.id) - SIMPLE_PREF.indexOf(b.id); })[0];
-        if (Math.random() < [0.70, 0.85, 0.97][grade]) { st = auto; feed(0, SN + " looks for " + me.roster[myRole].name + " (YOU) — " + auto.say + "!"); }
+        if (Math.random() < [0.70, 0.85, 0.97][grade]) { st = auto; feed(0, SN + " looks for " + me.roster[caller].name + (caller === mateRole ? " (P2)" : " (YOU)") + " — " + auto.say + "!"); }
         else feed(0, SN + " goes elsewhere...");
       } else if (mine.length && TAC.call === "ask") {
         msg("CALL FOR THE BALL? (" + GRADE_TXT[grade] + ")");
-        var call = await U.buttons(mine.map(function (o) { return { label: "CALL " + o.label, value: o.id }; })
+        var call = await askB(caller, mine.map(function (o) { return { label: "CALL " + o.label, value: o.id }; })
           .concat([{ label: "LET " + SN + " DECIDE", value: "auto" }]));
         if (call !== "auto") {
           var want = mine.find(function (o) { return o.id === call; });
-          feed(0, me.roster[myRole].name + " (YOU) calls for " + want.say + "!");
+          feed(0, me.roster[caller].name + (caller === mateRole ? " (P2)" : " (YOU)") + " calls for " + want.say + "!");
           if (Math.random() < [0.70, 0.85, 0.97][grade]) st = want; else feed(0, SN + " goes elsewhere...");   // perfect / good / poor pass
         }
       }
@@ -1833,7 +1858,7 @@
   async function dumpAttack(atk, def, grade) {
     var S = atk.roster.S, iAttack = atk === me, target;
     useSkill(atk, S);
-    if (iAttack && iControl("S")) { slow(); msg("DUMP — CLICK WHERE TO DROP IT!"); target = await aimClick("top"); fast(); }
+    if (iAttack && iControl("S")) { slow(); msg("DUMP — CLICK WHERE TO DROP IT!"); target = await aimClick("top", "S"); fast(); }
     else target = tipTarget(def);
     target = tipClamp(target);
     feed(atk.side, S.name + " shows set... and DUMPS it on two!", true);
@@ -1904,17 +1929,17 @@
       if (A.skill === "spike") ch.push({ label: "★ " + skillLabel(A) + (A.cd ? " (" + A.cd + ")" : ""), value: "super", disabled: !ready(A, "spike") });
       ch.push({ label: "SPIKE", value: "spike" }, { label: "TIP", value: "tip" });
       if (n > 0) ch.push({ label: "WIPE OFF BLOCK", value: "wipe" });
-      var type = await U.buttons(ch), tgt = null, jumpQ = null;
+      var type = await askB(hitter, ch), tgt = null, jumpQ = null;
       if (mode === "role") {
         fast();
-        jumpQ = await timingBar("APPROACH — JUMP, " + A.name + "!", 900, 0.22 + (A.att - 70) / 300 + (A.vert - 85) / 400);
+        jumpQ = await timingBar("APPROACH — JUMP, " + A.name + "!", 900, 0.22 + (A.att - 70) / 300 + (A.vert - 85) / 400, hitter);
         slow();
       }
       if (type !== "wipe") {
         msg(type === "tip" ? "CLICK WHERE TO TIP IT" :
             "AIM: GREEN = CLEAR • YELLOW = TOOL/EDGE • RED = INTO THE BLOCK" + (st.tempo >= 0.8 && n ? " (SLOW SET — THE BLOCK CAN STILL ADJUST)" : ""));
         aimCtx = type === "tip" || !n ? null : { from: contact, def: def, blockers: blockers };
-        tgt = await aimClick("top");
+        tgt = await aimClick("top", hitter);
         aimCtx = null;
       }
       fast();
@@ -1923,22 +1948,25 @@
     else msg(atk.team.name + ": " + st.label + " TO " + A.name + " — " + BLOCK_TXT[n] + "!");
 
     if (!iAttack && n > 0) {
-      if (mode === "role" && blockers.indexOf(myRole) >= 0 && st.tempo >= 0.7 && TAC.lean === "auto") {
+      var hb = mode === "role" ? humans().filter(function (h) { return blockers.indexOf(h) >= 0; }) : [];
+      if (hb.length && st.tempo >= 0.7 && TAC.lean === "auto") {
         slow();
-        msg("YOU'RE IN THE " + BLOCK_TXT[n] + " ON " + A.name + " — LEAN WHICH WAY?");
-        lean = await U.buttons([{ label: "LEAN CROSS", value: "cross" }, { label: "LEAN LINE", value: "line" }]);
+        msg((hb[0] === mateRole ? "P2 IS" : "YOU'RE") + " IN THE " + BLOCK_TXT[n] + " ON " + A.name + " — LEAN WHICH WAY?");
+        lean = await askB(hb[0], [{ label: "LEAN CROSS", value: "cross" }, { label: "LEAN LINE", value: "line" }]);
         fast();
         placeDefense(def, bAx, blockers, lean, spacing);
-        feed(0, me.roster[myRole].name + " (YOU) leans " + lean + "...");
+        feed(0, me.roster[hb[0]].name + (hb[0] === mateRole ? " (P2)" : " (YOU)") + " leans " + lean + "...");
       } else if (st.tempo >= 0.7) feed(0, "your " + BLOCK_TXT[n].toLowerCase() + " leans " + lean + "...");
-      if (mode === "role" && blockers.indexOf(myRole) >= 0) {
-        var bq = await timingBar("BLOCK — TIME YOUR JUMP, " + me.roster[myRole].name + "!", 900, 0.22 + (me.roster[myRole].blk - 70) / 300 - (1 - st.tempo) * 0.06);
-        def.jumpQ = { role: myRole, q: bq };
+      if (hb.length) {
+        var bqs = await Promise.all(hb.map(function (h) {
+          return timingBar("BLOCK — TIME YOUR JUMP, " + me.roster[h].name + "!", 900, 0.22 + (me.roster[h].blk - 70) / 300 - (1 - st.tempo) * 0.06, h);
+        }));
+        def.jumpQ = {}; hb.forEach(function (h, i) { def.jumpQ[h] = bqs[i]; });
       }
       var sb = blockers.find(function (r) { return ready(def.roster[r], "block"); });
       if (sb && iControl(sb)) {
         slow(); msg("★ " + skillLabel(def.roster[sb]) + " WITH " + def.roster[sb].name + "?");
-        superBlock = await U.buttons([{ label: "★ " + skillLabel(def.roster[sb]), value: true }, { label: "NORMAL BLOCK", value: false }]);
+        superBlock = await askB(sb, [{ label: "★ " + skillLabel(def.roster[sb]), value: true }, { label: "NORMAL BLOCK", value: false }]);
         fast();
       } else if (sb) superBlock = Math.random() < 0.6;
       if (superBlock) useSkill(def, def.roster[sb]);
@@ -2167,7 +2195,7 @@
       timing = await timingBar((o.soft ? "PLAY THE TOUCH — " : o.type === "tip" ? "CHASE THE TIP — " : "DIG — ") + D.name + " vs " + o.A.name + " (ATT " + o.A.att + ")!",
                                duelSpeed(o.A.att, D.def, o.superSpike || o.A.flow) * (o.soft ? 1.25 : o.type === "tip" ? 1.1 : 0.9),
                                0.26 + (D.def - o.A.att) / 250 - (o.superSpike ? 0.07 : 0) - (o.type === "spike" ? (1 - o.st.tempo) * 0.05 : 0) +
-                               (o.soft ? 0.08 : 0) + (o.type === "tip" ? 0.05 : 0) + clutchAdj(D));
+                               (o.soft ? 0.08 : 0) + (o.type === "tip" ? 0.05 : 0) + clutchAdj(D), digRole);
       fast();
     } else timing = autoTiming(D.def);
     await flight;
@@ -2329,7 +2357,7 @@
 
   function lineFor(s, role) {
     var Pl = s.roster[role];
-    return Object.assign({ name: Pl.name, role: role, you: s === me && mode === "role" && role === myRole }, Pl.st);
+    return Object.assign({ name: Pl.name, role: role, you: s === me && mode === "role" && role === myRole, mate: s === me && role === mateRole }, Pl.st);
   }
 
   // cfg: { mine, foe, homeSide (0 = mine), mode, myRole, label, league, setsTo }
@@ -2365,7 +2393,7 @@
       }
     }
     cfg = c;
-    mode = c.mode || "full"; myRole = c.myRole || null;
+    mode = c.mode || "full"; myRole = c.myRole || null; mateRole = c.mateRole || null;
     var mineKit = c.mine.kit, foeKit = kitClash(c.mine.kit, c.foe.kit) ? (c.foe.kit2 && !kitClash(c.mine.kit, c.foe.kit2) ? c.foe.kit2 : "#f5f5f5") : c.foe.kit;
     var myLib = pickLiberoKit(mineKit, [foeKit]), oppLib = pickLiberoKit(foeKit, [mineKit, myLib]);
     c.mine.ovr = VB.Stats.teamOvr(c.mine); c.foe.ovr = VB.Stats.teamOvr(c.foe);
@@ -2470,5 +2498,5 @@
     requestAnimationFrame(draw);
   }
 
-  VB.Engine = { setCam: setCam, init: init, playMatch: playMatch, spriteURL: spriteURL, makeSprite: makeSprite, kitPattern: kitPattern };
+  VB.Engine = { runTiming: runTiming, setCam: setCam, init: init, playMatch: playMatch, spriteURL: spriteURL, makeSprite: makeSprite, kitPattern: kitPattern };
 })(window.VB);

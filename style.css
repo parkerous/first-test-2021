@@ -617,3 +617,16 @@ canvas.screen { border: 4px solid var(--blue-d); box-shadow: 0 0 0 4px var(--yel
 /* camera switch in the match top bar */
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .cam-top { font-size: 9px; padding: 7px 10px; }
+
+/* co-op */
+.coop-card { display: flex; gap: 10px; align-items: center; margin: 8px 0; border-color: #3ddc7a; }
+.coop-card img { width: 48px; height: 64px; image-rendering: pixelated; }
+.coop-link { width: 100%; font-size: 15px; }
+.coop-wait { font-family: var(--pixel); font-size: 10px; color: #13293f; background: #fff3b0; border: 2px dashed #ffb000; border-radius: 8px; padding: 10px; text-align: center; width: 100%; }
+.coop-bar { display: flex; gap: 10px; align-items: center; justify-content: space-between; background: #13293f; color: #fff; padding: 6px 10px; border-radius: 8px; margin-bottom: 8px; font-family: var(--text); font-size: 18px; }
+.coop-p2 { text-align: center; margin: 6px 0; }
+.coop-mirror { pointer-events: none; opacity: 0.96; border: 3px dashed #9cc4ea; border-radius: 10px; padding: 6px; }
+.coop-modal { position: fixed; left: 50%; top: 12px; transform: translateX(-50%); width: min(92vw, 560px); max-height: 70vh; overflow: auto; background: #fff; border: 4px solid var(--yellow, #ffd21e); border-radius: 12px; padding: 10px 14px; z-index: 50; box-shadow: 0 8px 30px rgba(0,0,0,0.4); pointer-events: none; }
+.coop-modal.hidden { display: none; }
+.coop-modal-t { font-family: var(--pixel); font-size: 11px; color: var(--blue, #1e63ff); text-align: center; margin-bottom: 6px; }
+body.coop-guest #camTop, body.coop-guest #rosterBtn, body.coop-guest #tacBtn, body.coop-guest #camBtn, body.coop-guest #backBtn { display: none; }

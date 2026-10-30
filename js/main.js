@@ -78,6 +78,8 @@
 
   window.addEventListener("load", function () {
     VB.Engine.init();
+    var coop = new URLSearchParams(location.search).get("coop");     // an invite link: join a friend's career
+    if (coop && VB.Coop) return VB.Coop.startGuest(coop.toUpperCase().slice(0, 12));
     menu();
   });
 })(window.VB);

@@ -3,6 +3,24 @@
 A bird's-eye, pixel-art volleyball game with two modes. Pure HTML/CSS/JS: no
 build step, no server.
 
+## 🤝 Co-op career (online, two players)
+- In PLAYER CAREER press 🤝 CO-OP and send your friend the link. When you're
+  both online at the same time, they join YOUR career as a second player on
+  your club: they pick a name, position (not your setter/opposite/libero
+  spot) and look, and both of you start every match.
+- The host's browser runs the career and the matches; the guest sees a live
+  mirror of the hub, the host's dialogs and the court, and controls their own
+  player (P2): serve choice and aim, receive and dig timing, set calls, spikes,
+  tips and wipes, block lean and block timing (you both time your block jumps
+  at the same moment). P2 picks their own training focus and grows from their
+  own match rating.
+- If P2 doesn't answer in time or drops out, the match carries on with a
+  default choice; offline, P2's player plays as an AI teammate. The save lives
+  on the host's device; the same link works again next time.
+- Online it connects browser-to-browser (WebRTC via the free public PeerJS
+  service, loaded from unpkg/cdnjs). A few strict networks block that. Two
+  tabs or windows on the same computer connect without the internet.
+
 ## Home screen
 - The menu sits under a live PRACTICE COURT: your story school, your career
   club or a Haikyuu!! team running a spiking line off the setter, pepper,
@@ -257,7 +275,7 @@ build step, no server.
 ## Files
 `index.html` (layout) · `style.css` · `js/data.js` (teams, clubs, players) ·
 `js/haikyuu.js` (Spring Nationals teams) · `js/ui.js` · `js/stats.js` (box scores, sims, awards) · `js/engine.js` (match
-engine + arena) · `js/vnl.js` (tournaments) · `js/story.js` (Haikyuu story) · `js/hqvoice.js` (story dialogue) · `js/gacha.js` (gacha + showroom) · `js/ceremony.js` (award ceremonies) · `js/career.js` · `js/minigames.js` (training minigames) · `js/practice.js` (home practice court) · `js/main.js` (menu).
+engine + arena) · `js/vnl.js` (tournaments) · `js/story.js` (Haikyuu story) · `js/hqvoice.js` (story dialogue) · `js/gacha.js` (gacha + showroom) · `js/ceremony.js` (award ceremonies) · `js/career.js` · `js/coop.js` (online co-op) · `js/minigames.js` (training minigames) · `js/practice.js` (home practice court) · `js/main.js` (menu).
 
 ## Deploy to Netlify
 The repo root is the site. Leave **Base directory** empty and **Publish

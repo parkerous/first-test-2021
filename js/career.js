@@ -343,7 +343,9 @@
     if (C.mode === "coach") return await coachMatch(L, h, a, label);
     var mineId = C.club, foeId = h === mineId ? a : h, homeSide = h === mineId ? 0 : 1;
     var myLine = lineupFor(club(mineId), true), foeLine = lineupFor(club(foeId), true);
-    var myKey = keyOf(myLine, "you");
+    var coop = VB.Coop && VB.Coop.live() && mate() && !(C.players.mate.injured > 0);
+    if (coop) { if (!(C.injured > 0)) forceIn(myLine, you()); forceIn(myLine, C.players.mate); }
+    var myKey = keyOf(myLine, "you"), mateKey = coop ? keyOf(myLine, "mate") : null;
     var mine = teamDef(mineId, myLine), foe = teamDef(foeId, foeLine);
     if (!myKey) {
       var s = VB.Stats.sim(mine, foe);
@@ -369,8 +371,8 @@
     }
     U.showView("match");
     $("recordLine").textContent = "SEASON " + C.season + " • " + club().short + " " + C.leagues[club().league].table[mineId].w + "W-" + C.leagues[club().league].table[mineId].l + "L";
-    var res = await VB.Engine.playMatch({ mine: mine, foe: foe, homeSide: homeSide, mode: "role", myRole: myKey,
-                                          label: L.name + " • " + label, league: L.name });
+    var res = await VB.Engine.playMatch({ mine: mine, foe: foe, homeSide: homeSide, mode: "role", myRole: myKey, mateRole: mateKey,
+                                          label: L.name + " • " + label + (mateKey ? " • 🤝 CO-OP" : ""), league: L.name });
     U.showView("hub");
     addSeason(res.stats);
     var line = res.stats.you, rating = VB.Stats.rating(line, you().role, res.won);
@@ -383,10 +385,17 @@
     if (flowed) { news("🔵🔥 Fans chant " + you().name + "'s name after a FLOW STATE run.", "you"); C.interest += 0.05; }
     if (rating >= 8) news(you().name + " stars with " + VB.Stats.pts(line) + " points — " + rating + "/10.", "you");
     var gtxt = Object.keys(gains).filter(function (k) { return k !== "skill"; }).map(function (k) { return "+" + gains[k] + " " + ATTR_TXT[k]; }).join(", ");
+    var mateHTML = "";
+    if (mateKey && res.stats.mate) {
+      var mp = C.players.mate, mr = VB.Stats.rating(res.stats.mate, mp.role, res.won), mg = mateGrow(mp, mr);
+      var mgt = Object.keys(mg).map(function (k) { return "+" + mg[k] + " " + ATTR_TXT[k]; }).join(", ");
+      mateHTML = "<p class='center'>🤝 P2 " + esc(mp.name) + ": <b class='rating'>" + mr + "</b> / 10 • " + esc(VB.Stats.lineText(res.stats.mate)) + (mgt ? " • <span class='gain'>" + esc(mgt) + "</span>" : "") + "</p>";
+      if (mr >= 8) news("🤝 " + mp.name + " (P2) stars with " + VB.Stats.pts(res.stats.mate) + " points — " + mr + "/10.", "you");
+    }
     await U.modal(res.won ? "WIN" : "LOSS",
       "<p class='center big'>" + esc(mine.name + " " + res.score[0] + " : " + res.score[1] + " " + foe.name) + "</p>" +
       "<p class='center'>YOUR RATING: <b class='rating'>" + rating + "</b> / 10</p>" +
-      "<p class='center'>" + esc(VB.Stats.lineText(line)) + "</p>" +
+      "<p class='center'>" + esc(VB.Stats.lineText(line)) + "</p>" + mateHTML +
       (gtxt ? "<p class='center gain'>TRAINING GAINS: " + esc(gtxt) + "</p>" : "") +
       (after > before ? "<p class='center gain'>OVR " + before + " → " + after + "</p>" : "") +
       (gains.skill ? "<p class='center gain'>★ SIGNATURE MOVE UNLOCKED: " + esc(VB.SKILL_TXT[you().skill]) + "</p>" : "") +
@@ -968,6 +977,73 @@
     }
   }
 
+  // ================== CO-OP (a friend's player on your club) ==================
+  var SINGLE = ["S", "OP", "L"];
+  function mate() { return C && C.players.mate && C.club && club().roster.indexOf("mate") >= 0 ? C.players.mate : null; }
+  function coopCard() {
+    var m = C.players.mate, hosting = VB.Coop && VB.Coop.hosting();
+    if (!m && !hosting) return "";
+    return "<div class='card coop-card'>" + (m ? "<img class='pix' src='" + VB.Engine.spriteURL(m.face, club() ? club().kit : "#888888") + "' alt=''/>" : "") +
+      "<div><div class='pname'>🤝 CO-OP" + (m ? " — P2 " + esc(m.name) : "") + "</div>" +
+      (m ? "<div class='muted'>" + VB.FAMILY_NAMES[m.role] + " • OVR " + ovr(m) + " • FOCUS " + esc((C.mateFocus || FOCUS[m.role][0]).toUpperCase()) + "</div>" : "") +
+      "<div>" + esc(hosting ? VB.Coop.status() : "Not hosting — press 🤝 CO-OP to invite your friend again.") + "</div>" +
+      (m && !(VB.Coop && VB.Coop.live()) ? "<div class='muted'>While P2 is offline, " + esc(m.name) + " plays as an AI teammate.</div>" : "") + "</div></div>";
+  }
+  async function startCoop() {
+    if (!C.club) { await U.modal("CO-OP", "<p>Sign for a club first — your friend's player joins your club.</p>"); return; }
+    VB.Coop.startHost({
+      hostName: function () { return C ? you().name : "HOST"; },
+      info: function () {
+        return C && C.club ? { club: club().short, kit: club().kit, single: SINGLE.indexOf(you().role) >= 0 ? [you().role] : [], mate: C.players.mate ? C.players.mate.name : null } : {};
+      },
+      onJoin: coopJoin,
+      onFocus: function (a) { if (C && C.players.mate && FOCUS[C.players.mate.role].indexOf(a) >= 0) { C.mateFocus = a; save(); render(); } },
+      onConnect: function () { if (C) render(); }, onLost: function () { if (C && busyHub()) render(); }
+    });
+    await VB.Coop.invite();
+  }
+  function busyHub() { return !$("hub").classList.contains("hidden") && !busy; }
+  function coopJoin(m) {
+    if (!C || !C.club || C.mode === "coach") return { ok: false, msg: "The host isn't in a player career with a club right now." };
+    if (C.players.mate) {                                             // the same friend coming back (or a new name for the same slot)
+      var old = C.players.mate;
+      if (!m.rejoin && m.name) { old.name = m.name.toUpperCase().slice(0, 12); if (m.face) old.face = m.face; }
+      Object.keys(C.clubs).forEach(function (id) { var r = C.clubs[id].roster, i = r.indexOf("mate"); if (i >= 0 && id !== C.club) r.splice(i, 1); });
+      var fi = C.free.indexOf("mate"); if (fi >= 0) C.free.splice(fi, 1);
+      if (club().roster.indexOf("mate") < 0) { old.club = C.club; club().roster.push("mate"); }
+      news("🤝 " + old.name + " is back online — co-op on!", "you"); save(); render();
+      return { ok: true, msg: "Welcome back" };
+    }
+    if (!m.fam || !FOCUS[m.fam]) return { ok: false, msg: "Pick a position." };
+    if (m.fam === you().role && SINGLE.indexOf(m.fam) >= 0) return { ok: false, msg: "The host already plays " + VB.FAMILY_NAMES[m.fam] + " — pick another position." };
+    var p = VB.makePlayer({ id: "mate", name: (m.name || "P2").toUpperCase().slice(0, 12), nat: you().nat, role: m.fam, base: ovr(you()), age: you().age, face: m.face });
+    p.pot = Math.max(p.pot, you().pot);
+    C.taken[p.name] = 1; C.mateFocus = FOCUS[m.fam][0];
+    addPlayer(p, C.club);
+    news("🤝 " + p.name + " joins " + club().short + " as your co-op partner (" + VB.FAMILY_NAMES[m.fam] + ").", "you");
+    save(); render();
+    return { ok: true, msg: "Joined" };
+  }
+  // in co-op both of you always start: slot the humans into their positions
+  var FAM_SLOTS = { S: ["S"], OH: ["OH1", "OH2"], MB: ["MB1", "MB2"], OP: ["OP"], L: ["L"] };
+  function forceIn(line, p) {
+    if (!p || keyOf(line, p.id)) return;
+    var slot = FAM_SLOTS[p.role].find(function (r) { return !line[r] || (line[r].id !== "you" && line[r].id !== "mate"); });
+    if (slot) line[slot] = p;
+  }
+  function mateGrow(p, rating) {
+    var ageF = p.age < 23 ? 1.4 : p.age < 27 ? 1 : p.age < 31 ? 0.5 : 0.15, room = clamp((p.pot - ovr(p)) / 10, 0, 1.2);
+    var amt = Math.max(0, rating - 6) * 0.11 * ageF * (0.2 + room * 0.8), gains = {};
+    C.mprog = C.mprog || {};
+    FOCUS[p.role].forEach(function (a) {
+      if (a === "vert") return;
+      var w = (a === C.mateFocus ? 1.8 : 1) * clamp((99 - p[a]) / 40, 0.15, 1);
+      C.mprog[a] = (C.mprog[a] || 0) + amt * w * rnd(0.5, 1.2);
+      while (C.mprog[a] >= 1) { C.mprog[a] -= 1; if (p[a] < 99) { p[a]++; gains[a] = (gains[a] || 0) + 1; } }
+    });
+    return gains;
+  }
+
   // ================== HUB UI ==================
   function formBar(f) {
     var n = Math.round((f + 3) / 6 * 6);
@@ -1083,10 +1159,12 @@
               : "<div class='pname'>FREE AGENT</div><div class='muted'>No club. Offers come in the transfer windows.</div>") +
         (C.mode === "coach" ? "-->" : "") + "</div>" +
       "</div>" +
+      coopCard() +
       "<div class='hub-status'>CAREER SLOT " + C.slot + " • SEASON " + C.season + " • " + stageTxt +
         (nf ? " • NEXT: " + esc(nf.foe.short) + (nf.home ? " (H)" : " (A)") + " • " + (starter ? "LIKELY STARTER" : "FIGHTING FOR A SPOT") : "") + "</div>" +
       "<div class='hub-actions'><button class='btn big' data-act='advance'>" + esc(actionLabel()) + "</button>" +
         "<button class='btn' data-act='look'>CHANGE LOOK</button><button class='btn' data-act='cam'>🎥 CAMERA: " + esc(VB.CAMS[localStorage.getItem("retroVB.cam") || "classic"] || "CLASSIC") + "</button>" +
+        (C.mode === "coach" ? "" : "<button class='btn' data-act='coop'>🤝 CO-OP</button>") +
         "<button class='btn pink' data-act='menu'>SAVE &amp; MENU</button></div>" +
       "<div class='tabs'>" + tabs.map(function (t) { return "<button class='tab-btn" + (t === tab ? " on" : "") + "' data-act='tab' data-arg='" + t + "'>" + t.toUpperCase() + "</button>"; }).join("") + "</div>" +
       "<div class='tab-body'>" + body + "</div>";
@@ -1170,6 +1248,7 @@
       busy = true; await VB.editLook(you().face, kc ? kc.kit : "#888888", kc ? kc.kit2 : null, kc ? VB.Engine.kitPattern(kc.id) : null); busy = false;
       save(); return render();
     }
+    if (act === "coop") { busy = true; try { await startCoop(); } finally { busy = false; } return render(); }
     if (act === "cam") { var ck = Object.keys(VB.CAMS), cur = localStorage.getItem("retroVB.cam") || "classic"; VB.Engine.setCam(ck[(ck.indexOf(cur) + 1) % ck.length]); return render(); }
     if (act === "menu" || act === "exit") { if (C) save(); C = null; $("hub").onclick = null; var r = exitCareer; exitCareer = null; return r && r(); }
     if (act === "load") { C = load(+arg); Object.keys(C.players).forEach(function (id) { VB.fillAttrs(C.players[id]); }); ensureLeagues(); save(); tab = "news"; return render(); }
