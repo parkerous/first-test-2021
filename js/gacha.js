@@ -64,10 +64,18 @@
     { id: "TS-YAKU", base: "YAKU", team: "NEK", r: "L", title: "TIMESKIP YAKU", sub: "PLAYING IN RUSSIA", kit: ["#d81e36", "#1e4fd8"] },
     { id: "TS-LEV", base: "LEV", team: "NEK", r: "L", title: "TIMESKIP LEV", sub: "FASHION MODEL", kit: ["#2b2b2b", "#d8d8d8"] }
   ];
-  // featured pairs rotate every day (genshin-style banner with a 50/50 and a guarantee)
-  var FEATURED = [["XMAS-BOKUTO", "TS-HINATA"], ["TS-SAKUSA", "TS-KAGEYAMA"], ["TS-ATSUMU", "TS-BOKUTO"], ["XMAS-KENMA", "TS-OIKAWA"],
-                  ["TS-HOSHIUMI", "TS-USHIJIMA"], ["XMAS-NISHINOYA", "TS-HINATA"], ["TS-KUROO", "TS-BOKUTO"],
-                  ["HW-KUROO", "TS-KAGEYAMA"], ["SU-HINATA", "TS-OIKAWA"], ["HW-KENMA", "TS-BOKUTO"], ["SU-NISHINOYA", "TS-USHIJIMA"]];
+  // banners you pick yourself (genshin-style rate-up with a 50/50 and a guarantee — the guarantee carries between banners)
+  var BANNERS = [
+    { id: "jackals", name: "MSBY BLACK JACKALS", col: "#e8b923", bg: "#1b1b1b", feat: ["TS-HINATA", "TS-BOKUTO", "TS-ATSUMU", "TS-SAKUSA"], txt: "Timeskip: the Jackals' fearsome front row." },
+    { id: "adlers", name: "SCHWEIDEN ADLERS", col: "#ffd21e", bg: "#203a6b", feat: ["TS-KAGEYAMA", "TS-USHIJIMA", "TS-HOSHIUMI"], txt: "Timeskip: the national team's core." },
+    { id: "kings", name: "KING & GRAND KING", col: "#7ad3ff", bg: "#3a5aa8", feat: ["TS-OIKAWA", "TS-KAGEYAMA", "FEST-OIKAWA", "SU-OIKAWA"], txt: "Setters only. Oikawa vs Kageyama, forever." },
+    { id: "nekoma", name: "NEKOMA CATS", col: "#ff4f4f", bg: "#2b1010", feat: ["TS-KENMA", "TS-KUROO", "TS-YAKU", "TS-LEV", "XMAS-KENMA", "HW-KENMA", "HW-KUROO", "HW-LEV"], txt: "Connect! The cats in every outfit." },
+    { id: "xmas", name: "CHRISTMAS", col: "#ffffff", bg: "#c81e2a", feat: ["XMAS-BOKUTO", "XMAS-NISHINOYA", "XMAS-HINATA", "XMAS-KENMA"], txt: "Santa hats and snowball spikes." },
+    { id: "halloween", name: "HALLOWEEN NIGHT", col: "#ff8a1e", bg: "#2b1b3d", feat: ["HW-KENMA", "HW-KUROO", "HW-TENDO", "HW-LEV", "HW-TSUKISHIMA", "HW-HINATA"], txt: "Witches, vampires and the Guess Monster." },
+    { id: "summer", name: "SUMMER BEACH", col: "#ffffff", bg: "#2ec4d6", feat: ["SU-HINATA", "SU-NISHINOYA", "SU-OIKAWA", "SU-BOKUTO", "SU-TANAKA", "SU-ATSUMU", "SU-OSAMU"], txt: "Beach volley season. Sunglasses on." },
+    { id: "karasuno", name: "KARASUNO FOREVER", col: "#ff7a1a", bg: "#1b1b1b", feat: ["TS-HINATA", "TS-KAGEYAMA", "TS-TSUKISHIMA", "TS-NISHINOYA", "TS-AZUMANE", "TS-TANAKA", "TS-SAWAMURA", "TS-SUGAWARA"], txt: "The crows, all grown up." },
+    { id: "standard", name: "STANDARD", col: "#13293f", bg: "#e8eef7", feat: [], txt: "Every card at normal odds. No rate-up." }
+  ];
 
   // ---------- card catalogue ----------
   var CARDS = [], BY = {};
@@ -111,7 +119,14 @@
   }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(G)); } catch (e) {} }
   function today() { var d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
-  function featured() { return FEATURED[Math.floor(Date.now() / 86400000) % FEATURED.length]; }
+  function banner() { return BANNERS.find(function (b) { return b.id === G.banner; }) || BANNERS[0]; }
+  function featured() { return banner().feat; }
+  // equipped skins: which owned version of a character shows up in matches, the practice court and the classroom
+  function skinFace(name) {
+    load(); var v = G.skin && G.skin[name];
+    return v && BY[v] && G.owned[v] ? JSON.parse(JSON.stringify(BY[v].face)) : null;
+  }
+  VB.skinFace = skinFace;
 
   // ---------- pulling ----------
   function rollRarity() {
@@ -263,7 +278,7 @@
     var broom = { x: 480, y: 156, holder: null }, board = { lines: ["SHOWROOM"], user: null }, CART = { x: 44, y: 182 };
     var bots = G.roam.filter(function (id) { return BY[id]; }).map(function (id, i) {
       var cd = BY[id];
-      return { id: id, card: cd, line: LINES[cd.base || cd.id] || null, spr: VB.Engine.makeSprite(cd.kit[0], cd.face, cd.kit[1], VB.Engine.kitPattern(cd.team)),
+      return { id: id, card: cd, line: LINES[cd.base || cd.id] || null, spr: VB.Engine.makeSprite(cd.kit[0], (!cd.variant && skinFace(cd.id)) || cd.face, cd.kit[1], VB.Engine.kitPattern(cd.team)),
                x: 120 + (i % 4) * 130, y: 190 + Math.floor(i / 4) * 175, tx: 0, ty: 0, wait: rnd(0.5, 3), jump: 0, face: 1, act: null, bubble: null, hold: null, sit: 0, seat: null };
     });
     bots.forEach(function (b) { b.tx = b.x; b.ty = b.y; });
@@ -537,16 +552,32 @@
     var f = featured().map(function (id) { return BY[id]; });
     var head = "<h2 class='hub-h'>HAIKYUU!! GACHA</h2>" +
       "<div class='hub-status'>🏐 " + G.coins + " COINS • " + G.pulls + " PULLS • LEGENDARY PITY " + G.pity.l + "/60 • MYTHIC PITY " + G.pity.m + "/1000</div>" +
-      "<div class='tabs'>" + [["pull", "PULL"], ["room", "SHOWROOM"]].map(function (t) { return "<button class='tab-btn" + (tab === t[0] ? " on" : "") + "' data-g='tab' data-v='" + t[0] + "'>" + t[1] + "</button>"; }).join("") + "</div>";
+      "<div class='tabs'>" + [["pull", "PULL"], ["room", "SHOWROOM"], ["skins", "SKINS"]].map(function (t) { return "<button class='tab-btn" + (tab === t[0] ? " on" : "") + "' data-g='tab' data-v='" + t[0] + "'>" + t[1] + "</button>"; }).join("") + "</div>";
     var body;
     if (tab === "pull") {
-      body = "<div class='gbanner'><div class='gbanner-t'>LIMITED BANNER • TODAY'S FEATURED</div><div class='gfeat'>" + f.map(function (c) {
+      var bn = banner();
+      body = "<div class='bpick'>" + BANNERS.map(function (b) {
+          return "<button class='bpick-b" + (b.id === bn.id ? " on" : "") + "' data-g='banner' data-v='" + b.id + "' style='background:" + b.bg + ";color:" + b.col + "'>" + esc(b.name) + "</button>"; }).join("") + "</div>" +
+        "<div class='gbanner' style='border-color:" + bn.bg + "'><div class='gbanner-t' style='background:" + bn.bg + ";color:" + bn.col + "'>" + esc(bn.name) + " BANNER</div><p class='center'>" + esc(bn.txt) + "</p><div class='gfeat'>" + f.map(function (c) {
           return "<div class='gcard r" + c.r + "'><img src='" + cardImg(c) + "' alt=''/><div class='gname'>" + esc(c.name) + "</div><div class='grar'>" + "★".repeat(RAR[c.r].stars) + " " + RAR[c.r].name + "</div></div>";
         }).join("") + "</div>" +
         "<p class='muted'>Rates: Mythic 0.05% • Legendary 4% • Epic 15% • Rare 30% • Common ~51%. Every 10 pulls guarantees Epic+. Legendary guaranteed by pull 60, Mythic by pull 1000. " +
-        "Won a Legendary/Mythic but not the featured one? Your next one IS featured. Featured cards change daily.</p>" +
+        (f.length ? "Won a Legendary/Mythic but not a featured one? Your next one IS featured. " : "") + "Pick any banner above — switch whenever you like; pity carries over.</p>" +
         "<div class='hub-actions'><button class='btn big' data-g='pull' data-v='1'>PULL ×1 • " + COST1 + " 🏐</button><button class='btn big' data-g='pull' data-v='10'>PULL ×10 • " + COST10 + " 🏐</button><button class='btn big' data-g='pull' data-v='100'>PULL ×100 • " + COST100 + " 🏐</button></div>" +
         "<p class='center muted'>Every match pays: a WIN = 10 pulls (1000 🏐), a LOSS = 5 pulls (500 🏐). Story events pay too.</p></div>";
+    } else if (tab === "skins") {
+      var bases = {};
+      CARDS.forEach(function (c) { if (c.variant && G.owned[c.id]) (bases[c.base] = bases[c.base] || []).push(c); });
+      var names = Object.keys(bases).sort();
+      body = "<p class='center'>Own a special version of a character? Pick which one shows up in Haikyuu!! matches, story mode, the practice court and the classroom.</p>" +
+        (names.length ? names.map(function (n) {
+          var cur = (G.skin || {})[n], opts = [BY[n]].concat(bases[n]);
+          return "<div class='skinrow'><div class='pname'>" + esc(n) + "</div><div class='gfeat'>" + opts.map(function (c) {
+            var on = c.id === n ? !cur || !G.owned[cur] : cur === c.id;
+            return "<button class='gcard small r" + c.r + (on ? " roaming" : "") + "' data-g='skin' data-v='" + n + "|" + c.id + "'><img src='" + cardImg(c) + "' alt=''/>" +
+              "<div class='gname'>" + esc(c.id === n ? "DEFAULT" : c.name) + "</div><div class='gteam'>" + (on ? "✔ EQUIPPED" : "EQUIP") + "</div></button>";
+          }).join("") + "</div></div>";
+        }).join("") : "<p class='center muted'>No special versions yet — pull a Christmas, Halloween, Summer or Timeskip card to unlock skins.</p>");
     } else {
       var owned = CARDS.filter(function (c) { return G.owned[c.id] && (filter === "ALL" || c.r === filter); })
         .sort(function (a, b) { return ORDER.indexOf(a.r) - ORDER.indexOf(b.r) || a.name.localeCompare(b.name); });
@@ -573,6 +604,12 @@
     var k = b.getAttribute("data-g"), v = b.getAttribute("data-v");
     if (k === "tab") { tab = v; return render(); }
     if (k === "filter") { filter = v; return render(); }
+    if (k === "banner") { G.banner = v; save(); return render(); }
+    if (k === "skin") {
+      var pr = v.split("|"); G.skin = G.skin || {};
+      if (pr[1] === pr[0]) delete G.skin[pr[0]]; else G.skin[pr[0]] = pr[1];
+      save(); return render();
+    }
     if (k === "pull") return doPull(+v);
     if (k === "act") { if (room) room.cmd(v); return; }
     if (k === "roam") {
@@ -613,8 +650,7 @@
         }
         if (G.gift !== today()) {
           G.gift = today(); G.coins += 1000; save(); render();
-          await U.modal("DAILY GIFT", "<p class='center big'>+1000 🏐 (10 PULLS)</p><p class='center'>Come back tomorrow for more. Today's featured: " +
-            esc(featured().map(function (id) { return BY[id].name; }).join(" & ")) + ".</p>");
+          await U.modal("DAILY GIFT", "<p class='center big'>+1000 🏐 (10 PULLS)</p><p class='center'>Come back tomorrow for more. Pick any banner you like on the PULL tab.</p>");
         }
       });
     }

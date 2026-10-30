@@ -418,6 +418,31 @@ window.VB = window.VB || {};
    "JUM:fast", "SKY:power", "WIB:fast", "KBS:defense", "OKS:serve", "BLU:balanced", "VIX:power", "SST:creative"].forEach(function (k) {
     k = k.split(":"); VB.PLAY_OF[k[0]] = k[1];
   });
+  // two more clubs per league — every league now has a superclub to measure yourself against
+  [
+    ["CIS", "SL", "CISTERNA VOLLEY", "CISTERNA", "#1d2b5a", "#ffd200", 93, "FALASCA", "Bought half the national team over the summer. The new superclub.", [["PELLACANI", "ITA", "OH", "spike"], ["GALASSI", "ITA", "MB", "block"]]],
+    ["TAR", "SL", "GIOIELLA TARANTO", "TARANTO", "#ffd200", "#e30613", 78, "DI PINTO", "Southern grit — every point is a street fight.", []],
+    ["VOR", "SV", "VOREAS HOKKAIDO", "VOREAS", "#00205b", "#e8b923", 92, "SATO", "A star-studded import line-up and a cold, loud arena.", [["MIYAURA", "JPN", "OP", "serve"]]],
+    ["NAG", "SV", "VC NAGANO TRIDENTS", "TRIDENTS", "#e60012", "#ffffff", 75, "ITO", "The mountain club everyone underestimates.", []],
+    ["BOG", "PL", "BOGDANKA LUBLIN", "LUBLIN", "#00843d", "#ffd200", 93, "GRZYB", "European champions who refuse to slow down.", [["LEON", "POL", "OH", "serve"]]],
+    ["CUP", "PL", "CUPRUM LUBIN", "CUPRUM", "#b87333", "#1b1b1b", 76, "NOWAK", "Copper-mine tough, never pretty.", []],
+    ["BOR", "EF", "BORUSAN ISTANBUL", "BORUSAN", "#0b2a6f", "#ffffff", 91, "AKSOY", "Istanbul's new money — an all-star squad built in one summer.", []],
+    ["AKK", "EF", "AKKUS BELEDIYE", "AKKUS", "#009640", "#ffd200", 74, "YURT", "A tiny town that plays like it's a final every week.", []],
+    ["TAU", "SB", "TAUBATE FUNVIC", "TAUBATE", "#e30613", "#ffd200", 92, "RENAN", "The richest club in Brazil. Their bench could win the league.", [["LUCARELLI", "BRA", "OH", "spike"]]],
+    ["GUA", "SB", "GUARULHOS VOLEI", "GUARULHOS", "#0b3a8a", "#ffffff", 74, "SILVA", "Airport-city underdogs.", []],
+    ["LYO", "LA", "LYON VOLLEY", "LYON", "#e30613", "#0b2a6f", 90, "NGAPETH", "A billionaire's project with Olympic champions in every row.", [["NGAPETH", "FRA", "OH", "spike"]]],
+    ["CNS", "LA", "CANNES VOLLEY", "CANNES", "#ffffff", "#e30613", 77, "DUPONT", "Old glamour, new hunger.", []],
+    ["HAM", "BL", "HAMBURG VOLLEYS", "HAMBURG", "#003da5", "#e30613", 89, "MULLER", "The port city's big-budget challengers to Berlin.", []],
+    ["KRS", "BL", "KARLSRUHE BARONS", "KARLSRUHE", "#7a1fa2", "#ffffff", 72, "WEBER", "Promoted last year and loving every minute.", []],
+    ["HAN", "VL", "HANWHA EAGLES", "EAGLES", "#ff6600", "#1b1b1b", 89, "JANG", "Big spending, bigger expectations in Daejeon.", []],
+    ["GUM", "VL", "GUMI LIG GREATERS", "GREATERS", "#e30613", "#ffffff", 73, "YOON", "A rebuilding club full of rookies.", []]
+  ].forEach(function (c) {
+    VB.CLUBS.push({ id: c[0], league: c[1], name: c[2], short: c[3], kit: c[4], kit2: c[5], prestige: c[6], coach: c[7], story: c[8], seeds: c[9] });
+  });
+  ["CIS:power", "TAR:defense", "VOR:serve", "NAG:fast", "BOG:power", "CUP:defense", "BOR:wall", "AKK:creative",
+   "TAU:power", "GUA:balanced", "LYO:creative", "CNS:balanced", "HAM:serve", "KRS:fast", "HAN:power", "GUM:balanced"].forEach(function (k) {
+    k = k.split(":"); VB.PLAY_OF[k[0]] = k[1];
+  });
   VB.CLUBS.forEach(function (c) { c.prestige = VB.scaleOvr(c.prestige); });
   VB.IMPORT_NATS = ["BRA", "POL", "FRA", "USA", "SRB", "ARG", "CUB", "IRI", "GER", "SLO", "NED", "CAN", "BUL", "TUR", "TUN", "MLI"];
 })(window.VB);

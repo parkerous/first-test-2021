@@ -3,6 +3,13 @@
 A bird's-eye, pixel-art volleyball game with two modes. Pure HTML/CSS/JS: no
 build step, no server.
 
+## Home screen
+- The menu sits under a live PRACTICE COURT: your story school, your career
+  club or a Haikyuu!! team running a spiking line off the setter, pepper,
+  serves and dig drills, with shouts and catchphrases (tap a player). ◀ ▶ picks
+  which team is practising.
+- VNL and Haikyuu!! Spring Nationals share one 🏆 TOURNAMENTS card.
+
 ## Modes
 
 ### 🌍 VNL Tournament
@@ -49,6 +56,26 @@ build step, no server.
 - Third-years graduate (rivals too: Oikawa, Ushijima and Bokuto leave after
   year 1), first-years arrive and teammates improve. A captaincy is possible in
   year 3, and an ending depends on your final OVR and trophies.
+- 📰 A NEWSPAPER every other week (each story step is about a week): the
+  hottest games around the country, not just yours — upsets, comebacks from a
+  set down, deuce thrillers and routs, with the star of each match, other
+  results and a box on your own school. Old issues live in the NEWS tab.
+- 🇯🇵 ALL-JAPAN YOUTH CAMP every December (good enough? about OVR 70): pair
+  drills with a star of your choice (Sakusa, Atsumu, Hoshiumi, Kageyama,
+  Hyakuzawa, Komori, Goshiki, Lev, Hinata...), a dorm night, the coaches'
+  gauntlet and a playable CAMP RED vs CAMP WHITE scrimmage that can earn a
+  U-19 JAPAN selection. Not invited? Sneak in as a ball boy or go to the
+  prefecture rookie camp.
+- ⏩ TIMESKIP after graduation: five years later you sign for the MSBY BLACK
+  JACKALS or the SCHWEIDEN ADLERS, pick two reunions (beach volley in Rio with
+  Hinata, Onigiri Miya, Kenma's sponsor shoot, your old gym, a national team
+  tryout), do pre-season training, then play the best-of-3 V.League opener,
+  Jackals vs Adlers, with the timeskip cast. Finished stories get the
+  timeskip too.
+- Training MINIGAMES with variety — each drill picks one that fits the skill:
+  timing bar, serve/spike TARGET, REACTION dives, MEMORY of setter calls,
+  READ THE SETTER, approach RHYTHM, receive PLATFORM, hold-and-release POWER and
+  a SPRINT tap drill.
 
 ### 🎴 Gacha & Showroom (Haikyuu!!)
 - 500 free pulls to start. Every match pays: a win = 10 pulls, a loss = 5 pulls
@@ -63,9 +90,14 @@ build step, no server.
   Ushijima; Legendary Atsumu, Sakusa, Hoshiumi, Kenma, Kuroo, Tsukishima,
   Nishinoya, Azumane, Tanaka, Sawamura, Sugawara, Iwaizumi, Akaashi, Osamu, Yaku
   and Lev. Mythic odds: 0.05%.
-- Genshin-style banner: two featured cards rotate daily; 50/50 with a guarantee,
+- Choose your BANNER (no daily rotation): MSBY Black Jackals, Schweiden Adlers,
+  King & Grand King, Nekoma Cats, Christmas, Halloween Night, Summer Beach,
+  Karasuno Forever or Standard. Rate-up 50/50 with a guarantee that carries over,
   Epic+ every 10 pulls, Legendary by 60, Mythic by 1000. Duplicates level a card
   (C1-C6).
+- SKINS: own a special version of a character? Equip it in the SKINS tab and it
+  shows up in Haikyuu!! matches, story mode, the practice court and the
+  classroom (e.g. Witch Kenma playing for Nekoma).
 - Spike reveal animation (the trail colour shows the rarity) — skippable.
 - Showroom: a classroom (chalkboard, whiteboard, ball cart, broom, clock,
   plant) where up to 8 cards live; the rest wait in storage. They pick things
@@ -93,7 +125,10 @@ build step, no server.
 - FIFA-style: earn XP from matches and weekly training drills, level up and spend
   skill points, and chase three manager objectives each season (they raise your
   manager rating, which earns more starts, salary and coins).
-- Eight leagues of 8 clubs; older saves get the new leagues automatically.
+- Eight leagues of 10 clubs, each with a big-money SUPERCLUB to measure yourself
+  against (Cisterna, Voreas Hokkaido, Bogdanka Lublin, Borusan Istanbul,
+  Taubate, Lyon, Hamburg, Hanwha Eagles); 9 league rounds a season. Older
+  saves get the new clubs from the next season.
 - Season calendar: league + playoffs → CLUB WORLD CUP (the eight league
   champions) → summer VNL with your national team if you're good enough (starter
   or squad player) → next season.
@@ -106,7 +141,7 @@ build step, no server.
 - 3 save slots. Create a player: name, nationality, position (setter, outside,
   middle, opposite, libero) and build (tower, balanced, jumper).
 - You control only yourself; coaches pick lineups from form and ratings.
-- Seasons: pre-season window → 3 rounds → mid-season window → 4 rounds →
+- Seasons: pre-season window → 3 rounds → mid-season window → 6 rounds →
   playoffs → awards → ageing, retirements, academy players.
 - Clubs have stories, coaches, budgets and season storylines. Coaches can bench
   you, release you (performance or budget) or trade you; other clubs make
@@ -199,7 +234,8 @@ build step, no server.
 
 ## Camera & impact
 - 🎥 CAM (beside the court, or CAMERA on the menu) cycles CLASSIC (top-down),
-  BROADCAST (experimental: behind your team, looking over the net) and HIGH
+  BROADCAST (experimental: a zoomed TV camera far behind your team, so both
+  teams look about the same size) and HIGH
   (experimental: steep, close behind the baseline). The experimental views use
   a bigger player model with a contact shadow and team rim; aiming works by
   clicking the floor in any view.
@@ -211,7 +247,7 @@ build step, no server.
 ## Files
 `index.html` (layout) · `style.css` · `js/data.js` (teams, clubs, players) ·
 `js/haikyuu.js` (Spring Nationals teams) · `js/ui.js` · `js/stats.js` (box scores, sims, awards) · `js/engine.js` (match
-engine + arena) · `js/vnl.js` (tournaments) · `js/story.js` (Haikyuu story) · `js/gacha.js` (gacha + showroom) · `js/ceremony.js` (award ceremonies) · `js/career.js` · `js/main.js` (menu).
+engine + arena) · `js/vnl.js` (tournaments) · `js/story.js` (Haikyuu story) · `js/gacha.js` (gacha + showroom) · `js/ceremony.js` (award ceremonies) · `js/career.js` · `js/minigames.js` (training minigames) · `js/practice.js` (home practice court) · `js/main.js` (menu).
 
 ## Deploy to Netlify
 The repo root is the site. Leave **Base directory** empty and **Publish

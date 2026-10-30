@@ -284,17 +284,18 @@
   // ================== SIDES ==================
   function newStat() { var l = VB.Stats.newLine(); delete l.mp; return l; }
   function makeSide(team, side, kit, libKit) {
-    var roster = {}, taken = {};
+    var roster = {}, taken = {}, hq = VB.HQ_TEAMS && VB.HQ_TEAMS.some(function (t) { return t.id === team.id; });
     ROLES.forEach(function (role) {
       var rec = team.lineup[role], num;
+      var face = (hq && rec.id !== "you" && VB.skinFace && VB.skinFace(rec.name)) || rec.face;   // gacha skins dress the canon players
       do { num = irnd(1, 24); } while (taken[num]); taken[num] = 1;
       var reach = VB.reach(rec);
       roster[role] = {
-        ref: rec, name: rec.name, num: num, face: rec.face, skill: rec.skill || null, skillName: rec.skillName || null,
+        ref: rec, name: rec.name, num: num, face: face, skill: rec.skill || null, skillName: rec.skillName || null,
         cd: 0, ph: rnd(0, Math.PI * 2), streak: 0, flow: false, flowLeft: 0,
         srv: rec.srv, rec: rec.rec, set: rec.set, att: rec.att, blk: rec.blk, def: rec.def, men: rec.men || 70, tec: rec.tec || 70, spd: rec.spd || 70,
         height: rec.height, vert: rec.vert, spikeReach: reach.spike, blockReach: reach.block,
-        sprite: makeSprite(role === "L" ? libKit : kit, rec.face, role === "L" ? kit : (kit === team.kit ? team.kit2 : team.kit), kitPattern(team.id)),
+        sprite: makeSprite(role === "L" ? libKit : kit, face, role === "L" ? kit : (kit === team.kit ? team.kit2 : team.kit), kitPattern(team.id)),
         st: newStat()
       };
     });
@@ -535,7 +536,7 @@
   var CAM = "classic";
   try { CAM = localStorage.getItem("retroVB.cam") || "classic"; } catch (e) {}
   if (!VB.CAMS[CAM]) CAM = "classic";
-  function camP() { return CAM === "high" ? { camY: H + 250, camH: 620, f: 520, hor: -237 } : { camY: H + 430, camH: 600, f: 850, hor: -230 }; }
+  function camP() { return CAM === "high" ? { camY: H + 250, camH: 620, f: 520, hor: -237 } : { camY: H + 830, camH: 930, f: 1440, hor: -690 }; }
   // world (court x, y, height above the floor in px) → screen
   function proj(x, y, h) { var c = camP(), z = Math.max(80, c.camY - y), s = c.f / z; return { x: CW / 2 + (x - W / 2) * s, y: c.hor + c.camH * s - (h || 0) * s, s: s }; }
   function unproj(sx, sy) { var c = camP(), z = c.camH * c.f / Math.max(1, sy - c.hor); return { x: W / 2 + (sx - CW / 2) * z / c.f, y: c.camY - z }; }

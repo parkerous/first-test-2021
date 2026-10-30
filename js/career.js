@@ -6,7 +6,7 @@
 
   var SLOT_KEY = "vnlCareer.slot", SLOTS = 3;
   var COMP = { S: 2, OH: 4, MB: 3, OP: 2, L: 1 };                       // a 12-player squad
-  var CAL = ["window-pre", "R1", "R2", "R3", "window-mid", "R4", "R5", "R6", "R7", "SF", "F", "CWC", "VNL", "end"];
+  var CAL = ["window-pre", "R1", "R2", "R3", "window-mid", "R4", "R5", "R6", "R7", "R8", "R9", "SF", "F", "CWC", "VNL", "end"];
   var CAL_TXT = { "window-pre": "PRE-SEASON TRANSFER WINDOW", "window-mid": "MID-SEASON TRANSFER WINDOW", SF: "PLAYOFF SEMIFINALS", F: "PLAYOFF FINAL", CWC: "CLUB WORLD CUP", VNL: "SUMMER: VOLLEYBALL NATIONS LEAGUE", end: "SEASON REVIEW" };
   var FOCUS = { S: ["set", "def", "srv", "blk", "tec", "men", "spd", "vert"], OH: ["att", "rec", "def", "srv", "blk", "tec", "men", "spd", "vert"], MB: ["blk", "att", "srv", "tec", "men", "spd", "vert"],
                 OP: ["att", "srv", "blk", "def", "tec", "men", "spd", "vert"], L: ["rec", "def", "set", "tec", "men", "spd"] };
@@ -161,7 +161,12 @@
   }
   function ensureLeagues() {
     var added = [];
-    VB.CLUBS.forEach(function (seed) { if (!C.clubs[seed.id]) { buildClub(seed); if (added.indexOf(seed.league) < 0) added.push(seed.league); } });
+    VB.CLUBS.forEach(function (seed) {
+      if (C.clubs[seed.id]) return;
+      buildClub(seed);
+      if (C.leagues[seed.league]) news("🆕 " + seed.name + " join the " + VB.LEAGUES[seed.league].name + " next season.", "story");   // they enter at the next fixture list
+      else if (added.indexOf(seed.league) < 0) added.push(seed.league);
+    });
     added.forEach(function (id) {
       var ids = Object.keys(C.clubs).filter(function (c) { return C.clubs[c].league === id; }), table = {};
       ids.forEach(function (c) { table[c] = { w: 0, l: 0, pf: 0, pa: 0 }; });
@@ -421,10 +426,11 @@
   }
 
   async function playRound(r) {
-    var label = "ROUND " + (r + 1) + "/7";
+    var label = "ROUND " + (r + 1) + "/" + lg(myLeague()).rounds.length;
     var ord = leagueOrder();
     for (var k = 0; k < ord.length; k++) {
       var L = lg(ord[k]);
+      if (!L.rounds[r]) continue;                                      // a league with fewer clubs (older save) is already done
       for (var i = 0; i < L.rounds[r].length; i++) {
         var m = L.rounds[r][i];
         var sc = await playFixture(L, m[0], m[1], label);
@@ -970,7 +976,7 @@
   function nextFixture() {
     var st = CAL[C.stage];
     if (!C.club || st[0] !== "R") return null;
-    var L = lg(club().league), m = L.rounds[+st.slice(1) - 1].find(function (x) { return x[0] === C.club || x[1] === C.club; });
+    var L = lg(club().league), m = (L.rounds[+st.slice(1) - 1] || []).find(function (x) { return x[0] === C.club || x[1] === C.club; });
     return m ? { home: m[0] === C.club, foe: club(m[0] === C.club ? m[1] : m[0]) } : null;
   }
   function actionLabel() {

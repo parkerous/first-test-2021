@@ -6,9 +6,9 @@
   var rnd = VB.rnd, irnd = VB.irnd, clamp = VB.clamp, pick = VB.pick, shuffle = VB.shuffle;
 
   var SLOT_KEY = "hqStory.slot", SLOTS = 3;
-  var PH = ["april", "practice", "gw", "ih", "camp", "spring", "nationals", "end"];
+  var PH = ["april", "practice", "gw", "ih", "camp", "spring", "youth", "nationals", "end"];
   var PH_TXT = { april: "APRIL — NEW SCHOOL YEAR", practice: "PRACTICE MATCH", gw: "GOLDEN WEEK CAMP", ih: "INTERHIGH QUALIFIERS",
-                 camp: "TOKYO SUMMER CAMP", spring: "SPRING QUALIFIERS", nationals: "SPRING NATIONALS", end: "SEASON REVIEW" };
+                 camp: "TOKYO SUMMER CAMP", spring: "SPRING QUALIFIERS", youth: "ALL-JAPAN YOUTH CAMP", nationals: "SPRING NATIONALS", end: "SEASON REVIEW" };
   var COMP = { S: 2, OH: 4, MB: 3, OP: 2, L: 2 };
   var FOCUS = { S: ["set", "def", "srv", "blk", "tec", "men", "spd"], OH: ["att", "rec", "def", "srv", "blk", "tec", "men", "spd"], MB: ["blk", "att", "srv", "tec", "men", "spd"],
                 OP: ["att", "srv", "blk", "def", "tec", "men", "spd"], L: ["rec", "def", "set", "tec", "men", "spd"] };
@@ -26,6 +26,8 @@
     FUTAKUCHI: 2, AONE: 2, OBARA: 2, KAMASAKI: 3, KOGANEGAWA: 1, SAKUNAMI: 1,
     KIRYU: 3, DAISHO: 3, NUMAI: 3, TERUSHIMA: 2, HYAKUZAWA: 1, NAKASHIMA: 3
   };
+  // still in high school this story year? (unknown names are fine)
+  VB.HQ_YEARS_OK = function (name, year) { return !HQ_YEARS[name] || HQ_YEARS[name] + year - 1 <= 3; };
   // canon reserves who round out a few squads
   var BENCH = {
     KAR: [["SUGAWARA", "S"], ["YAMAGUCHI", "MB"], ["ENNOSHITA", "OH"]],
@@ -58,7 +60,8 @@
   };
   var DRILLS = {
     srv: "JUMP-FLOAT TARGET SERVES", rec: "SERVE-RECEIVE GAUNTLET", set: "100 TOSSES TO THE ANTENNA", att: "LINE & CROSS SPIKING",
-    blk: "READ-AND-STEP BLOCKING", def: "FLYING-FALL DIGS", vert: "PLYOMETRIC JUMP CIRCUIT"
+    blk: "READ-AND-STEP BLOCKING", def: "FLYING-FALL DIGS", vert: "PLYOMETRIC JUMP CIRCUIT",
+    men: "PRESSURE POINTS GAME", tec: "BALL-CONTROL CIRCUIT", spd: "SHUTTLE-RUN FOOTWORK"
   };
   var LOCAL_NAMES = ["HIGASHI KITA", "MINAMI SAKURA", "NISHI CHUO", "KAWARA TECH", "MIDORIGAOKA", "TOKONATSU", "SHINRYO", "ASAHI DAI"];
   var LOCAL_KITS = [["#6a8f2a", "#ffffff"], ["#c0396b", "#ffffff"], ["#2a5fa8", "#ffd21e"], ["#7a4a1a", "#ffffff"], ["#3a3a8a", "#ffffff"], ["#d0592a", "#1b1b1b"]];
@@ -76,7 +79,7 @@
   function coach() { return COACH[S.school] ? "Coach " + COACH[S.school] : "Coach"; }
   function region(id) { return MIYAGI.indexOf(id) >= 0 ? "MIYAGI" : TOKYO.indexOf(id) >= 0 ? "TOKYO" : "LOCAL"; }
   function log(t, tag) { S.log.unshift({ y: S.year, t: t, tag: tag || "" }); if (S.log.length > 90) S.log.length = 90; }
-  function yearTxt(y) { return ["", "1ST", "2ND", "3RD"][y] + " YEAR"; }
+  function yearTxt(y) { return y >= 4 ? "TIMESKIP" : ["", "1ST", "2ND", "3RD"][y] + " YEAR"; }
 
   // ================== CREATION ==================
   function newRec(name, fam, base, yr, nat) {
@@ -89,7 +92,7 @@
     var t = team(st.school) || VB.HQ_TEAMS.find(function (x) { return x.id === st.school; });
     S = { slot: slot, v: 1, school: t.id, year: 1, phase: 0, step: 0, players: {}, squad: [], years: {}, slotOf: {}, taken: {},
           trust: 10, focus: FOCUS[st.fam][0], prog: {}, log: [], trophies: [], history: [], stats: {}, bracket: null,
-          springOut: false, captain: false, vertGain: 0, mentorDone: false, locals: [], done: false, startOvr: 0, name: st.name, fam: st.fam };
+          springOut: false, captain: false, vertGain: 0, mentorDone: false, locals: [], done: false, startOvr: 0, name: st.name, fam: st.fam, ph2: 1, week: 0, papers: [] };
     if (region(t.id) === "LOCAL") {
       shuffle(LOCAL_NAMES.slice()).slice(0, 4).forEach(function (n, i) {
         var k = LOCAL_KITS[i % LOCAL_KITS.length];
@@ -247,7 +250,8 @@
   }
   async function drill(a, label) {
     var p = you(), lvl = a === "vert" ? 70 : p[a];
-    var q = await drillBar(label || DRILLS[a], "Drill: " + DRILLS[a] + ".", { goodW: clamp(0.18 + (lvl - 60) / 300, 0.16, 0.3), speed: 1500 - (lvl - 60) * 4 });
+    var q = VB.Mini ? await VB.Mini.forAttr(a, label || DRILLS[a], "Drill: " + DRILLS[a] + ".", lvl)          // a different minigame each time
+                    : await drillBar(label || DRILLS[a], "Drill: " + DRILLS[a] + ".", { goodW: clamp(0.18 + (lvl - 60) / 300, 0.16, 0.3), speed: 1500 - (lvl - 60) * 4 });
     var g = addPts(a, (0.6 + q * 2.4) * room() * rnd(0.85, 1.15));
     S.trust = clamp(S.trust + q * 3.5, 0, 100);
     return { q: q, g: g };
@@ -368,7 +372,12 @@
     if (busy || S.done) return;
     busy = true;
     try {
+      if (S.ts) { await timeskip(); save(); render(); return; }
       if (S.pendingEval) { await evaluation(S.pendingEval); S.pendingEval = null; save(); render(); return; }
+      if (PH[S.phase] !== "april") {                                     // each step is about a week: the paper comes out every other week
+        S.week = (S.week || 0) + 1;
+        if (S.week - (S.paperWk || 0) >= 2) { S.paperWk = S.week; await newspaper(); save(); }
+      }
       var evKey = S.year + "-" + S.phase;
       if (S.evAt !== evKey && PH[S.phase] !== "april" && PH[S.phase] !== "end") {
         S.evAt = evKey;
@@ -452,6 +461,9 @@
           await U.modal("TO TOKYO!", "<p>The prefecture is yours. Next stop: the <b>Spring Nationals</b> in Tokyo — the orange court.</p>", [{ label: "CONTINUE", value: 1 }]);
           S.bracket = null; nextPhase();
         } else { S.step++; save(); render(); }
+      } else if (ph === "youth") {
+        await youthCamp();
+        nextPhase();
       } else if (ph === "nationals") {
         if (S.springOut) { nextPhase(); }
         else {
@@ -751,8 +763,8 @@
     if (S.rival && S.year < 3 && S.rival.yr + S.year > 3) await rivalFarewell();
     if (S.year === 3) {
       html += endingHTML();
-      S.done = true; save();
-      await U.modal("GRADUATION", html, [{ label: "THE END", value: 1 }]);
+      S.ts = { stage: 0 }; S.year = 4; S.phase = 0; S.step = 0; save();
+      await U.modal("GRADUATION", html + "<p class='center gain'>...but the story isn't over. ⏩ TIMESKIP unlocked.</p>", [{ label: "FIVE YEARS LATER ▸", value: 1 }]);
       return render();
     }
     // graduation, growth of the rest, recruits
@@ -792,8 +804,289 @@
     } else {
       title = "THE ONE WHO LOVED THE GAME"; txt = "You never became the star, but every weekend you're back in a gym somewhere, chasing the ball you could never quite let fall.";
     }
+    S.endTitle = title;
     return "<h3 class='center'>" + esc(title) + "</h3><p>" + esc(txt) + "</p><p class='center'>FINAL OVR " + o + " (started at " + S.startOvr + ")" +
       (tr ? "<br/>🏆 " + esc(tr) : "") + "</p>";
+  }
+
+  // ================== THE NEWSPAPER (every other week) ==================
+  var PAPERS = ["VOLLEYBALL MONTHLY", "HIGH-SCHOOL VOLLEY WEEKLY", "THE SPIKE TIMES"];
+  function scoreTxt(g) { return g.bo > 1 ? g.sw + "-" + g.sl + " (" + g.sets.map(function (x) { return x[0] + "-" + x[1]; }).join(", ") + ")" : g.sets[0][0] + "-" + g.sets[0][1]; }
+  function paperGames() {
+    var ids = shuffle(VB.HQ_TEAMS.map(function (t) { return t.id; }).filter(function (id) { return id !== S.school; })), games = [];
+    for (var i = 0; i + 1 < ids.length && games.length < 7; i += 2) {
+      var A = oppDef(ids[i]), B = oppDef(ids[i + 1]), bo = Math.random() < 0.55 ? 3 : 1, r = VB.Stats.simSets(A, B, bo);
+      var aw = r.a > r.b, W = aw ? A : B, L = aw ? B : A, sets = r.sets.map(function (x) { return aw ? x : [x[1], x[0]]; });
+      var interest = 0, kind = "win", gap = L.ovr - W.ovr;
+      if (gap >= 2) { interest += gap * 1.6; kind = "upset"; }
+      if (bo === 3 && sets[0][0] < sets[0][1]) { interest += 4; kind = kind === "upset" ? "upcomeback" : "comeback"; }
+      if (Math.max.apply(null, sets.map(function (x) { return Math.max(x[0], x[1]); })) >= 18) { interest += 2.5; if (kind === "win") kind = "thriller"; }
+      if (kind === "win" && sets.every(function (x) { return x[0] - x[1] >= 6; })) { interest += 1; kind = "rout"; }
+      if (S.rival && (A.id === S.rival.school || B.id === S.rival.school)) interest += 1.5;
+      var star = null, best = -1;
+      VB.ROLES.forEach(function (q) { var l = r.stats[W.lineup[q].id]; if (l) { var pt = l.k + l.ace + l.blk; if (pt > best) { best = pt; star = l; } } });
+      games.push({ w: W.name, l: L.name, sets: sets, bo: bo, sw: aw ? r.a : r.b, sl: aw ? r.b : r.a, kind: kind, interest: interest + Math.random(),
+                   star: star ? { name: star.name, k: star.k, blk: star.blk, ace: star.ace } : null });
+    }
+    return games.sort(function (a, b) { return b.interest - a.interest; });
+  }
+  function story(g) {
+    var H = {
+      upset: [g.w + " STUN " + g.l + "!", "GIANT-KILLERS: " + g.w + " TOPPLE " + g.l],
+      upcomeback: ["FROM A SET DOWN, " + g.w + " SHOCK " + g.l + "!", "THE COMEBACK OF THE SEASON: " + g.w + " OVER " + g.l],
+      comeback: [g.w + " RISE FROM A SET DOWN vs " + g.l, "NEVER SAY DIE: " + g.w + " TURN IT AROUND"],
+      thriller: ["DEUCE! DEUCE! DEUCE! " + g.w + " EDGE " + g.l, g.w + " SURVIVE A MARATHON vs " + g.l],
+      rout: [g.w + " FLATTEN " + g.l, "TOTAL CONTROL: " + g.w + " CRUISE"],
+      win: [g.w + " TAKE CARE OF " + g.l, g.w + " BEAT " + g.l]
+    }[g.kind];
+    var B = {
+      upset: "Nobody gave them a chance. " + g.w + " out-served and out-hustled the favourites " + scoreTxt(g) + ".",
+      upcomeback: "Down a set to the favourites, " + g.w + " refused to fold and won " + scoreTxt(g) + ". The gym was shaking.",
+      comeback: g.l + " took the first set, then " + g.w + " found another gear: " + scoreTxt(g) + ".",
+      thriller: "Neither side would let the ball drop. " + g.w + " finally closed it out " + scoreTxt(g) + ".",
+      rout: g.w + " were in a different league today: " + scoreTxt(g) + ".",
+      win: g.w + " won " + scoreTxt(g) + "."
+    }[g.kind];
+    var st = g.star ? " " + g.star.name + " led the way with " + (g.star.k + g.star.ace + g.star.blk) + " points (" + g.star.k + " kills, " + g.star.blk + " blocks, " + g.star.ace + " aces)." : "";
+    return { h: pick(H), b: B + st };
+  }
+  async function newspaper() {
+    var gs = paperGames(), mine = S.log.find(function (n) { return n.tag === "result"; });
+    var p = { no: (S.papers || []).length + 1, wk: S.week, y: S.year, title: pick(PAPERS), lead: story(gs[0]), side: gs.slice(1, 3).map(story),
+              results: gs.slice(3).map(function (g) { return g.w + " def. " + g.l + " " + scoreTxt(g); }),
+              you: mine && mine.t !== S.paperSeen ? mine.t : null };
+    if (mine) S.paperSeen = mine.t;
+    S.papers = [p].concat(S.papers || []).slice(0, 12);
+    log("📰 " + p.title + " #" + p.no + ": " + p.lead.h, "story");
+    await U.modal("📰 THE PAPER IS OUT", paperHTML(p), [{ label: "FOLD THE PAPER", value: 1 }]);
+  }
+  function paperHTML(p) {
+    return "<div class='paper'><div class='paper-mast'>" + esc(p.title) + "</div><div class='paper-sub'>ISSUE #" + p.no + " • " + yearTxt(p.y) + " • WEEK " + p.wk + "</div>" +
+      "<div class='paper-lead'><h3>" + esc(p.lead.h) + "</h3><p>" + esc(p.lead.b) + "</p></div>" +
+      "<div class='paper-cols'>" + p.side.map(function (x) { return "<div><h4>" + esc(x.h) + "</h4><p>" + esc(x.b) + "</p></div>"; }).join("") + "</div>" +
+      (p.you ? "<div class='paper-you'><b>AROUND " + esc(school().name) + ":</b> " + esc(p.you) + "</div>" : "") +
+      (p.results.length ? "<div class='paper-res'><b>OTHER RESULTS:</b> " + p.results.map(esc).join(" • ") + "</div>" : "") + "</div>";
+  }
+  function newsHTML() {
+    return (S.papers || []).length ? S.papers.map(paperHTML).join("") : "<p class='muted center'>The first issue comes out in a couple of weeks.</p>";
+  }
+
+  // ================== CAMEOS & CUSTOM TEAMS ==================
+  function canonFace(name, ts) {
+    var C = VB.Gacha ? VB.Gacha.cards : [], sk = VB.skinFace && VB.skinFace(name);
+    var c = (ts && C.find(function (x) { return x.id === "TS-" + name; })) || C.find(function (x) { return x.id === name; });
+    return sk || (c ? JSON.parse(JSON.stringify(c.face)) : null);
+  }
+  var MY_SLOT = { S: "S", OH: "OH1", MB: "MB1", OP: "OP", L: "L" };
+  // o: { id, name, kit, kit2, ovr, players: { role: name }, stars, ts, pro }
+  function customTeam(o, withYou) {
+    var t = { id: o.id, name: o.name, nat: "JPN", ages: o.pro ? [22, 27] : [16, 18], heightAdj: o.pro ? 0 : -9, ovr: o.ovr, players: {}, stars: o.stars || {} };
+    VB.ROLES.forEach(function (r) { if (o.players[r]) t.players[r] = o.players[r]; });
+    var line = VB.teamLineup(t, {});
+    VB.ROLES.forEach(function (r) { var f = o.players[r] && canonFace(o.players[r], o.ts); if (f) line[r].face = f; });
+    if (withYou) line[MY_SLOT[you().role]] = you();
+    return { id: o.id, name: o.name, short: o.name, flag: "🏐", kit: o.kit, kit2: o.kit2, ovr: o.ovr, play: o.play || "balanced", lineup: line };
+  }
+  async function customMatch(mine, foe, o) {
+    U.showView("match");
+    $("recordLine").textContent = o.record || o.label;
+    var key = VB.ROLES.find(function (r) { return mine.lineup[r] && mine.lineup[r].id === "you"; });
+    var res = await VB.Engine.playMatch({ mine: mine, foe: foe, homeSide: 0, mode: "role", myRole: key, label: o.label + (o.bestOf > 1 ? " • BEST OF 3" : ""), league: o.league || "EXHIBITION",
+                                          bestOf: o.bestOf || 1, floor: o.floor || "wood", confAdj: ((S.conf || 50) - 50) / 400 });
+    U.showView("hub");
+    var lineSt = res.stats.you, rating = VB.Stats.rating(lineSt, you().role, res.won);
+    var before = ovr(you()), gains = grow(rating), after = ovr(you());
+    addConf((rating - 6.5) * 3 + (res.won ? 1.5 : -1.5));
+    log((res.won ? "W " : "L ") + res.score[0] + "-" + res.score[1] + " vs " + foe.name + " (" + o.label + ") — rating " + rating + ".", "result");
+    await U.modal(res.won ? "WIN" : "LOSS",
+      "<p class='center big'>" + esc(mine.name + " " + res.score[0] + " : " + res.score[1] + " " + foe.name) + "</p>" +
+      (res.sets && res.sets.length > 1 ? "<p class='center muted'>SETS " + res.sets.map(function (x) { return x[0] + "-" + x[1]; }).join(", ") + "</p>" : "") +
+      "<p class='center'>YOUR RATING: <b class='rating'>" + rating + "</b> / 10</p><p class='center'>" + esc(VB.Stats.lineText(lineSt)) + "</p>" +
+      (gainTxt(gains) ? "<p class='center gain'>GROWTH: " + esc(gainTxt(gains)) + "</p>" : "") + (after > before ? "<p class='center gain'>OVR " + before + " → " + after + "</p>" : ""),
+      [{ label: "CONTINUE", value: 1 }]);
+    return { won: res.won, rating: rating };
+  }
+  function gainLine(a, g) { return g ? "<p class='center gain'>+" + g + " " + ATTR_TXT[a] + "</p>" : ""; }
+
+  // ================== ALL-JAPAN YOUTH CAMP (every December) ==================
+  var CAMP_STARS = [
+    { who: "SAKUSA", sch: "ITACHIYAMA", attr: "def", game: "reaction", line: "...Don't touch my water bottle. Watch my wrist — the spin comes late.", win: "Sakusa almost smiles. \"You read it. Annoying.\"", lose: "Sakusa's spikes curve away from your arms every time. \"Again. And wash your hands.\"" },
+    { who: "ATSUMU", sch: "INARIZAKI", attr: "srv", game: "target", line: "Yer serve's alright. Wanna see a real one? Hit the towel, then we'll talk.", win: "\"Huh. Not bad, not bad at all.\" Atsumu looks genuinely annoyed.", lose: "\"Yer tossin' too far forward.\" Atsumu fixes it in one sentence." },
+    { who: "HOSHIUMI", sch: "KAMOMEDAI", attr: "vert", game: "power", line: "Height isn't everything! Load the legs and EXPLODE!", win: "\"THAT'S what I'm talking about!\" Hoshiumi slaps your back.", lose: "\"You're holding back! Don't hold back!\"" },
+    { who: "KAGEYAMA", sch: "KARASUNO", attr: "set", game: "memory", line: "Call your tempo. Loud. I'll put the ball exactly there.", win: "Kageyama nods once. From him, that's a standing ovation.", lose: "\"...You called B. You ran A.\" He's not wrong." },
+    { who: "HYAKUZAWA", sch: "KAKUGAWA", attr: "blk", game: "read", line: "I used to hate being tall. Now I just read the setter and wait.", win: "\"You see it too, right? The setter's shoulders.\"", lose: "\"Don't jump with your eyes. Jump with your head.\"" },
+    { who: "KOMORI", sch: "ITACHIYAMA", attr: "rec", game: "catch", line: "Platform still, feet fast. That's the whole secret, honestly.", win: "\"See? Easy!\" Komori beams like a proud older brother.", lose: "\"Your arms are swinging. Let the ball come to you.\"" },
+    { who: "GOSHIKI", sch: "SHIRATORIZAWA", attr: "att", game: "rhythm", line: "I'm going to be the ACE of Japan! Race me on the approach!", win: "\"...Okay, you're good. But I'm still the ace!\"", lose: "\"HA! Too slow! Again, again!\"" },
+    { who: "LEV", sch: "NEKOMA", attr: "blk", game: "reaction", line: "I'm going to be Nekoma's ace! ...Also, Yaku-san says I need to practise blocking.", win: "Lev tries to lift you in celebration. You both fall over.", lose: "Lev is somehow both terrible and terrifying." },
+    { who: "HINATA", sch: "KARASUNO", attr: "spd", game: "tap", line: "Let's see who's faster! Ready? GO!", win: "\"BWAH! Again! One more!\" Hinata is already sprinting back.", lose: "Hinata is a blur. \"You'll get me next time!\"" }
+  ];
+  var CAMP_POOL = { S: ["KAGEYAMA", "ATSUMU", "KOGANEGAWA", "SHIRABU", "AKAASHI"], OH: ["HOSHIUMI", "SAKUSA", "GOSHIKI", "BOKUTO", "USHIJIMA", "HINATA", "KUNIMI"],
+                    MB: ["HYAKUZAWA", "LEV", "HIRUGAMI", "SUNA", "AONE"], OP: ["OSAMU", "KYOTANI", "TERUSHIMA", "AZUMANE"], L: ["KOMORI", "YAKU", "NISHINOYA", "OHIRA"] };
+  function inSchool(name) { return VB.HQ_YEARS_OK(name, S.year) && !S.squad.some(function (id) { return P(id).name === name; }); }
+  function campStars() { return CAMP_STARS.filter(function (c) { return inSchool(c.who); }); }
+  function campTeams() {
+    var used = {}, red = {}, white = {};
+    function take(fam) { var c = shuffle(CAMP_POOL[fam].filter(function (n) { return !used[n] && inSchool(n); }))[0]; if (c) used[c] = 1; return c || null; }
+    VB.ROLES.forEach(function (r) { var f = VB.FAMILY[r]; red[r] = take(f); white[r] = take(f); });
+    var top = Math.max.apply(null, VB.HQ_TEAMS.map(function (t) { return t.ovr; }));
+    return [customTeam({ id: "AJR", name: "CAMP RED", kit: "#c81e2a", kit2: "#ffffff", ovr: top, players: red, play: "power" }, true),
+            customTeam({ id: "AJW", name: "CAMP WHITE", kit: "#f2f2f2", kit2: "#1e4fd8", ovr: top, players: white, play: "fast" }, false)];
+  }
+  async function youthCamp() {
+    var o = ovr(you()), need = S.year === 1 ? 71 : 69, awards = (S.awards || []).length;
+    if (o < need && !(awards && o >= need - 3)) return ballBoyCamp(need);
+    S.youth = (S.youth || 0) + 1;
+    log("🇯🇵 Invited to the ALL-JAPAN YOUTH TRAINING CAMP.", "you");
+    await U.modal("🇯🇵 ALL-JAPAN YOUTH CAMP", "<p>An envelope from the Japan Volleyball Association. <b>You've been invited</b> to the All-Japan Youth Training Camp — three days with the best high-schoolers in the country.</p>" +
+      "<p>" + esc(coach()) + ": \"Go. Steal everything they know. Then bring it back here.\"</p>", [{ label: "DAY 1 ▸", value: 1 }]);
+    // day 1: pair drills with a star of your choice
+    var stars = shuffle(campStars()).slice(0, 3);
+    if (stars.length) {
+      var k = await U.modal("DAY 1 — PAIR DRILLS", "<p>Thirty of the best players in Japan, and the coaches want everyone in pairs. Who do you walk up to?</p>",
+        stars.map(function (x, i) { return { label: x.who + " (" + x.sch + ")", value: i }; }));
+      var st = stars[k], q = await VB.Mini.play(st.game, "PAIR DRILL WITH " + st.who, "\"" + st.line + "\"", you()[st.attr] || 70);
+      var g = addPts(st.attr, (0.9 + q * 2.8) * room());
+      S.campBond = S.campBond || {}; S.campBond[st.who] = (S.campBond[st.who] || 0) + 1;
+      addConf(q >= 0.6 ? 3 : -1);
+      log("Youth camp: paired with " + st.who + (g ? " (+" + g + " " + ATTR_TXT[st.attr] + ")" : "") + ".", "story");
+      await U.modal(st.who, "<p>" + esc(q >= 0.6 ? st.win : st.lose) + "</p>" + gainLine(st.attr, g), [{ label: "CONTINUE", value: 1 }]);
+    }
+    // night: the dorm
+    var night = await U.modal("DAY 1 — DORM NIGHT", "<p>Lights out at ten. Nobody is asleep. Someone has smuggled in snacks, someone else has a laptop full of match tapes.</p>",
+      [{ label: "WATCH MATCH TAPES", value: "tape" }, { label: "PILLOW FIGHT", value: "pillow" }, { label: "SNEAK OUT TO PRACTISE", value: "night" }]);
+    var nt;
+    if (night === "tape") { var qm = await VB.Mini.play("read", "TAPE STUDY", "Pause. Rewind. Where is that setter going?", you().men); var gm = addPts("men", (0.6 + qm * 2) * room()); nt = "You fall asleep with notes on your face." + (gm ? " +" + gm + " MENTAL." : ""); }
+    else if (night === "pillow") { addConf(5); nt = "It ends with Hoshiumi standing on a bunk declaring victory. Best night of the year. +" + coins(800) + " 🏐 coins."; }
+    else { var qn = await VB.Mini.forAttr(S.focus, "MIDNIGHT REPS", "The gym door was unlocked. Of course it was.", you()[S.focus] || 70); var gn = addPts(S.focus, (0.6 + qn * 2.2) * room());
+      if (Math.random() < 0.35) { addConf(-2); nt = "A coach catches you. Laps at 6am." + (gn ? " (Worth it: +" + gn + " " + ATTR_TXT[S.focus] + ")" : ""); } else nt = "Nobody catches you." + (gn ? " +" + gn + " " + ATTR_TXT[S.focus] + "." : ""); }
+    log("Youth camp night: " + nt, "story");
+    await U.modal("DAY 1 — DORM NIGHT", "<p>" + esc(nt) + "</p>", [{ label: "DAY 2 ▸", value: 1 }]);
+    // day 2: the coaches' gauntlet
+    var fl = FOCUS[you().role], out = [], used = [];
+    for (var i = 0; i < 2; i++) {
+      var a = i === 0 ? S.focus : pick(fl.filter(function (x) { return x !== S.focus; })), qq = await VB.Mini.forAttr(a, "COACHES' GAUNTLET " + (i + 1) + "/2", "Drill: " + DRILLS[a] + ". Every coach in the gym is writing notes.", you()[a] || 70);
+      var gg = addPts(a, (0.7 + qq * 2.4) * room()); out.push(DRILLS[a] + ": " + (gg ? "+" + gg + " " + ATTR_TXT[a] : "no gain")); used.push(qq);
+    }
+    await U.modal("DAY 2 — THE GAUNTLET", "<ul>" + out.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>", [{ label: "DAY 3 ▸", value: 1 }]);
+    // day 3: the scrimmage
+    var tm = campTeams(), play = await U.modal("DAY 3 — SCRIMMAGE", "<p>The camp ends with a scrimmage: <b>CAMP RED</b> (you) vs <b>CAMP WHITE</b>. The national youth coaches are taking notes for the U-19 squad.</p>",
+      [{ label: "PLAY", value: 1 }]);
+    var r = await customMatch(tm[0], tm[1], { label: "YOUTH CAMP SCRIMMAGE", league: "ALL-JAPAN YOUTH", floor: "vnl" });
+    if (r.rating >= 7.4 || (r.won && r.rating >= 6.8)) {
+      var aw = "Y" + S.year + " U-19 JAPAN SELECTION"; S.awards = S.awards || []; S.awards.push(aw); addConf(6);
+      log("🇯🇵 Named to the U-19 JAPAN squad after the youth camp!", "you");
+      await U.modal("🇯🇵 U-19 JAPAN", "<p>The head coach reads out the names. Yours is one of them.</p><p class='center gain'>🏅 " + esc(aw) + " • +" + coins(2000) + " 🏐</p>", [{ label: "CONTINUE", value: 1 }]);
+    } else await U.modal("CAMP OVER", "<p>No call-up this time — but every coach in Japan knows your name now.</p>", [{ label: "CONTINUE", value: 1 }]);
+    void play;
+  }
+  async function ballBoyCamp(need) {
+    var k = await U.modal("THE YOUTH CAMP LIST", "<p>The All-Japan Youth Camp list is out. Your name isn't on it (you'd need about OVR " + need + ").</p><p>Then you overhear it: the camp is short of <b>ball boys</b>...</p>",
+      [{ label: "SNEAK IN AS A BALL BOY", value: "ball" }, { label: "PREFECTURE ROOKIE CAMP", value: "pref" }]);
+    var txt;
+    if (k === "ball") {
+      var q1 = await VB.Mini.play("catch", "BALL BOY DUTY", "Every stray ball is yours. Don't let one touch the floor.", you().rec);
+      var q2 = await VB.Mini.play("read", "WATCHING FROM THE WALL", "You study the best setters in Japan from behind the baseline.", you().men);
+      var g1 = addPts("rec", (0.6 + q1 * 2) * room()), g2 = addPts("men", (0.6 + q2 * 2) * room());
+      if (q1 + q2 >= 1.3) { S.trust = clamp(S.trust + 4, 0, 100); addConf(5); txt = "On the last day the head coach points at you: \"You. Ball boy. Join the last drill.\" You don't miss a single ball."; }
+      else { addConf(2); txt = "Nobody notices you, but you noticed everything."; }
+      txt += (g1 ? " +" + g1 + " RECEIVE." : "") + (g2 ? " +" + g2 + " MENTAL." : "");
+    } else {
+      var a = S.focus, qa = await VB.Mini.forAttr(a, "ROOKIE CAMP DRILL", "The prefecture's best first- and second-years.", you()[a] || 70);
+      var qb = await VB.Mini.forAttr("spd", "ROOKIE CAMP FOOTWORK", "Shuttle runs until someone throws up.", you().spd || 70);
+      var ga = addPts(a, (0.7 + qa * 2.2) * room()), gb = addPts("spd", (0.5 + qb * 1.6) * room());
+      txt = "Three days of drills with the prefecture's best young players." + (ga ? " +" + ga + " " + ATTR_TXT[a] + "." : "") + (gb ? " +" + gb + " SPEED." : "");
+    }
+    log("December camp: " + txt, "story");
+    await U.modal("DECEMBER CAMP", "<p>" + esc(txt) + "</p>", [{ label: "CONTINUE", value: 1 }]);
+  }
+
+  // ================== TIMESKIP ==================
+  var TS_TXT = ["FIVE YEARS LATER", "REUNIONS", "PRE-SEASON CAMP", "V.LEAGUE: JACKALS vs ADLERS", "EPILOGUE"];
+  var PRO_TEAMS = {
+    MSBY: { id: "MSBY", name: "MSBY BLACK JACKALS", kit: "#1b1b1b", kit2: "#e8b923", ovr: 82, play: "power", ts: true, pro: true,
+            players: { S: "ATSUMU", OH1: "HINATA", OH2: "SAKUSA", MB1: "MEIAN", OP: "BOKUTO", L: "INUNAKI" }, stars: { S: "serve", OH1: "spike", OP: "spike" } },
+    ADL: { id: "ADL", name: "SCHWEIDEN ADLERS", kit: "#203a6b", kit2: "#ffd21e", ovr: 82, play: "serve", ts: true, pro: true,
+           players: { S: "KAGEYAMA", OH1: "HOSHIUMI", OH2: "ROMERO", MB1: "HIRUGAMI", OP: "USHIJIMA" }, stars: { S: "dump", OH1: "spike", OP: "serve" } }
+  };
+  var REUNIONS = [
+    { id: "rio", label: "🏖️ BEACH VOLLEY IN RIO", who: "HINATA", game: "catch", attr: "rec", txt: "Hinata is back from Brazil, tanned and grinning. \"Sand makes you honest! Your feet can't lie!\"",
+      win: "You read the wind like a local. Hinata high-fives you so hard it stings.", lose: "The sand eats you alive. Hinata laughs: \"I was worse on day one!\"" },
+    { id: "onigiri", label: "🍙 ONIGIRI MIYA", who: "OSAMU", game: "memory", attr: "men", txt: "Osamu's shop is packed. \"Ya wanna help? Remember the orders. All of 'em.\"",
+      win: "Not one wrong order. Osamu pays you in onigiri and coins.", lose: "Someone gets salmon instead of tuna. Osamu just sighs." },
+    { id: "kenma", label: "🎮 BOUNCING BALL CORP.", who: "KENMA", game: "tap", attr: "spd", txt: "Kenma, now a CEO, needs a sponsor video. \"Just do the sprint drill. The camera does the rest.\"",
+      win: "The video goes viral. Kenma: \"...Nice. The numbers are good.\"", lose: "Kenma: \"We'll fix it in editing.\"" },
+    { id: "school", label: "🏫 BACK TO YOUR OLD GYM", who: "", game: "power", attr: "vert", txt: "The smell of floor wax. A first-year shyly asks you to show them your jump.",
+      win: "The whole team cheers. Somebody will remember that jump forever.", lose: "You land awkwardly, but the kids still cheer." },
+    { id: "japan", label: "🇯🇵 NATIONAL TEAM TRYOUT", who: "USHIJIMA", game: "target", attr: "srv", txt: "The Japan coaches want to see your serve. Ushijima watches from the bench, arms folded.",
+      win: "Ushijima: \"Good.\" The Japan coaches write your name down twice.", lose: "\"Again.\" You get one more chance next year." }
+  ];
+  async function reunion(rr) {
+    var q = await VB.Mini.play(rr.game, rr.label, rr.txt, you()[rr.attr] || 75), g = addPts(rr.attr, (0.8 + q * 2.4) * Math.max(0.4, room())), extra = "";
+    if (rr.id === "onigiri" || rr.id === "kenma") extra = " +" + coins(q >= 0.6 ? 3000 : 1000) + " 🏐 coins.";
+    if (rr.id === "school") addConf(4);
+    if (rr.id === "japan" && q >= 0.6) { S.awards = S.awards || []; S.awards.push("JAPAN NATIONAL TEAM CALL-UP"); extra = " 🇯🇵 You're called up to the national team!"; }
+    S.ts.done = (S.ts.done || []).concat([rr.id]);
+    log("Timeskip — " + rr.label + ": " + (q >= 0.6 ? rr.win : rr.lose) + extra, "story");
+    await U.modal(rr.label, "<p>" + esc(q >= 0.6 ? rr.win : rr.lose) + esc(extra) + "</p>" + gainLine(rr.attr, g), [{ label: "CONTINUE", value: 1 }]);
+  }
+  async function timeskip() {
+    var ts = S.ts, me = you();
+    if (ts.stage === 0) {
+      me.age += 5;
+      var fl = FOCUS[me.role], target = Math.max(me.pot, ovr(me) + 8) + 2;
+      for (var guard = 0; ovr(me) < target && guard < 400; guard++) { var a = pick(fl); if (me[a] < 99) me[a]++; }
+      me.pot = Math.max(me.pot, ovr(me) + 2);
+      var path = { "STRAIGHT TO THE PROS": "Five seasons as a pro have hardened you.", "UNIVERSITY ACE": "University volleyball made you a star; now the pros are calling.",
+                   "STILL CLIMBING": "You kept climbing — university, a second-division club, and now the big stage." }[S.endTitle] || "You never stopped playing, and somehow that was enough.";
+      var k = await U.modal("⏩ FIVE YEARS LATER", "<p>You're <b>" + me.age + "</b> now. " + esc(path) + "</p><p class='center gain'>OVR " + ovr(me) + "</p>" +
+        "<p>Two V.League Division 1 clubs want you for the new season. Their season opener is against each other.</p>",
+        [{ label: "🦊 MSBY BLACK JACKALS (Hinata, Bokuto, Atsumu, Sakusa)", value: "MSBY" }, { label: "🦅 SCHWEIDEN ADLERS (Kageyama, Ushijima, Hoshiumi)", value: "ADL" }]);
+      ts.team = k; ts.stage = 1;
+      log("⏩ Five years later: you sign with the " + PRO_TEAMS[k].name + ".", "you");
+      return;
+    }
+    if (ts.stage === 1) {
+      for (var n = 0; n < 2; n++) {
+        var left = REUNIONS.filter(function (x) { return (ts.done || []).indexOf(x.id) < 0; });
+        var pickR = await U.modal("REUNIONS (" + (n + 1) + "/2)", "<p>Old friends, new lives. The off-season has time for two visits.</p>",
+          left.map(function (x, i) { return { label: x.label, value: i }; }));
+        await reunion(left[pickR]);
+      }
+      ts.stage = 2; return;
+    }
+    if (ts.stage === 2) {
+      var tm = PRO_TEAMS[ts.team], fl2 = FOCUS[me.role], res = [];
+      await U.modal("PRE-SEASON — " + tm.name, "<p>First practice with " + esc(tm.name) + ". " + (ts.team === "MSBY" ? "Bokuto screams HEY HEY HEY at a volume that should be illegal." : "Ushijima nods at you. Kageyama is already asking what tempo you like.") + "</p>",
+        [{ label: "TRAIN", value: 1 }]);
+      for (var i = 0; i < 3; i++) {
+        var at = i === 0 ? S.focus : pick(fl2), q = await VB.Mini.forAttr(at, "PRE-SEASON " + (i + 1) + "/3", "Drill: " + DRILLS[at] + ".", me[at] || 75), g = addPts(at, (0.7 + q * 2.2) * Math.max(0.4, room()));
+        res.push(DRILLS[at] + ": " + (g ? "+" + g + " " + ATTR_TXT[at] : "no gain"));
+      }
+      var slot = MY_SLOT[me.role], benched = tm.players[slot];
+      await U.modal("THE LINEUP", "<ul>" + res.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul><p>The coach pins the lineup to the wall. <b>You're starting</b>" +
+        (benched ? " — " + esc(benched) + " shakes your hand: \"Don't waste it.\"" : ".") + "</p>", [{ label: "TO THE OPENER ▸", value: 1 }]);
+      ts.stage = 3; return;
+    }
+    if (ts.stage === 3) {
+      var mineT = customTeam(PRO_TEAMS[ts.team], true), foeT = customTeam(PRO_TEAMS[ts.team === "MSBY" ? "ADL" : "MSBY"], false);
+      await U.modal("V.LEAGUE DIVISION 1", "<p>Sendai City Gymnasium, sold out. <b>" + esc(mineT.name) + "</b> vs <b>" + esc(foeT.name) + "</b>. Somewhere in the crowd, your old high-school coach is crying already.</p>",
+        [{ label: "PLAY", value: 1 }]);
+      var r = await customMatch(mineT, foeT, { label: "V.LEAGUE OPENER", league: "V.LEAGUE", bestOf: 3, floor: "rubber" });
+      ts.won = r.won; ts.rating = r.rating;
+      if (r.won) S.trophies.push("V.LEAGUE OPENER — " + mineT.name + " BEAT " + foeT.name);
+      if (r.rating >= 8) { S.awards = S.awards || []; S.awards.push("V.LEAGUE OPENER MVP"); }
+      ts.stage = 4; return;
+    }
+    // epilogue
+    var tr = S.trophies.length, aw = (S.awards || []).length, tmn = PRO_TEAMS[ts.team].name;
+    var end = ts.won ? (ts.rating >= 8 ? "You were the best player on a court full of legends. Hinata calls it \"the most fun match ever\". He says that every week, but this time he means it."
+                                       : "A win in the opener. The season is long, but tonight you're exactly where you dreamed you'd be when you were fifteen.")
+                     : "A loss — but the gym chanted your name anyway. The season is long, and you're not done.";
+    S.done = true; S.tsDone = true; S.ts = null;
+    log("THE END — " + tmn + ".", "you");
+    await U.modal("EPILOGUE", "<p>" + esc(end) + "</p><p class='center'>FINAL OVR " + ovr(me) + " • 🏆 " + tr + " • 🏅 " + aw + "</p>" +
+      (S.rival ? "<p>Your old rival <b>" + esc(S.rival.name) + "</b> sends a message after the match: \"Rematch. Soon.\"</p>" : "") + "<h3 class='center'>THE END</h3>",
+      [{ label: "THE END", value: 1 }]);
   }
 
   // ================== HUB ==================
@@ -803,6 +1096,7 @@
   }
   function nextTxt() {
     if (S.done) return "STORY COMPLETE";
+    if (S.ts) return "NEXT: " + TS_TXT[S.ts.stage];
     if (S.pendingEval) return "NEXT: " + S.pendingEval + " PLAYER EVALUATION";
     var ph = PH[S.phase];
     if (ph === "ih" && S.bracket && S.step < 2) return "NEXT: " + Q_NAMES[2][S.step] + " vs " + team(S.bracket[S.step]).name;
@@ -843,8 +1137,8 @@
       (rows ? "<table class='standings'><tr><th>YEAR</th><th>OVR</th><th>INTERHIGH</th><th>SPRING</th><th>YOUR LINE</th></tr>" + rows + "</table>" : "");
   }
   function render() {
-    var me = you(), t = school(), rch = VB.reach(me), tabs = ["team", "log", "training", "record"];
-    var body = tab === "team" ? teamHTML() : tab === "log" ? logHTML() : tab === "training" ? trainingHTML() : recordHTML();
+    var me = you(), t = school(), rch = VB.reach(me), tabs = ["team", "log", "news", "training", "record"];
+    var body = tab === "team" ? teamHTML() : tab === "log" ? logHTML() : tab === "news" ? newsHTML() : tab === "training" ? trainingHTML() : recordHTML();
     $("hub").innerHTML =
       "<div class='hub-top'>" +
         "<div class='card me-card'><img class='pix big' src='" + VB.Engine.spriteURL(me.face, t.kit) + "' alt=''/>" +
@@ -858,10 +1152,12 @@
         "<div class='card club-card' style='border-color:" + t.kit + "'><div class='pname'>" + esc(t.flag + " " + t.name) + "</div>" +
           "<div class='muted'>" + esc(region(S.school) === "LOCAL" ? "PREFECTURE QUALIFIERS vs LOCAL SCHOOLS" : region(S.school) + " PREFECTURE") + " • " + esc(coach().toUpperCase()) + "</div>" +
           "<div>" + (keyOf(myLineup(false)) ? "<b class='gain'>IN THE STARTING SIX</b>" : "<b>FIGHTING FOR A SPOT</b>") + "</div>" +
+          (S.ts && S.ts.team ? "<div>🏐 PRO: <b>" + esc(PRO_TEAMS[S.ts.team].name) + "</b></div>" : "") +
+          (S.youth ? "<div>🇯🇵 YOUTH CAMP INVITES: <b>" + S.youth + "</b></div>" : "") +
           (S.rival ? "<div>⚡ RIVAL: <b>" + esc(S.rival.name) + "</b> <span class='muted'>(" + esc(team(S.rival.school).name) + ") • " + S.rival.w + "-" + S.rival.l + "</span></div>" : "") +
           "<div class='muted'>🏆 " + S.trophies.length + " • INTERHIGH: " + esc(S.ih || "—") + " • SPRING: " + esc(S.spring || "—") + "</div></div>" +
       "</div>" +
-      "<div class='hub-status'>STORY SLOT " + S.slot + " • " + yearTxt(S.year) + " • " + esc(PH_TXT[PH[S.phase]] || "") + " • " + esc(nextTxt()) + "</div>" +
+      "<div class='hub-status'>STORY SLOT " + S.slot + " • " + yearTxt(S.year) + (S.ts ? "" : " • WEEK " + (S.week || 0) + " • " + esc(PH_TXT[PH[S.phase]] || "")) + " • " + esc(nextTxt()) + "</div>" +
       "<div class='hub-actions'>" + (S.done ? "" : "<button class='btn big' data-act='advance'>" + esc(PH[S.phase] === "end" ? "SEASON REVIEW" : "CONTINUE STORY") + "</button>") +
         "<button class='btn' data-act='look'>CHANGE LOOK</button><button class='btn pink' data-act='menu'>SAVE &amp; MENU</button></div>" +
       "<div class='tabs'>" + tabs.map(function (x) { return "<button class='tab-btn" + (x === tab ? " on" : "") + "' data-act='tab' data-arg='" + x + "'>" + x.toUpperCase() + "</button>"; }).join("") + "</div>" +
@@ -925,6 +1221,9 @@
     if (act === "load") {
       S = load(+arg); Object.keys(S.players).forEach(function (id) { VB.fillAttrs(S.players[id]); });
       if (S.conf == null) S.conf = 50; S.bond = S.bond || {}; if (!S.rival) pickRival();
+      if (!S.ph2) { if (S.phase >= 6) S.phase++; S.ph2 = 1; }                  // the youth camp slotted in before nationals
+      S.papers = S.papers || [];
+      if (S.done && !S.ts && !S.tsDone && S.year === 3) { S.done = false; S.ts = { stage: 0 }; S.year = 4; S.phase = 0; save(); }   // finished stories get the timeskip
       tab = "team"; return render();
     }
     if (act === "del") {
