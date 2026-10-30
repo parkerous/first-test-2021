@@ -613,3 +613,7 @@ canvas.screen { border: 4px solid var(--blue-d); box-shadow: 0 0 0 4px var(--yel
 .paper-you { background: #fff1b8; border: 1px dashed #2a2418; padding: 4px 6px; margin-top: 6px; }
 .paper-res { font-size: 15px; border-top: 1px solid #2a2418; margin-top: 6px; padding-top: 4px; color: #5a4a30; }
 @media (max-width: 520px) { .paper-cols { grid-template-columns: 1fr; } }
+
+/* camera switch in the match top bar */
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cam-top { font-size: 9px; padding: 7px 10px; }

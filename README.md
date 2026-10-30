@@ -31,8 +31,16 @@ build step, no server.
   Inarizaki have combo sets (FREAK QUICK, TWIN QUICK). A fan homage.
 
 ### 🏫 Haikyuu!! Story Mode
-- 3 save slots. Pick any of the 16 schools, your position, build, hair and
-  skin, then join as a first-year (OVR ~10 below the team).
+- 3 save slots. Pick any of 24 schools — the 16 tournament schools plus
+  Ohgiminami, Tokonami and Shinzen and five original schools from around Japan
+  (Kouzan Tech, Hokuyo, Saikai, Tenryu, Akane Academy) — your position, build,
+  hair and skin, then join as a first-year (OVR ~10 below the team).
+- Dialogue in the characters' own voices: each school has its motto and its
+  coach's April speech (Ukai, Nekomata, Irihata, Washijo, Oiwake...), a team
+  HUDDLE before big matches, rivals with their own taunts, reactions and
+  goodbyes (Kageyama, Oikawa, Ushijima, Atsumu, Kuroo, Bokuto, Tendo, Aone...),
+  and teammates who talk like themselves when you hang out. A fan homage:
+  paraphrased lines and a few famous catchphrases.
 - Each year: April intro → practice match → Golden Week drills → Interhigh
   qualifiers (+ simulated nationals) → Tokyo summer camp (extra practice with
   Bokuto, Kuroo, Akaashi, Kenma, Yaku or Komi, who can teach you a named move)
@@ -233,7 +241,9 @@ build step, no server.
   more often.
 
 ## Camera & impact
-- 🎥 CAM (beside the court, or CAMERA on the menu) cycles CLASSIC (top-down),
+- Switch the camera any time: the 🎥 button above the court (it shows the
+  current view), the C key mid-match, the 🎥 button on the MATCH DAY screen,
+  the story and career hubs, or CAMERA on the menu. It cycles CLASSIC (top-down),
   BROADCAST (experimental: a zoomed TV camera far behind your team, so both
   teams look about the same size) and HIGH
   (experimental: steep, close behind the baseline). The experimental views use
@@ -247,7 +257,7 @@ build step, no server.
 ## Files
 `index.html` (layout) · `style.css` · `js/data.js` (teams, clubs, players) ·
 `js/haikyuu.js` (Spring Nationals teams) · `js/ui.js` · `js/stats.js` (box scores, sims, awards) · `js/engine.js` (match
-engine + arena) · `js/vnl.js` (tournaments) · `js/story.js` (Haikyuu story) · `js/gacha.js` (gacha + showroom) · `js/ceremony.js` (award ceremonies) · `js/career.js` · `js/minigames.js` (training minigames) · `js/practice.js` (home practice court) · `js/main.js` (menu).
+engine + arena) · `js/vnl.js` (tournaments) · `js/story.js` (Haikyuu story) · `js/hqvoice.js` (story dialogue) · `js/gacha.js` (gacha + showroom) · `js/ceremony.js` (award ceremonies) · `js/career.js` · `js/minigames.js` (training minigames) · `js/practice.js` (home practice court) · `js/main.js` (menu).
 
 ## Deploy to Netlify
 The repo root is the site. Leave **Base directory** empty and **Publish

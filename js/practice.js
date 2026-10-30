@@ -15,7 +15,7 @@
     return c ? JSON.parse(JSON.stringify(c.face)) : null;
   }
   function hqTeam(id) {
-    var t = VB.HQ_TEAMS.find(function (x) { return x.id === id; });
+    var t = VB.HQ_ALL.find(function (x) { return x.id === id; });
     if (!t) return null;
     var players = VB.ROLES.map(function (r) {
       var n = (t.players || {})[r] || r, f = gachaFace(n) || { skin: VB.SKINS[0], hair: "#17120d", style: "flat", mouth: true };
@@ -28,7 +28,7 @@
     for (var s = 1; s <= 3; s++) {
       var S = null; try { S = JSON.parse(localStorage.getItem("hqStory.slot" + s) || "null"); } catch (e) {}
       if (S && S.players && S.squad) {
-        var t = VB.HQ_TEAMS.find(function (x) { return x.id === S.school; }) || (S.locals || []).find(function (x) { return x.id === S.school; });
+        var t = VB.HQ_ALL.find(function (x) { return x.id === S.school; }) || (S.locals || []).find(function (x) { return x.id === S.school; });
         if (t) out.push({ label: t.name + " (STORY " + s + ")", kit: t.kit, kit2: t.kit2, id: t.id, players: S.squad.slice(0, 12).map(function (id) {
           var p = S.players[id]; return { name: id === "you" ? p.name + " (YOU)" : p.name, role: p.role, face: (id !== "you" && VB.skinFace && VB.skinFace(p.name)) || p.face, you: id === "you" };
         }) });

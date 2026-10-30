@@ -81,5 +81,20 @@
     { id: "UBU", name: "UBUGAWA", flag: "🏔️", ovr: 76, kit: "#3aa0a0", kit2: "#ffffff", players: {}, stars: {} }
   ];
   // high schoolers run shorter than pros
-  VB.HQ_TEAMS.forEach(function (t) { t.nat = "JPN"; t.ages = [16, 18]; t.short = t.name; t.heightAdj = -9; t.ovr = VB.scaleHS(t.ovr); });
+  // more schools for story mode (the Spring Nationals tournament keeps its 16): canon Miyagi and camp schools,
+  // plus original schools from around Japan
+  VB.HQ_EXTRA = [
+    { id: "OHG", name: "OHGIMINAMI", flag: "🍂", ovr: 76, kit: "#6a3fa0", kit2: "#ffffff", players: {}, stars: {} },
+    { id: "TKN", name: "TOKONAMI", flag: "🌾", ovr: 75, kit: "#c8102e", kit2: "#ffffff", players: { OH1: "IKEJIRI" }, stars: { OH1: "spike" }, skillNames: { OH1: "CAPTAIN'S SPIKE" } },
+    { id: "SHZ", name: "SHINZEN", flag: "⛰️", ovr: 80, kit: "#1e7a46", kit2: "#ffd21e", players: {}, stars: {} },
+    { id: "KOU", name: "KOUZAN TECH", flag: "🔥", ovr: 84, kit: "#e65a00", kit2: "#1b1b1b", players: {}, stars: {} },
+    { id: "HKY", name: "HOKUYO", flag: "❄️", ovr: 81, kit: "#3a6fb0", kit2: "#ffffff", players: {}, stars: {} },
+    { id: "SKI", name: "SAIKAI", flag: "⛵", ovr: 83, kit: "#0a8fa0", kit2: "#ffffff", players: {}, stars: {} },
+    { id: "TNR", name: "TENRYU", flag: "🐉", ovr: 80, kit: "#8a1a2a", kit2: "#e8c33a", players: {}, stars: {} },
+    { id: "AKN", name: "AKANE ACADEMY", flag: "🌅", ovr: 78, kit: "#d8406a", kit2: "#1b2a5a", players: {}, stars: {} }
+  ];
+  VB.KNOWN.IKEJIRI = [178, 90];
+  VB.HQ_TEAMS.concat(VB.HQ_EXTRA).forEach(function (t) { t.nat = "JPN"; t.ages = [16, 18]; t.short = t.name; t.heightAdj = -9; t.ovr = VB.scaleHS(t.ovr); });
+  VB.HQ_ALL = VB.HQ_TEAMS.concat(VB.HQ_EXTRA);
+  ["OHG:defense", "TKN:balanced", "SHZ:serve", "KOU:power", "HKY:defense", "SKI:fast", "TNR:serve", "AKN:creative"].forEach(function (k) { k = k.split(":"); VB.PLAY_OF[k[0]] = k[1]; });
 })(window.VB);

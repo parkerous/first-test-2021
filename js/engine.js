@@ -141,7 +141,7 @@
   var chant = null, homeIdx = 0;
   function startChant(srv) {
     var t = srv.team, sh = (t.short || t.name).split(" ")[0], Sv = srv.roster[srv.lineup[1]];
-    var jp = t.nat === "JPN" || t.id === "JPN" || VB.HQ_TEAMS.some(function (x) { return x.id === t.id; });
+    var jp = t.nat === "JPN" || t.id === "JPN" || VB.HQ_ALL.some(function (x) { return x.id === t.id; });
     var to = (cfg && cfg.setsTo) || 15, big = score[srv.side] >= to - 1;
     var list = [sh + "! " + sh + "! CLAP CLAP CLAP!", (jp ? "NAISSA! NAISSA!" : "NICE SERVE! NICE SERVE!"), Sv.name + "! " + Sv.name + "! " + Sv.name + "!",
                 "ACE! ACE! ACE!", "LET'S GO " + sh + "! LET'S GO!"];
@@ -284,7 +284,7 @@
   // ================== SIDES ==================
   function newStat() { var l = VB.Stats.newLine(); delete l.mp; return l; }
   function makeSide(team, side, kit, libKit) {
-    var roster = {}, taken = {}, hq = VB.HQ_TEAMS && VB.HQ_TEAMS.some(function (t) { return t.id === team.id; });
+    var roster = {}, taken = {}, hq = VB.HQ_ALL && VB.HQ_ALL.some(function (t) { return t.id === team.id; });
     ROLES.forEach(function (role) {
       var rec = team.lineup[role], num;
       var face = (hq && rec.id !== "you" && VB.skinFace && VB.skinFace(rec.name)) || rec.face;   // gacha skins dress the canon players
@@ -1166,7 +1166,10 @@
     g.beginPath(); g.arc(bp.x, bp.y, r * 0.62, ball.rot + 0.3, ball.rot + 1.8); g.stroke();
     g.beginPath(); g.arc(bp.x, bp.y, r * 0.62, ball.rot + Math.PI + 0.3, ball.rot + Math.PI + 1.8); g.stroke();
   }
-  function setCam(k) { CAM = VB.CAMS[k] ? k : "classic"; try { localStorage.setItem("retroVB.cam", CAM); } catch (e) {} }
+  function setCam(k) { CAM = VB.CAMS[k] ? k : "classic"; try { localStorage.setItem("retroVB.cam", CAM); } catch (e) {} camUI(); }
+  var CAM_SHORT = { classic: "CLASSIC", broadcast: "BROADCAST", high: "HIGH CAM" };
+  function camUI() { ["camTop", "camBtn"].forEach(function (id) { var b = $(id); if (b) b.textContent = "🎥 " + (CAM_SHORT[CAM] || CAM); }); }
+  function cycleCam() { var ks = Object.keys(VB.CAMS); setCam(ks[(ks.indexOf(CAM) + 1) % ks.length]); feed(-1, "🎥 Camera: " + VB.CAMS[CAM]); }
 
   // ================== INPUT ==================
   function aimClick(half) {
@@ -1233,7 +1236,7 @@
         wrap.classList.add("hidden"); timingPop(q); res(q);
       }
       function stop(e) {
-        if (done || paused || (e.target && e.target.closest && e.target.closest("#statsPanel, #rosterBtn, #tacPanel, #tacBtn, #backBtn, #camBtn"))) return;
+        if (done || paused || (e.target && e.target.closest && e.target.closest("#statsPanel, #rosterBtn, #tacPanel, #tacBtn, #backBtn, #camBtn, #camTop"))) return;
         done = true;
         e.preventDefault(); cancelAnimationFrame(raf);
         document.removeEventListener("pointerdown", stop, true);
@@ -2348,12 +2351,18 @@
 
   async function playMatch(c) {
     try { var ck = localStorage.getItem("retroVB.cam"); if (ck && VB.CAMS[ck]) CAM = ck; } catch (e) {}
+    camUI();
     try { Object.assign(TAC, JSON.parse(localStorage.getItem("retroVB.tactics") || "{}")); } catch (e) {}
     if (!c.noSimChoice) {
-      var how = await U.modal("MATCH DAY", "<p class='center big'>" + U.esc(c.mine.name + " vs " + c.foe.name) + "</p><p class='center'>" + U.esc(c.label || "") + "</p>" +
-        "<p class='center muted'>⏩ QUICK SIM plays it out instantly — but without you calling the shots your team is a little worse (about 5-10% lower win chance).</p>",
-        [{ label: "▶ PLAY MATCH", value: "play" }, { label: "⏩ QUICK SIM", value: "sim", cls: "pink" }]);
-      if (how === "sim") return await quickSim(c);
+      for (;;) {
+        var how = await U.modal("MATCH DAY", "<p class='center big'>" + U.esc(c.mine.name + " vs " + c.foe.name) + "</p><p class='center'>" + U.esc(c.label || "") + "</p>" +
+          "<p class='center muted'>⏩ QUICK SIM plays it out instantly — but without you calling the shots your team is a little worse (about 5-10% lower win chance).</p>" +
+          "<p class='center muted'>🎥 Camera: <b>" + U.esc(VB.CAMS[CAM]) + "</b> — switch it here, with the 🎥 button above the court, or the C key mid-match.</p>",
+          [{ label: "▶ PLAY MATCH", value: "play" }, { label: "⏩ QUICK SIM", value: "sim", cls: "pink" }, { label: "🎥 " + CAM_SHORT[CAM] + " ▸", value: "cam" }]);
+        if (how === "cam") { var ks = Object.keys(VB.CAMS); setCam(ks[(ks.indexOf(CAM) + 1) % ks.length]); continue; }
+        if (how === "sim") return await quickSim(c);
+        break;
+      }
     }
     cfg = c;
     mode = c.mode || "full"; myRole = c.myRole || null;
@@ -2427,7 +2436,14 @@
     g.imageSmoothingEnabled = false;
     $("rosterBtn").addEventListener("click", openStats);
     $("tacBtn").addEventListener("click", openTac);
-    $("camBtn").addEventListener("click", function () { var ks = Object.keys(VB.CAMS); setCam(ks[(ks.indexOf(CAM) + 1) % ks.length]); feed(-1, "🎥 Camera: " + VB.CAMS[CAM]); });
+    $("camBtn").addEventListener("click", cycleCam);
+    $("camTop").addEventListener("click", cycleCam);
+    document.addEventListener("keydown", function (e) {             // C switches the camera any time during a match
+      if (e.code !== "KeyC" || e.repeat || $("matchView").classList.contains("hidden") || !$("modal").classList.contains("hidden")) return;
+      if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+      cycleCam();
+    });
+    camUI();
     $("tacClose").addEventListener("click", closeTac);
     $("tacPanel").addEventListener("click", function (e) {
       var b = e.target.closest("[data-tac]");

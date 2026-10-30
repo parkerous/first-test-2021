@@ -24,7 +24,7 @@
     BOKUTO: 3, KONOHA: 3, WASHIO: 3, SARUKUI: 3, KOMI: 3, AKAASHI: 2, ONAGA: 1,
     IIZUNA: 3, SAKUSA: 2, KOMORI: 2, HOSHIUMI: 2, HIRUGAMI: 2, HAKUBA: 2,
     FUTAKUCHI: 2, AONE: 2, OBARA: 2, KAMASAKI: 3, KOGANEGAWA: 1, SAKUNAMI: 1,
-    KIRYU: 3, DAISHO: 3, NUMAI: 3, TERUSHIMA: 2, HYAKUZAWA: 1, NAKASHIMA: 3
+    KIRYU: 3, DAISHO: 3, NUMAI: 3, TERUSHIMA: 2, HYAKUZAWA: 1, NAKASHIMA: 3, IKEJIRI: 3
   };
   // still in high school this story year? (unknown names are fine)
   VB.HQ_YEARS_OK = function (name, year) { return !HQ_YEARS[name] || HQ_YEARS[name] + year - 1 <= 3; };
@@ -42,10 +42,12 @@
     VB.KNOWN[k[0]] = [k[1], k[2]]; VB.LOOKS[k[0]] = k[3];
   });
 
-  var MIYAGI = ["KAR", "AOB", "SHI", "DAT", "JOH", "WAK", "KAK"], TOKYO = ["NEK", "FUK", "NOH", "ITC", "TSU", "UBU"];
+  var MIYAGI = ["KAR", "AOB", "SHI", "DAT", "JOH", "WAK", "KAK", "OHG", "TKN"], TOKYO = ["NEK", "FUK", "NOH", "ITC", "TSU", "UBU"];
   var RIVAL = { KAR: "AOB", AOB: "KAR", SHI: "AOB", DAT: "KAR", JOH: "AOB", WAK: "SHI", KAK: "DAT", NEK: "KAR", FUK: "NEK",
-                NOH: "NEK", ITC: "INA", TSU: "NOH", UBU: "NEK", INA: "ITC", KAM: "KAR", MUJ: "FUK" };
-  var COACH = { KAR: "UKAI", NEK: "NEKOMATA" };
+                NOH: "NEK", ITC: "INA", TSU: "NOH", UBU: "NEK", INA: "ITC", KAM: "KAR", MUJ: "FUK",
+                OHG: "KAR", TKN: "KAR", SHZ: "FUK", KOU: "INA", HKY: "SHI", SKI: "MUJ", TNR: "KAM", AKN: "ITC" };
+  var COACH = { KAR: "UKAI", NEK: "NEKOMATA", AOB: "IRIHATA", SHI: "WASHIJO", DAT: "OIWAKE" };
+  function voice() { return (VB.HQ_VOICE && VB.HQ_VOICE[S.school]) || (VB.HQ_VOICE && VB.HQ_VOICE.GENERIC) || { y1: [""], y2: [""], y3: [""], huddle: ["FIGHT!"] }; }
   var MENTORS = {
     OH: [{ who: "BOKUTO", sch: "FUKURODANI", attr: "att", skill: "spike", name: "STRAIGHT KILL", line: "Don't think! Jump higher, hit harder, and look at the line!" },
          { who: "KUROO", sch: "NEKOMA", attr: "rec", skill: "rec", name: "NEKO RECEIVE", line: "Receive is about the feet. Get there first, then relax your arms." }],
@@ -74,7 +76,7 @@
   function you() { return S.players.you; }
   function P(id) { return S.players[id]; }
   function ovr(p) { return VB.ovr(p); }
-  function team(id) { return VB.HQ_TEAMS.find(function (t) { return t.id === id; }) || (S.locals || []).find(function (t) { return t.id === id; }); }
+  function team(id) { return VB.HQ_ALL.find(function (t) { return t.id === id; }) || (S.locals || []).find(function (t) { return t.id === id; }); }
   function school() { return team(S.school); }
   function coach() { return COACH[S.school] ? "Coach " + COACH[S.school] : "Coach"; }
   function region(id) { return MIYAGI.indexOf(id) >= 0 ? "MIYAGI" : TOKYO.indexOf(id) >= 0 ? "TOKYO" : "LOCAL"; }
@@ -89,7 +91,7 @@
   function addMember(p, yr, slot) { S.players[p.id] = p; S.squad.push(p.id); S.years[p.id] = yr; if (slot) S.slotOf[p.id] = slot; }
 
   function createStory(slot, st) {
-    var t = team(st.school) || VB.HQ_TEAMS.find(function (x) { return x.id === st.school; });
+    var t = team(st.school) || VB.HQ_ALL.find(function (x) { return x.id === st.school; });
     S = { slot: slot, v: 1, school: t.id, year: 1, phase: 0, step: 0, players: {}, squad: [], years: {}, slotOf: {}, taken: {},
           trust: 10, focus: FOCUS[st.fam][0], prog: {}, log: [], trophies: [], history: [], stats: {}, bracket: null,
           springOut: false, captain: false, vertGain: 0, mentorDone: false, locals: [], done: false, startOvr: 0, name: st.name, fam: st.fam, ph2: 1, week: 0, papers: [] };
@@ -279,6 +281,13 @@
       if (bet) await rivalAfter(bet, won, false);
       return won;
     }
+    // big matches: the huddle, in the school's own words
+    if (o.bestOf > 1 || /NATIONALS/.test(o.label)) {
+      var v = voice(), cap = S.captain ? "You" : (S.squad.map(P).filter(function (p) { return p.id !== "you" && S.years[p.id] === 3; }).sort(function (a, b) { return ovr(b) - ovr(a); })[0] || { name: "The captain" }).name;
+      await U.modal("📣 THE HUDDLE", "<p class='muted'>" + esc(o.label) + " — " + esc(foe.name) + ". " + esc(cap) + (S.captain ? " pull" : " pulls") + " everyone into a circle.</p><p>" + esc(pick(v.huddle)) + "</p>",
+        [{ label: "\"FIGHT!\"", value: 1 }]);
+      addConf(1);
+    }
     // big matches and rival matches come with a press conference
     var pre = null;
     if (VB.Media && (bet || o.bestOf > 1 || /NATIONALS/.test(o.label))) {
@@ -346,7 +355,7 @@
   }
   function nationalsField(n) {
     var reg = region(S.school) === "LOCAL" ? [S.school] : (region(S.school) === "MIYAGI" ? MIYAGI : TOKYO);
-    var pool = VB.HQ_TEAMS.map(function (t) { return t.id; }).filter(function (id) { return reg.indexOf(id) < 0; });
+    var pool = VB.HQ_ALL.map(function (t) { return t.id; }).filter(function (id) { return reg.indexOf(id) < 0; });
     return shuffle(pool).slice(0, n).sort(function (a, b) { return oppDef(a).ovr - oppDef(b).ovr; });
   }
   var Q_NAMES = { 2: ["SEMIFINAL", "FINAL"], 3: ["QUARTERFINAL", "SEMIFINAL", "FINAL"] };
@@ -355,13 +364,14 @@
   // ================== STORY BEATS ==================
   function introText() {
     var t = school(), y = S.year;
-    if (y === 1) return "<p>The gym at <b>" + esc(t.name) + "</b> smells like floor wax and effort. Upperclassmen everywhere, and they all look huge.</p>" +
-      "<p>" + esc(coach()) + ": \"First-years start at the bottom of the depth chart. Earn your spot — every practice, every match.\"</p>" +
+    var v = voice(), motto = v.motto ? "<p class='center big'>「 " + esc(v.motto) + " 」</p>" : "";
+    if (y === 1) return motto + "<p>The gym at <b>" + esc(t.name) + "</b> smells like floor wax and effort. Upperclassmen everywhere, and they all look huge.</p>" +
+      "<p>" + esc(pick(v.y1)) + "</p>" +
       "<p class='muted'>Your position: " + VB.FAMILY_NAMES[you().role] + ". Starters right now: " + esc(starterTxt()) + ".</p>";
-    if (y === 2) return "<p>Second year. The third-years who carried this team have graduated — " + esc(S.lastGrads || "the seniors") + ".</p>" +
-      "<p>Now there are first-years watching how <b>you</b> warm up. Nobody calls you the new kid anymore.</p>";
-    return "<p>Third year. " + (S.captain ? "The team voted, and the captain's number is yours. " : "Your last year in this jersey. ") +
-      "There's no next spring after this one.</p><p>" + esc(coach()) + ": \"Leave everything on that court. Then leave a little more.\"</p>";
+    if (y === 2) return motto + "<p>Second year. The third-years who carried this team have graduated — " + esc(S.lastGrads || "the seniors") + ". Somebody kept their shoes in the clubroom, just in case.</p>" +
+      "<p>" + esc(pick(v.y2)) + "</p><p>Now there are first-years watching how <b>you</b> warm up. Nobody calls you the new kid anymore.</p>";
+    return motto + "<p>Third year. " + (S.captain ? "The team voted, and the captain's number is yours. " : "Your last year in this jersey. ") +
+      "There's no next spring after this one.</p><p>" + esc(pick(v.y3)) + "</p>";
   }
   function starterTxt() {
     var l = myLineup(false);
@@ -404,7 +414,7 @@
           await U.modal("GOLDEN WEEK", "<p>Four days of training camp, three meals a day, and a lot of floor burns.</p><ul>" + out.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>", [{ label: "CONTINUE", value: 1 }]);
           S.step = 1; save(); render();
         } else {
-          var gwFoe = S.school === "KAR" ? "NEK" : S.school === "NEK" ? "KAR" : pick(VB.HQ_TEAMS.filter(function (x) { return x.id !== S.school; })).id;
+          var gwFoe = S.school === "KAR" ? "NEK" : S.school === "NEK" ? "KAR" : pick(VB.HQ_ALL.filter(function (x) { return x.id !== S.school; })).id;
           await playStory(gwFoe, { label: "GOLDEN WEEK vs " + team(gwFoe).name, practice: true, league: "PRACTICE" });
           nextPhase();
         }
@@ -439,7 +449,7 @@
           var learn = !you().skill && dr.q >= 0.5;
           if (learn) S.pendingSkill = { skill: m.skill, name: m.name };
           log("Summer camp: extra practice with " + m.who + (dr.g ? " (+" + dr.g + " " + ATTR_TXT[m.attr] + ")" : "") + (learn ? " — learning the " + m.name + "." : "."), "story");
-          await U.modal(m.who, "<p>\"" + esc(m.line) + "\"</p>" +
+          await U.modal(m.who, "<p>" + esc((VB.HQ_MENTOR_LINES || {})[m.who] || "\"" + m.line + "\"") + "</p>" +
             (dr.g ? "<p class='center gain'>+" + dr.g + " " + ATTR_TXT[m.attr] + "</p>" : "") +
             (learn ? "<p class='center gain'>You start working on the <b>" + esc(m.name) + "</b>. Keep growing (OVR " + (S.startOvr + 5) + "+) to pull it off in a match.</p>" :
              you().skill ? "" : "<p class='muted'>You couldn't quite get it tonight. Maybe next summer.</p>"),
@@ -516,7 +526,7 @@
   // ================== RIVAL ==================
   function pickRival(exclude) {
     var me = you(), fam = me.role, home = RIVAL[S.school] || "AOB", pool = [];
-    [home].concat(VB.HQ_TEAMS.map(function (t) { return t.id; }).filter(function (id) { return id !== home && id !== S.school; })).forEach(function (tid, k) {
+    [home].concat(VB.HQ_ALL.map(function (t) { return t.id; }).filter(function (id) { return id !== home && id !== S.school; })).forEach(function (tid, k) {
       var t = team(tid); if (!t) return;
       var names = Object.keys(t.players || {}).map(function (r) { return [t.players[r], VB.FAMILY[r]]; }).concat((BENCH[tid] || []).map(function (b) { return [b[0], b[1]]; }));
       names.forEach(function (nf) {
@@ -535,16 +545,21 @@
   async function rivalIntro() {
     var R0 = S.rival, t = team(R0.school);
     S.rival.met = true;
+    var rv = rvVoice(R0.name);
     var k = await U.modal("⚡ YOUR RIVAL", "<p>On the first weekend you watch a practice match at " + esc(t.name) + ". One player — <b>" + esc(R0.name) + "</b>, a " +
-      VB.FAMILY_NAMES[R0.fam].toLowerCase() + " — makes the whole gym go quiet.</p><p>On the way out you cross paths. They look you up and down.</p>",
-      [{ label: "\"I'LL BEAT YOU.\"", value: 0 }, { label: "NOD AND WALK ON", value: 1 }]);
+      VB.FAMILY_NAMES[R0.fam].toLowerCase() + " — makes the whole gym go quiet.</p><p>On the way out you cross paths.</p><p><b>" + esc(R0.name) + ":</b> " + esc(rv.intro) + "</p>",
+      [{ label: "\"I'LL BEAT YOU.\"", value: 0 }, { label: "\"...SEE YOU ON THE COURT.\"", value: 1 }]);
     if (k === 0) { addConf(5); S.rival.heat += 2; log("You told " + R0.name + " you'll beat them. Now you have to.", "you"); }
     else { addConf(1); S.rival.heat += 1; log("You and " + R0.name + " size each other up. This isn't over.", "you"); }
+  }
+  function rvVoice(name) {
+    return (VB.HQ_RIVAL_VOICE || {})[name] || { intro: "They look you up and down. \"So you're the one.\"", pre: "\"Don't hold back. I won't.\"", win: "\"...Next time.\"", lose: "\"Not yet. Not even close.\"", bye: "\"Catch up to me someday.\"" };
   }
   // before a match against your rival's school: a moment, a choice, a different reward
   async function rivalScene(o) {
     var R0 = S.rival, t = team(R0.school), line = ["They're waiting at the entrance.", "They're warming up right by the net.", "They catch your eye during the anthem."][Math.min(2, R0.heat)];
-    var k = await U.modal("⚡ RIVAL: " + R0.name, "<p>" + esc(o.label) + " — " + esc(t.name) + ". " + line + "</p><p class='muted'>Record vs " + esc(R0.name) + ": " + R0.w + "W-" + R0.l + "L. Confidence " + Math.round(S.conf) + ".</p>",
+    var k = await U.modal("⚡ RIVAL: " + R0.name, "<p>" + esc(o.label) + " — " + esc(t.name) + ". " + line + "</p><p><b>" + esc(R0.name) + ":</b> " + esc(rvVoice(R0.name).pre) + "</p>" +
+      "<p class='muted'>Record vs " + esc(R0.name) + ": " + R0.w + "W-" + R0.l + "L. Confidence " + Math.round(S.conf) + ".</p>",
       [{ label: "CHALLENGE THEM", value: "bet" }, { label: "STAY FOCUSED", value: "focus" }, { label: "ASK FOR ADVICE", value: "ask" }]);
     if (k === "focus") { addConf(2); return { kind: "focus", focus: 0.015 }; }
     if (k === "ask") {
@@ -562,20 +577,21 @@
     R0.heat = Math.min(2, R0.heat + 1);
     var txt;
     if (bet.kind === "bet") {
-      if (won) { addConf(played ? 8 : 4); txt = "You won the bet. " + R0.name + " shakes your hand without a word. +" + (VB.Gacha ? VB.Gacha.earn(500) : 0) + " 🏐 coins."; }
-      else { addConf(played ? -6 : -3); txt = R0.name + " walks past you: \"Talk is cheap.\" That one stings."; }
+      if (won) { addConf(played ? 8 : 4); txt = "You won the bet. " + R0.name + " has to shake your hand in front of everyone. +" + (VB.Gacha ? VB.Gacha.earn(500) : 0) + " 🏐 coins."; }
+      else { addConf(played ? -6 : -3); txt = "You lost the bet, and " + R0.name + " makes sure you know it. That one stings."; }
     } else if (bet.kind === "focus") {
       addConf(won ? 3 : -1); txt = won ? "Calm and steady — it paid off." : "You stayed composed even in defeat.";
     } else { addConf(won ? 2 : 0); txt = won ? "You used their advice against them. They grin." : "Still a step behind. For now."; }
     if (played && rating >= 8) txt += " Your " + rating + " rating didn't go unnoticed.";
+    txt += " " + R0.name + ": " + (won ? rvVoice(R0.name).win : rvVoice(R0.name).lose);
     log("⚡ vs " + R0.name + ": " + txt, "you");
     await U.modal("⚡ RIVALRY", "<p>" + esc(txt) + "</p><p class='center muted'>RECORD vs " + esc(R0.name) + ": " + R0.w + "W-" + R0.l + "L • CONFIDENCE " + Math.round(S.conf) + "</p>");
   }
   async function rivalFarewell() {
     var R0 = S.rival, old = R0.name;
     addConf(3);
-    await U.modal("⚡ " + old + " GRADUATES", "<p>" + esc(old) + " finds you after their last match. \"" + (R0.w >= R0.l ? "You got me more than I'd like. Don't stop." : "Catch up to me someday.") +
-      "\"</p><p class='muted'>Final record: " + R0.w + "W-" + R0.l + "L.</p>");
+    await U.modal("⚡ " + old + " GRADUATES", "<p>" + esc(old) + " finds you after their last match, eyes still red.</p><p><b>" + esc(old) + ":</b> " + esc(rvVoice(old).bye) + "</p>" +
+      "<p class='muted'>Final record: " + R0.w + "W-" + R0.l + "L.</p>");
     log(old + " graduates — the rivalry ends " + R0.w + "-" + R0.l + ".", "you");
     S.year++; pickRival(old); S.year--;                    // the next rival is someone still around next year
     if (S.rival) { S.rival.met = true; log("A new rival emerges: " + S.rival.name + " (" + team(S.rival.school).name + ").", "you"); }
@@ -604,7 +620,7 @@
     S.hangAt = S.year + "-" + S.phase;
     S.bond[id] = Math.min(5, b + 1);
     addConf(2); S.trust = clamp(S.trust + 1, 0, 100);
-    var line = pick(TALK[p.name] || GENERIC), bonus = "";
+    var line = pick((VB.HQ_TALK || {})[p.name] || TALK[p.name] || VB.HQ_GENERIC_TALK || GENERIC), bonus = "";
     if (S.bond[id] === 3) bonus = p.role === "S" ? "CHEMISTRY: when " + p.name + " sets, you get a little lift in matches." : "You and " + p.name + " are real friends now.";
     if (S.bond[id] === 5) { var g = addPts(FOCUS[you().role][0], 1.5); bonus = "Best friends. You push each other every day" + (g ? " (+" + g + " " + ATTR_TXT[FOCUS[you().role][0]] + ")" : "") + "."; }
     log("Hung out with " + p.name + " at " + pick(SPOTS) + ".", "story");
@@ -671,8 +687,9 @@
         (d == null ? "NEW" : d > 0 ? "<span class='gain'>▲" + d + "</span>" : d < 0 ? "▼" + (-d) : "—") + "</td><td><b class='grade g" + g + "'>" + g + "</b></td><td>" + (starters[p.id] ? "START" : "") + "</td></tr>";
     }).join("");
     var me = you(), dm = last.you != null ? ovr(me) - last.you : 0;
-    var note = dm >= 3 ? "\"You've grown more than anyone. Keep it up.\"" : dm >= 1 ? "\"Steady progress. Now show it in matches.\"" :
-               "\"You've stalled. Work on your " + ATTR_TXT[S.focus].toLowerCase() + " — and your head.\"";
+    var note = dm >= 3 ? pick(["\"You've grown more than anyone on this team. ...Don't let it go to your head.\"", "\"I've been coaching a long time. Kids like you are why I keep doing it. Keep going.\""]) :
+               dm >= 1 ? pick(["\"Steady. Good. Now show me in a match — practice heroes don't win sets.\"", "\"You're getting there. 'Getting there' doesn't win Nationals, though.\""]) :
+               "\"You've stalled. A wall isn't a bad thing — it means you've climbed high enough to hit one. Work on your " + ATTR_TXT[S.focus].toLowerCase() + ".\"";
     snapEval();
     log(kind + " evaluation: OVR " + ovr(me) + " (" + (dm >= 0 ? "+" : "") + dm + "), grade " + grade(ovr(me)) + ".", "you");
     await U.modal(kind + " PLAYER EVALUATION", "<p>" + esc(coach()) + " posts the evaluation sheet on the club-room wall.</p>" +
@@ -694,7 +711,7 @@
   function rivalStar() {
     if (S.rival && S.rival.yr + S.year - 1 <= 3 && Math.random() < 0.6) return { name: S.rival.name, school: team(S.rival.school).name, fam: S.rival.fam };
     var list = [];
-    VB.HQ_TEAMS.forEach(function (t) {
+    VB.HQ_ALL.forEach(function (t) {
       if (t.id === S.school) return;
       Object.keys(t.players || {}).forEach(function (r) { var n = t.players[r]; if (HQ_YEARS[n] && HQ_YEARS[n] + S.year - 1 <= 3) list.push({ name: n, school: t.name, fam: VB.FAMILY[r] }); });
     });
@@ -716,8 +733,23 @@
                 { label: "CHALLENGE THEM", run: async function () { var r = await drill("srv", "SERVE-OFF vs " + rv.name);
                   if (r.q >= 0.5) { S.trust += 2; return "You win the serve-off! " + rv.name + " buys the meat buns. +" + coins(500) + " 🏐 coins."; }
                   return rv.name + " laughs: \"Come back when you can hit the target.\""; } }] }; },
-    function () { return { title: "MEAT BUNS", html: "<p>After a brutal practice, " + esc(senior()) + " treats the whole team to meat buns.</p>",
-      choices: [{ label: "THANKS, SENPAI!", run: async function () { S.trust += 2; return "Team spirit is up. +" + coins(300) + " 🏐 coins."; } }] }; },
+    function () { return { title: "MEAT BUNS", html: "<p>After a brutal practice the team stops at the little store by the gym. " + esc(senior()) + " slaps a bag of meat buns on the counter: \"My treat. Eat, first-years. You look like ghosts.\"</p>",
+      choices: [{ label: "\"THANKS, SENPAI!\"", run: async function () { S.trust += 2; return "Steam, salt and laughter on the walk home. Team spirit is up. +" + coins(300) + " 🏐 coins."; } }] }; },
+    function () { return { title: "PENALTY DIVES", html: "<p>Lost practice set. The rule at summer camp: everyone on the losing side does a flying-fall dive the length of the court. " + esc(mate("L")) + " is already grinning.</p>",
+      choices: [{ label: "DIVE LIKE YOU MEAN IT", run: async function () { var r = await drill("def", "PENALTY DIVES"); return r.q >= 0.6 ? "Perfect rolls, chest to the floor. The libero gives you a thumbs-up. +" + (r.g || 0) + " DEFENCE." : "You land like a dropped futon. Everyone laughs — including you."; } },
+                { label: "DIVE, THEN DO EXTRA", run: async function () { S.trust += 2; addConf(2); return "You do the dives, then ten more. Nobody says anything, but everyone saw."; } }] }; },
+    function () { var m = S.squad.map(P).filter(function (p) { return p.id !== "you"; }); var q = m.length ? pick(m) : null; if (!q) return null;
+      return { title: "\"IT'S JUST A CLUB\"", html: "<p>On the walk home, " + esc(q.name) + " goes quiet. \"...Why do we try this hard? It's just a club. We're not going pro.\"</p>",
+      choices: [{ label: "\"BECAUSE OF THAT MOMENT.\"", run: async function () { S.bond[q.id] = Math.min(5, (S.bond[q.id] || 0) + 1); addConf(2); return "\"The moment the ball drops on their side and the whole gym explodes. ...That's why.\" " + q.name + " doesn't answer — but shows up early the next morning."; } },
+                { label: "\"IT'S FINE TO WONDER.\"", run: async function () { S.bond[q.id] = Math.min(5, (S.bond[q.id] || 0) + 1); return "You walk the rest of the way without talking. Somehow that's enough."; } }] }; },
+    function () { if (S.school !== "KAR" && S.school !== "NEK") return null; var other = S.school === "KAR" ? "NEKOMA" : "KARASUNO";
+      return { title: "THE GARBAGE DUMP BATTLE", html: "<p>An old poster in the clubroom: crows versus cats. \"" + other + "\" — the rivalry the old coaches started decades ago. One day it'll be played on the national stage.</p>",
+      choices: [{ label: "\"WE'LL MAKE IT HAPPEN.\"", run: async function () { addConf(4); return "You tape the poster back up. A promise is a promise."; } }] }; },
+    function () { if (S.school !== "KAR") return null;
+      return { title: "TANAKA'S SISTER", html: "<p>The bus to Tokyo leaves without the two players who had remedial exams. Tanaka's older sister pulls up in a van, sunglasses on: \"Get in. We're going to Tokyo.\"</p>",
+      choices: [{ label: "GET IN THE VAN", run: async function () { addConf(3); return "The fastest, loudest, most terrifying drive of your life. You arrive in time for the second set. +" + coins(500) + " 🏐 coins."; } }] }; },
+    function () { return { title: "THE BANNER", html: "<p>The managers unfold the team banner for the first time this season. Big characters: <b>「 " + esc(voice().motto || "FIGHT") + " 」</b>.</p>",
+      choices: [{ label: "READ IT OUT LOUD", run: async function () { addConf(3); S.trust += 1; return "The whole team shouts it back. The old gym windows rattle."; } }] }; },
     function () { return { title: "FAN LETTER", html: "<p>There's a letter in your shoe locker: \"I saw your last match. Please keep playing!\"</p>",
       choices: [{ label: "SMILE", run: async function () { return "You read it three times on the way home. +" + coins(1000) + " 🏐 coins."; } }] }; },
     function () { return { title: "ANKLE TWEAK", html: "<p>You land on someone's foot during a block drill. It hurts — but not that much?</p>",
@@ -813,7 +845,7 @@
   var PAPERS = ["VOLLEYBALL MONTHLY", "HIGH-SCHOOL VOLLEY WEEKLY", "THE SPIKE TIMES"];
   function scoreTxt(g) { return g.bo > 1 ? g.sw + "-" + g.sl + " (" + g.sets.map(function (x) { return x[0] + "-" + x[1]; }).join(", ") + ")" : g.sets[0][0] + "-" + g.sets[0][1]; }
   function paperGames() {
-    var ids = shuffle(VB.HQ_TEAMS.map(function (t) { return t.id; }).filter(function (id) { return id !== S.school; })), games = [];
+    var ids = shuffle(VB.HQ_ALL.map(function (t) { return t.id; }).filter(function (id) { return id !== S.school; })), games = [];
     for (var i = 0; i + 1 < ids.length && games.length < 7; i += 2) {
       var A = oppDef(ids[i]), B = oppDef(ids[i + 1]), bo = Math.random() < 0.55 ? 3 : 1, r = VB.Stats.simSets(A, B, bo);
       var aw = r.a > r.b, W = aw ? A : B, L = aw ? B : A, sets = r.sets.map(function (x) { return aw ? x : [x[1], x[0]]; });
@@ -928,7 +960,7 @@
     var used = {}, red = {}, white = {};
     function take(fam) { var c = shuffle(CAMP_POOL[fam].filter(function (n) { return !used[n] && inSchool(n); }))[0]; if (c) used[c] = 1; return c || null; }
     VB.ROLES.forEach(function (r) { var f = VB.FAMILY[r]; red[r] = take(f); white[r] = take(f); });
-    var top = Math.max.apply(null, VB.HQ_TEAMS.map(function (t) { return t.ovr; }));
+    var top = Math.max.apply(null, VB.HQ_ALL.map(function (t) { return t.ovr; }));
     return [customTeam({ id: "AJR", name: "CAMP RED", kit: "#c81e2a", kit2: "#ffffff", ovr: top, players: red, play: "power" }, true),
             customTeam({ id: "AJW", name: "CAMP WHITE", kit: "#f2f2f2", kit2: "#1e4fd8", ovr: top, players: white, play: "fast" }, false)];
   }
@@ -1159,7 +1191,8 @@
       "</div>" +
       "<div class='hub-status'>STORY SLOT " + S.slot + " • " + yearTxt(S.year) + (S.ts ? "" : " • WEEK " + (S.week || 0) + " • " + esc(PH_TXT[PH[S.phase]] || "")) + " • " + esc(nextTxt()) + "</div>" +
       "<div class='hub-actions'>" + (S.done ? "" : "<button class='btn big' data-act='advance'>" + esc(PH[S.phase] === "end" ? "SEASON REVIEW" : "CONTINUE STORY") + "</button>") +
-        "<button class='btn' data-act='look'>CHANGE LOOK</button><button class='btn pink' data-act='menu'>SAVE &amp; MENU</button></div>" +
+        "<button class='btn' data-act='look'>CHANGE LOOK</button><button class='btn' data-act='cam'>🎥 CAMERA: " + esc(VB.CAMS[localStorage.getItem("retroVB.cam") || "classic"] || "CLASSIC") + "</button>" +
+        "<button class='btn pink' data-act='menu'>SAVE &amp; MENU</button></div>" +
       "<div class='tabs'>" + tabs.map(function (x) { return "<button class='tab-btn" + (x === tab ? " on" : "") + "' data-act='tab' data-arg='" + x + "'>" + x.toUpperCase() + "</button>"; }).join("") + "</div>" +
       "<div class='tab-body'>" + body + "</div>";
   }
@@ -1170,7 +1203,7 @@
     for (var s = 1; s <= SLOTS; s++) {
       var c = load(s);
       if (c) {
-        var p = c.players.you, t = VB.HQ_TEAMS.find(function (x) { return x.id === c.school; }) || (c.locals || []).find(function (x) { return x.id === c.school; });
+        var p = c.players.you, t = VB.HQ_ALL.find(function (x) { return x.id === c.school; }) || (c.locals || []).find(function (x) { return x.id === c.school; });
         html += "<div class='card slot'><div class='pname'>SLOT " + s + ": " + esc(p.name) + "</div><div class='muted'>" + esc(t ? t.name : c.school) + " • " + VB.FAMILY_NAMES[p.role] +
           " • OVR " + VB.ovr(p) + " • " + (c.done ? "GRADUATED" : yearTxt(c.year)) + "</div>" +
           "<button class='btn' data-act='load' data-arg='" + s + "'>CONTINUE</button> <button class='btn pink' data-act='del' data-arg='" + s + "'>DELETE</button></div>";
@@ -1184,13 +1217,13 @@
   var HAIR_S = VB.HAIR_STYLES.concat(["bedhead"]);                 // realistic cuts + Bokuto's owl
   var HAIR_C = [["BLACK", "#17120d"], ["BROWN", "#3a2416"], ["CHESTNUT", "#6b4423"], ["BLOND", "#e8d27a"], ["ORANGE", "#ff7a1a"], ["SILVER", "#d8d8d8"]];
   function renderNew() {
-    var t = VB.HQ_TEAMS.find(function (x) { return x.id === setup.school; });
+    var t = VB.HQ_ALL.find(function (x) { return x.id === setup.school; });
     var face = { skin: VB.SKINS[setup.skin], hair: setup.hairC, style: setup.hairS, mouth: true };
     $("hub").innerHTML = "<h2 class='hub-h'>NEW STORY — SLOT " + setup.slot + "</h2>" +
       "<div class='newcareer'>" +
         "<div class='center'><img class='pix big' src='" + VB.Engine.spriteURL(face, t.kit) + "' alt=''/></div>" +
         "<label>NAME <input id='sName' class='text-in' maxlength='12' value='" + esc(setup.name) + "'/></label>" +
-        "<div>SCHOOL</div><div class='focus'>" + VB.HQ_TEAMS.map(function (x) {
+        "<div>SCHOOL</div><div class='focus'>" + VB.HQ_ALL.map(function (x) {
           return "<button class='btn" + (setup.school === x.id ? " on" : "") + "' data-act='setSchool' data-arg='" + x.id + "'>" + x.flag + " " + x.name + "</button>"; }).join("") + "</div>" +
         "<div>POSITION</div><div class='focus'>" + ["S", "OH", "MB", "OP", "L"].map(function (f) {
           return "<button class='btn" + (setup.fam === f ? " on" : "") + "' data-act='setFam' data-arg='" + f + "'>" + VB.FAMILY_NAMES[f] + "</button>"; }).join("") + "</div>" +
@@ -1214,6 +1247,7 @@
     var act = b.getAttribute("data-act"), arg = b.getAttribute("data-arg");
     if (act === "advance") return advance();
     if (act === "tab") { tab = arg; return render(); }
+    if (act === "cam") { var ck = Object.keys(VB.CAMS), cur = localStorage.getItem("retroVB.cam") || "classic"; VB.Engine.setCam(ck[(ck.indexOf(cur) + 1) % ck.length]); return render(); }
     if (act === "focus") { S.focus = arg; save(); return render(); }
     if (act === "hang") { busy = true; try { await hangOut(arg); } finally { busy = false; } save(); return render(); }
     if (act === "look") { busy = true; await VB.editLook(you().face, school().kit, school().kit2, VB.Engine.kitPattern(S.school)); busy = false; save(); return render(); }
