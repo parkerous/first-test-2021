@@ -221,7 +221,10 @@
       },
       onJoin: coopJoin,
       onFocus: function (a) { var m = S && S.players.mate; if (m && FOCUS[m.role].indexOf(a) >= 0) { S.mateFocus = a; save(); if (!busy) render(); } },
-      onConnect: function () { if (S && !busy) render(); }, onLost: function () { if (S && !busy) render(); }
+      onConnect: function () { if (S && !busy) render(); }, onLost: function () { if (S && !busy) render(); },
+      mate: function () { return S && S.players.mate; }, mst: function () { return (S.mst = S.mst || { sp: 0 }); },
+      day: function () { return S.year + "-" + S.phase + "-" + S.step + "-" + (S.week || 0); }, news: function (t) { log(t, "you"); },
+      save: function () { save(); }, render: function () { if (S && !busy) render(); }
     });
     await VB.Coop.invite();
   }
@@ -376,6 +379,7 @@
     var skillNew = checkSkill(), mateHTML = "";
     if (mateKey && res.stats.mate) {
       var mp = mateP(), mr = VB.Stats.rating(res.stats.mate, mp.role, res.won), mg = mateGrow(mr);
+      S.mst = S.mst || { sp: 0 }; S.mst.sp++;
       mateHTML = "<p class='center'>🤝 P2 " + esc(mp.name) + ": <b class='rating'>" + mr + "</b> / 10 • " + esc(VB.Stats.lineText(res.stats.mate)) + (gainTxt(mg) ? " • <span class='gain'>" + esc(gainTxt(mg)) + "</span>" : "") + "</p>";
       if (mr >= 8) log("🤝 " + mp.name + " (P2) was unstoppable vs " + foe.name + " — " + mr + "/10.", "you");
     }
@@ -933,6 +937,7 @@
 
   // ================== THE NEWSPAPER (every other week) ==================
   var PAPERS = ["VOLLEYBALL MONTHLY", "HIGH-SCHOOL VOLLEY WEEKLY", "THE SPIKE TIMES"];
+  var KICK = { upset: "UPSET", upcomeback: "COMEBACK", comeback: "COMEBACK", thriller: "THRILLER", rout: "ROUT", win: "RESULT" };
   function scoreTxt(g) { return g.bo > 1 ? g.sw + "-" + g.sl + " (" + g.sets.map(function (x) { return x[0] + "-" + x[1]; }).join(", ") + ")" : g.sets[0][0] + "-" + g.sets[0][1]; }
   function paperGames() {
     var ids = shuffle(VB.HQ_ALL.map(function (t) { return t.id; }).filter(function (id) { return id !== S.school; })), games = [];
@@ -945,52 +950,72 @@
       if (Math.max.apply(null, sets.map(function (x) { return Math.max(x[0], x[1]); })) >= 18) { interest += 2.5; if (kind === "win") kind = "thriller"; }
       if (kind === "win" && sets.every(function (x) { return x[0] - x[1] >= 6; })) { interest += 1; kind = "rout"; }
       if (S.rival && (A.id === S.rival.school || B.id === S.rival.school)) interest += 1.5;
-      var star = null, best = -1;
-      VB.ROLES.forEach(function (q) { var l = r.stats[W.lineup[q].id]; if (l) { var pt = l.k + l.ace + l.blk; if (pt > best) { best = pt; star = l; } } });
+      var star = null, best = -1, sr = null;
+      VB.ROLES.forEach(function (q) { var l = r.stats[W.lineup[q].id]; if (l) { var pt = l.k + l.ace + l.blk; if (pt > best) { best = pt; star = l; sr = q; } } });
       games.push({ w: W.name, l: L.name, sets: sets, bo: bo, sw: aw ? r.a : r.b, sl: aw ? r.b : r.a, kind: kind, interest: interest + Math.random(),
-                   star: star ? { name: star.name, k: star.k, blk: star.blk, ace: star.ace } : null });
+                   star: star ? { name: star.name, pts: best, k: star.k, blk: star.blk, ace: star.ace, team: W.id, teamName: W.name, kit: W.kit, kit2: W.kit2, face: W.lineup[sr].face } : null });
     }
     return games.sort(function (a, b) { return b.interest - a.interest; });
   }
   function story(g) {
     var H = {
-      upset: [g.w + " STUN " + g.l + "!", "GIANT-KILLERS: " + g.w + " TOPPLE " + g.l],
-      upcomeback: ["FROM A SET DOWN, " + g.w + " SHOCK " + g.l + "!", "THE COMEBACK OF THE SEASON: " + g.w + " OVER " + g.l],
-      comeback: [g.w + " RISE FROM A SET DOWN vs " + g.l, "NEVER SAY DIE: " + g.w + " TURN IT AROUND"],
-      thriller: ["DEUCE! DEUCE! DEUCE! " + g.w + " EDGE " + g.l, g.w + " SURVIVE A MARATHON vs " + g.l],
-      rout: [g.w + " FLATTEN " + g.l, "TOTAL CONTROL: " + g.w + " CRUISE"],
+      upset: [g.w + " STUN " + g.l, "GIANT-KILLERS: " + g.w + " TOPPLE " + g.l],
+      upcomeback: ["FROM A SET DOWN, " + g.w + " SHOCK " + g.l, "THE COMEBACK OF THE SEASON"],
+      comeback: [g.w + " RISE FROM A SET DOWN", "NEVER SAY DIE: " + g.w + " TURN IT AROUND"],
+      thriller: ["DEUCE, DEUCE, DEUCE — " + g.w + " EDGE IT", g.w + " SURVIVE A MARATHON"],
+      rout: [g.w + " FLATTEN " + g.l, "TOTAL CONTROL FOR " + g.w],
       win: [g.w + " TAKE CARE OF " + g.l, g.w + " BEAT " + g.l]
     }[g.kind];
     var B = {
-      upset: "Nobody gave them a chance. " + g.w + " out-served and out-hustled the favourites " + scoreTxt(g) + ".",
-      upcomeback: "Down a set to the favourites, " + g.w + " refused to fold and won " + scoreTxt(g) + ". The gym was shaking.",
+      upset: "Nobody gave them a chance. " + g.w + " out-served and out-hustled " + g.l + ", " + scoreTxt(g) + ".",
+      upcomeback: "Down a set to the favourites, " + g.w + " refused to fold and beat " + g.l + " " + scoreTxt(g) + ". The gym was shaking.",
       comeback: g.l + " took the first set, then " + g.w + " found another gear: " + scoreTxt(g) + ".",
-      thriller: "Neither side would let the ball drop. " + g.w + " finally closed it out " + scoreTxt(g) + ".",
-      rout: g.w + " were in a different league today: " + scoreTxt(g) + ".",
-      win: g.w + " won " + scoreTxt(g) + "."
+      thriller: "Neither side would let the ball drop. " + g.w + " finally closed it out against " + g.l + ", " + scoreTxt(g) + ".",
+      rout: g.w + " were in a different league against " + g.l + ": " + scoreTxt(g) + ".",
+      win: g.w + " beat " + g.l + " " + scoreTxt(g) + "."
     }[g.kind];
-    var st = g.star ? " " + g.star.name + " led the way with " + (g.star.k + g.star.ace + g.star.blk) + " points (" + g.star.k + " kills, " + g.star.blk + " blocks, " + g.star.ace + " aces)." : "";
-    return { h: pick(H), b: B + st };
+    var st = g.star ? " " + g.star.name + " led the way with " + g.star.pts + " points." : "";
+    return { kick: KICK[g.kind], h: pick(H), b: B + st, star: g.star };
   }
   async function newspaper() {
     var gs = paperGames(), mine = S.log.find(function (n) { return n.tag === "result"; });
-    var p = { no: (S.papers || []).length + 1, wk: S.week, y: S.year, title: pick(PAPERS), lead: story(gs[0]), side: gs.slice(1, 3).map(story),
-              results: gs.slice(3).map(function (g) { return g.w + " def. " + g.l + " " + scoreTxt(g); }),
-              you: mine && mine.t !== S.paperSeen ? mine.t : null };
+    var potw = gs.map(function (g) { return g.star; }).filter(Boolean).sort(function (a, b) { return b.pts - a.pts; })[0] || null;
+    var p = { v: 2, no: (S.papers || []).length + 1, wk: S.week, y: S.year, title: pick(PAPERS), lead: story(gs[0]), side: gs.slice(1, 3).map(story),
+              results: gs.slice(3).map(function (g) { return { w: g.w, l: g.l, sc: g.bo > 1 ? g.sw + "-" + g.sl : g.sets[0][0] + "-" + g.sets[0][1] }; }),
+              potw: potw, you: mine && mine.t !== S.paperSeen ? mine.t : null };
     if (mine) S.paperSeen = mine.t;
     S.papers = [p].concat(S.papers || []).slice(0, 12);
     log("📰 " + p.title + " #" + p.no + ": " + p.lead.h, "story");
     await U.modal("📰 THE PAPER IS OUT", paperHTML(p), [{ label: "FOLD THE PAPER", value: 1 }]);
   }
+  function portrait(st) {
+    if (!st || !st.face) return "";
+    return "<img class='np-photo' src='" + VB.Engine.spriteURL(st.face, st.kit, st.kit2, VB.Engine.kitPattern(st.team)) + "' alt=''/>";
+  }
   function paperHTML(p) {
-    return "<div class='paper'><div class='paper-mast'>" + esc(p.title) + "</div><div class='paper-sub'>ISSUE #" + p.no + " • " + yearTxt(p.y) + " • WEEK " + p.wk + "</div>" +
-      "<div class='paper-lead'><h3>" + esc(p.lead.h) + "</h3><p>" + esc(p.lead.b) + "</p></div>" +
-      "<div class='paper-cols'>" + p.side.map(function (x) { return "<div><h4>" + esc(x.h) + "</h4><p>" + esc(x.b) + "</p></div>"; }).join("") + "</div>" +
-      (p.you ? "<div class='paper-you'><b>AROUND " + esc(school().name) + ":</b> " + esc(p.you) + "</div>" : "") +
-      (p.results.length ? "<div class='paper-res'><b>OTHER RESULTS:</b> " + p.results.map(esc).join(" • ") + "</div>" : "") + "</div>";
+    var res = (p.results || []).map(function (r) {
+      return typeof r === "string" ? "<tr><td colspan='3'>" + esc(r) + "</td></tr>" : "<tr><td><b>" + esc(r.w) + "</b></td><td class='np-sc'>" + esc(r.sc) + "</td><td>" + esc(r.l) + "</td></tr>";
+    }).join("");
+    var pw = p.potw;
+    return "<div class='np'>" +
+      "<div class='np-mast'>" + esc(p.title) + "</div>" +
+      "<div class='np-meta'><span>No. " + p.no + "</span><span>" + esc(yearTxt(p.y)) + " • WEEK " + p.wk + "</span><span>¥150</span></div>" +
+      "<div class='np-lead'>" + (p.lead.star && p.lead.star.face ? "<div class='np-frame'>" + portrait(p.lead.star) + "<div class='np-cap'>" + esc(p.lead.star.name) + "</div></div>" : "") +
+        "<div><div class='np-kick'>" + esc(p.lead.kick || "TOP STORY") + "</div><h3>" + esc(p.lead.h) + "</h3><p>" + esc(p.lead.b) + "</p></div></div>" +
+      "<div class='np-cols'>" + (p.side || []).map(function (x) { return "<article><div class='np-kick'>" + esc(x.kick || "RESULT") + "</div><h4>" + esc(x.h) + "</h4><p>" + esc(x.b) + "</p></article>"; }).join("") + "</div>" +
+      "<div class='np-foot'>" +
+        (res ? "<div class='np-res'><div class='np-kick'>OTHER RESULTS</div><table>" + res + "</table></div>" : "") +
+        (pw && pw.face ? "<div class='np-potw'><div class='np-kick'>PLAYER OF THE WEEK</div>" + portrait(pw) + "<div><b>" + esc(pw.name) + "</b><br/>" + esc(pw.teamName || "") +
+          "<br/><span class='np-line'>" + pw.pts + " PTS • " + pw.k + " K • " + pw.blk + " BLK • " + pw.ace + " ACE</span></div></div>" : "") +
+      "</div>" +
+      (p.you ? "<div class='np-you'><span class='np-kick'>AROUND " + esc(school().name) + "</span> " + esc(p.you) + "</div>" : "") + "</div>";
   }
   function newsHTML() {
-    return (S.papers || []).length ? S.papers.map(paperHTML).join("") : "<p class='muted center'>The first issue comes out in a couple of weeks.</p>";
+    var ps = S.papers || [];
+    if (!ps.length) return "<p class='muted center'>The first issue comes out in a couple of weeks.</p>";
+    return paperHTML(ps[0]) + (ps.length > 1 ? "<h3 class='mini'>BACK ISSUES</h3>" + ps.slice(1).map(function (p) {
+      return "<details class='np-back'><summary>No. " + p.no + " • " + esc(yearTxt(p.y)) + " WEEK " + p.wk + " — " + esc(p.lead.h) + "</summary>" + paperHTML(p) + "</details>";
+    }).join("") : "");
   }
 
   // ================== CAMEOS & CUSTOM TEAMS ==================

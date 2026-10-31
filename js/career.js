@@ -413,6 +413,7 @@
     var mateHTML = "";
     if (mateKey && res.stats.mate) {
       var mp = C.players.mate, mr = VB.Stats.rating(res.stats.mate, mp.role, res.won), mg = mateGrow(mp, mr);
+      C.mst = C.mst || { sp: 0 }; C.mst.sp++;                          // P2 earns a skill point per co-op match
       var mgt = Object.keys(mg).map(function (k) { return "+" + mg[k] + " " + ATTR_TXT[k]; }).join(", ");
       mateHTML = "<p class='center'>🤝 P2 " + esc(mp.name) + ": <b class='rating'>" + mr + "</b> / 10 • " + esc(VB.Stats.lineText(res.stats.mate)) + (mgt ? " • <span class='gain'>" + esc(mgt) + "</span>" : "") + "</p>";
       if (mr >= 8) news("🤝 " + mp.name + " (P2) stars with " + VB.Stats.pts(res.stats.mate) + " points — " + mr + "/10.", "you");
@@ -1071,7 +1072,10 @@
       },
       onJoin: coopJoin,
       onFocus: function (a) { if (C && C.players.mate && FOCUS[C.players.mate.role].indexOf(a) >= 0) { C.mateFocus = a; save(); render(); } },
-      onConnect: function () { if (C) render(); }, onLost: function () { if (C && busyHub()) render(); }
+      onConnect: function () { if (C) render(); }, onLost: function () { if (C && busyHub()) render(); },
+      mate: function () { return C && C.players.mate; }, mst: function () { return (C.mst = C.mst || { sp: 0 }); },
+      day: function () { return C.season + "-" + C.stage; }, news: function (t) { news(t, "you"); },
+      save: function () { save(); }, render: function () { if (C && !busy) render(); }
     });
     await VB.Coop.invite();
   }

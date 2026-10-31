@@ -32,6 +32,7 @@
     if (link) return false;                                       // already paired on the other transport
     link = l; connected = true;
     setStatus("🟢 CONNECTED (" + how + ")");
+    chatUI(); chat.el.classList.remove("hidden");
     if (mode === "sb") { if (role === "guest") send({ t: "hi" }); sbConnected(); return true; }
     if (role === "host") { startMirror(); if (opts.onConnect) opts.onConnect(); }
     else send({ t: "hi" });
@@ -88,6 +89,7 @@
   // ---------- messages ----------
   function onMsg(m) {
     if (!m || !m.t) return;
+    if (m.t === "chat") { chatAdd(m.who || "FRIEND", String(m.txt || "").slice(0, 120)); return; }
     if (m.t.indexOf("sb-") === 0) return sbMsg(m);
     if (role === "host") return hostMsg(m);
     return guestMsg(m);
@@ -119,6 +121,7 @@
     if (m.t === "join") { var r = opts.onJoin ? opts.onJoin(m) : { ok: false, msg: "The host isn't in a career." }; send({ t: "joined", ok: r.ok, msg: r.msg }); pushHub(true); return; }
     if (m.t === "ans") { var p = pend[m.id]; if (p) { clearTimeout(p.to); delete pend[m.id]; p.res(m.v); } return; }
     if (m.t === "focus" && opts.onFocus) { opts.onFocus(m.a); return; }
+    if (m.t === "p2act") { p2Act(m); return; }
     if (m.t === "bye") { lost(); }
   }
   // mirror the hub and the host's dialogs, and stream the court while a match runs
@@ -128,7 +131,7 @@
     hubT = setTimeout(function () {
       var h = $("hub").innerHTML;
       if (!force && h === lastHub) return;
-      lastHub = h; send({ t: "hub", html: h });
+      lastHub = h; send({ t: "hub", html: h, p2: p2Sheet() });
     }, force ? 0 : 250);
   }
   function pushModal() {
@@ -146,19 +149,85 @@
     });
     mo3.observe($("feed"), { childList: true });
     obs = [mo1, mo2, mo3];
-    var small = document.createElement("canvas"); small.width = 400; small.height = 563;
-    var sg = small.getContext("2d");
+    // matches: no video — the guest's own engine draws the match from the game state (~20 small updates a second)
+    VB.Engine.onStart = function () {
+      if (role !== "host" || !connected || mode !== "shared") return;
+      VB.Engine.stream(true); streaming = true;
+      send({ t: "mstart", init: VB.Engine.matchInit() });
+    };
     streamT = setInterval(function () {
-      var inMatch = !$("matchView").classList.contains("hidden"), v = inMatch ? "match" : "hub";
-      if (v !== lastView) { lastView = v; send({ t: "view", v: v, stage: $("stageLine").textContent }); if (v === "hub") pushHub(true); }
-      if (!inMatch) return;
-      sg.drawImage($("court"), 0, 0, 400, 563);
-      send({ t: "frame", d: small.toDataURL("image/jpeg", 0.6),
-             hud: { sMe: $("sMe").textContent, sOpp: $("sOpp").textContent, hudMe: $("hudMe").textContent, hudOpp: $("hudOpp").textContent,
-                    msg: $("msg").textContent, rec: $("recordLine").textContent, serveMe: $("serveMe").textContent, serveOpp: $("serveOpp").textContent } });
-    }, 110);
+      var inMatch = !$("matchView").classList.contains("hidden");
+      if (!inMatch && streaming) { streaming = false; VB.Engine.stream(false); send({ t: "view", v: "hub" }); pushHub(true); }
+      if (!inMatch || !streaming) return;
+      send({ t: "snap", s: VB.Engine.snapshot(), msg: $("msg").textContent, rec: $("recordLine").textContent });
+    }, 50);
   }
-  function stopMirror() { obs.forEach(function (o) { o.disconnect(); }); obs = []; clearInterval(streamT); lastView = ""; }
+  var streaming = false;
+  function stopMirror() { obs.forEach(function (o) { o.disconnect(); }); obs = []; clearInterval(streamT); lastView = ""; if (streaming) { streaming = false; VB.Engine.stream(false); } }
+
+  // ---------- P2's own progression (host side): skill points, PlayStyles, a daily training session ----------
+  function p2Sheet() {
+    var p = opts.mate && opts.mate(); if (!p) return null;
+    var st = opts.mst();
+    return { name: p.name, role: p.role, ovr: VB.ovr(p), attrs: VB.ATTRS.map(function (a) { return [a, p[a]]; }), ps: p.ps || {}, sp: st.sp || 0,
+             trained: st.day === opts.day(), psList: VB.psFor(p.role), skill: p.skill ? (p.skillName || VB.SKILL_TXT[p.skill]) : null };
+  }
+  function spCost(v) { return v < 74 ? 1 : v < 82 ? 2 : 3; }
+  function p2Act(m) {
+    var p = opts.mate && opts.mate(); if (!p) return;
+    var st = opts.mst(), txt = "";
+    if (m.a === "train" && st.day !== opts.day() && VB.ATTRS.indexOf(m.attr) >= 0) {
+      st.day = opts.day();
+      var g = m.q >= 0.95 ? 2 : m.q >= 0.5 ? 1 : 0;
+      if (g) p[m.attr] = Math.min(99, p[m.attr] + g);
+      if (m.q >= 0.6) st.sp = (st.sp || 0) + 1;
+      txt = p.name + " (P2) trains " + m.attr.toUpperCase() + (g ? " +" + g : "") + (m.q >= 0.6 ? " and earns a skill point" : "") + ".";
+    } else if (m.a === "spend" && VB.ATTRS.indexOf(m.attr) >= 0) {
+      var c = spCost(p[m.attr]);
+      if ((st.sp || 0) >= c && p[m.attr] < 99) { st.sp -= c; p[m.attr]++; txt = p.name + " (P2) improves " + m.attr.toUpperCase() + " to " + p[m.attr] + "."; }
+    } else if (m.a === "ps" && VB.PS[m.id] && VB.psFor(p.role).indexOf(m.id) >= 0) {
+      var own = p.ps = p.ps || {}, lv = own[m.id] || 0, cost = lv ? 3 : 2;
+      if (lv < 2 && (st.sp || 0) >= cost && (lv || Object.keys(own).length < 3)) { st.sp -= cost; own[m.id] = lv + 1; txt = p.name + " (P2) learns " + VB.PS[m.id].name + (own[m.id] > 1 ? "+" : "") + "."; }
+    }
+    if (txt && opts.news) opts.news("🤝 " + txt);
+    if (opts.save) opts.save();
+    if (opts.render) opts.render();
+    send({ t: "p2", sheet: p2Sheet() }); pushHub(true);
+  }
+
+  // ---------- chat (both modes, both players) ----------
+  var chat = { el: null, open: false, unread: 0, log: [] };
+  var QUICK = ["NICE! 👍", "LET'S GO 🔥", "WAIT FOR ME ⏳", "READY ✅", "MY BAD 🙏", "GG 🤝"];
+  function chatUI() {
+    if (chat.el) return;
+    var d = chat.el = document.createElement("div"); d.className = "coop-chat";
+    d.innerHTML = "<button class='btn tiny coop-chat-btn' data-c='toggle'>💬 <span id='chatN'></span></button>" +
+      "<div class='coop-chat-panel hidden'><div class='coop-chat-log' id='chatLog'></div>" +
+      "<div class='coop-chat-quick'>" + QUICK.map(function (q) { return "<button class='btn tiny' data-c='q' data-v='" + esc(q) + "'>" + esc(q) + "</button>"; }).join("") + "</div>" +
+      "<div class='coop-chat-in'><input id='chatIn' maxlength='120' placeholder='Say something…'/><button class='btn tiny' data-c='send'>SEND</button></div></div>";
+    document.body.appendChild(d);
+    d.onclick = function (e) {
+      var b = e.target.closest("[data-c]"); if (!b) return;
+      var k = b.getAttribute("data-c");
+      if (k === "toggle") { chat.open = !chat.open; d.querySelector(".coop-chat-panel").classList.toggle("hidden", !chat.open); chat.unread = 0; chatBadge(); if (chat.open) $("chatIn").focus(); }
+      if (k === "q") sayChat(b.getAttribute("data-v"));
+      if (k === "send") { var i = $("chatIn"); if (i.value.trim()) sayChat(i.value.trim().slice(0, 120)); i.value = ""; }
+    };
+    d.addEventListener("keydown", function (e) { e.stopPropagation(); if (e.key === "Enter") { var i = $("chatIn"); if (i.value.trim()) sayChat(i.value.trim().slice(0, 120)); i.value = ""; } });
+  }
+  function chatBadge() { var n = $("chatN"); if (n) n.textContent = chat.unread ? chat.unread : ""; }
+  function chatAdd(who, txt, mine) {
+    chatUI(); chat.log.push({ who: who, txt: txt }); if (chat.log.length > 60) chat.log.shift();
+    var l = $("chatLog"); if (l) { l.innerHTML = chat.log.map(function (m) { return "<div><b>" + esc(m.who) + ":</b> " + esc(m.txt) + "</div>"; }).join(""); l.scrollTop = l.scrollHeight; }
+    if (!mine && !chat.open) { chat.unread++; chatBadge(); toast(who + ": " + txt); }
+  }
+  function sayChat(txt) { var me = myName(); send({ t: "chat", who: me, txt: txt }); chatAdd(me, txt, true); }
+  function myName() { return role === "host" ? (mode === "sb" ? (sb.me ? sb.me.name : "HOST") : (opts.hostName ? opts.hostName() : "HOST")) : (mode === "sb" ? (sb.me ? sb.me.name : "FRIEND") : (gState.p2 ? gState.p2.name : jf.name)); }
+  var toastT = 0;
+  function toast(t) {
+    var el = $("coopToast"); if (!el) { el = document.createElement("div"); el.id = "coopToast"; el.className = "coop-toast"; document.body.appendChild(el); }
+    el.textContent = "💬 " + t; el.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(function () { el.classList.remove("show"); }, 3500);
+  }
 
   // the invite dialog (host)
   async function invite() {
@@ -221,10 +290,40 @@
   }
   function mirrorShell() {
     if ($("coopMirror")) return;
-    guestShell("<div class='coop-p2'><span>P2 TRAINING FOCUS:</span> " + ["srv", "rec", "set", "att", "blk", "def", "spd"].map(function (a) {
-        return "<button class='btn tiny' data-coop='focus' data-v='" + a + "'>" + a.toUpperCase() + "</button>"; }).join("") + "</div>" +
-      "<p class='center muted'>You see everything the host sees. They advance the calendar; in matches you control your own player (P2).</p>" +
+    guestShell("<div class='coop-tools'><button class='btn' data-coop='panel'>👤 MY PLAYER (P2)</button><button class='btn' data-coop='train'>🏋️ TRAIN</button>" +
+        "<button class='btn' data-coop='gacha'>🎴 MY GACHA</button><button class='btn' data-coop='chat'>💬 CHAT</button></div>" +
+      "<div id='coopP2' class='coop-p2panel" + (gState.panel ? "" : " hidden") + "'></div>" +
+      "<p class='center muted'>The host advances the calendar (you agree with ✅ READY). Meanwhile: train, spend your skill points, pull cards or chat. In matches you control your own player (P2).</p>" +
       "<div id='coopMirror' class='coop-mirror'></div><div id='coopModal' class='coop-modal hidden'></div>");
+    drawP2();
+  }
+  var ATTR_N = { srv: "SERVE", rec: "RECEIVE", set: "SET", att: "ATTACK", blk: "BLOCK", def: "DEFENCE", men: "MENTAL", tec: "TECHNIQUE", spd: "SPEED" };
+  function drawP2() {
+    var el = $("coopP2"), p = gState.p2; if (!el) return;
+    if (!p) { el.innerHTML = "<p class='muted'>Waiting for your player's sheet…</p>"; return; }
+    el.innerHTML = "<div class='pname'>" + esc(p.name) + " • " + esc(VB.FAMILY_NAMES[p.role] || p.role) + " • OVR " + p.ovr + " • <span class='gain'>" + p.sp + " SKILL POINTS</span></div>" +
+      (p.skill ? "<div class='muted'>★ " + esc(p.skill) + "</div>" : "") +
+      "<div class='focus'>" + p.attrs.map(function (a) {
+        var c = a[1] < 74 ? 1 : a[1] < 82 ? 2 : 3;
+        return "<button class='btn tiny' data-coop='spend' data-v='" + a[0] + "'" + (p.sp < c || a[1] >= 99 ? " disabled" : "") + ">" + ATTR_N[a[0]] + " " + a[1] + " +1 (" + c + ")</button>"; }).join("") + "</div>" +
+      "<div class='mini-tag'>PLAYSTYLES (" + Object.keys(p.ps).length + "/3) — unlock 2 SP • upgrade 3 SP</div><div class='focus'>" + p.psList.map(function (id) {
+        var d = VB.PS[id], lv = p.ps[id] || 0, c = lv ? 3 : 2, off = lv >= 2 || p.sp < c || (!lv && Object.keys(p.ps).length >= 3);
+        return "<button class='btn tiny" + (lv ? " on" : "") + "' data-coop='ps' data-v='" + id + "'" + (off ? " disabled" : "") + " title='" + esc(d.txt) + "'>" + d.icon + " " + d.name + (lv === 2 ? "+" : lv ? " → +" : "") + "</button>"; }).join("") + "</div>" +
+      "<p class='muted small'>" + (p.trained ? "✅ Trained today." : "🏋️ One training session per day: a minigame that can raise an attribute and earn a skill point.") + " Every co-op match also earns 1 skill point.</p>";
+  }
+  async function guestTrain() {
+    var p = gState.p2; if (!p) return;
+    if (p.trained) { U.modal("TRAINING", "<p>You've already trained today — wait for the next day.</p>"); return; }
+    var k = await U.modal("🏋️ TRAINING", "<p>What do you want to work on today?</p>", p.attrs.map(function (a) { return { label: ATTR_N[a[0]] + " " + a[1], value: a[0] }; }));
+    var q = await VB.Mini.forAttr(k, "P2 TRAINING — " + ATTR_N[k], "Your own session while the host plays on.", (p.attrs.find(function (a) { return a[0] === k; }) || [0, 70])[1]);
+    send({ t: "p2act", a: "train", attr: k, q: q });
+  }
+  async function guestGacha() {
+    gState.away = true; $("hub").onclick = null;
+    try { await VB.Gacha.start(); } finally {
+      gState.away = false; $("hub").onclick = guestClick; $("hub").innerHTML = "";
+      mirrorShell(); var mir = $("coopMirror"); if (mir && gState.lastHub) mir.innerHTML = gState.lastHub;
+    }
   }
   function guestClick(e) {
     var b = e.target.closest("[data-coop]"); if (!b) return;
@@ -241,6 +340,12 @@
       return;
     }
     if (k === "rejoin") { send({ t: "join", rejoin: true }); return; }
+    if (k === "panel") { gState.panel = !gState.panel; var pe = $("coopP2"); if (pe) pe.classList.toggle("hidden", !gState.panel); drawP2(); return; }
+    if (k === "train") { guestTrain(); return; }
+    if (k === "gacha") { guestGacha(); return; }
+    if (k === "chat") { chatUI(); chat.el.querySelector("[data-c=toggle]").click(); return; }
+    if (k === "spend") { send({ t: "p2act", a: "spend", attr: v }); return; }
+    if (k === "ps") { send({ t: "p2act", a: "ps", id: v }); return; }
     if (k === "focus") { send({ t: "focus", a: v }); document.querySelectorAll("[data-coop=focus]").forEach(function (x) { x.classList.toggle("on", x === b); }); }
   }
   var court = null, cg = null, img = new Image();
@@ -255,20 +360,27 @@
       gState.joined = true; mirrorShell(); return;
     }
     if (!gState.joined) return;
-    if (m.t === "hub") { mirrorShell(); var mir = $("coopMirror"); if (mir) mir.innerHTML = m.html; return; }
+    if (m.t === "p2") { gState.p2 = m.sheet; if (!gState.away) drawP2(); return; }
+    if (m.t === "hub") {
+      gState.lastHub = m.html; if (m.p2) gState.p2 = m.p2;
+      if (gState.away) return;                                          // you're in your gacha: catch up when you're back
+      mirrorShell(); var mir = $("coopMirror"); if (mir) mir.innerHTML = m.html; drawP2(); return;
+    }
     if (m.t === "modal") {
+      if (gState.away) return;
       var cm = $("coopModal"); if (!cm) return;
       cm.classList.toggle("hidden", !m.open);
       cm.innerHTML = m.open ? "<div class='coop-modal-t'>HOST: " + esc(m.title) + "</div><div class='coop-modal-b'>" + m.body + "</div><p class='center muted'>⏳ waiting for the host…</p>" : "";
       return;
     }
-    if (m.t === "view") {
-      if (m.v === "match") {
-        U.showView("match"); court = $("court"); cg = court.getContext("2d"); $("feed").innerHTML = "";
-        $("stageLine").textContent = m.stage || "CO-OP MATCH";
-      } else { clearAsk(); U.showView("hub"); }
+    if (m.t === "mstart") { U.showView("match"); $("feed").innerHTML = ""; VB.Engine.spectate(m.init); return; }
+    if (m.t === "snap") {
+      VB.Engine.applySnap(m.s);
+      $("recordLine").textContent = m.rec || "";
+      if (!gState.pendingAsk) $("msg").textContent = m.msg || "";
       return;
     }
+    if (m.t === "view") { if (m.v === "hub") { VB.Engine.stopSpectate(); clearAsk(); U.showView("hub"); } return; }
     if (m.t === "frame") {
       img.src = m.d;
       var h = m.hud || {};
@@ -297,16 +409,8 @@
     if (m.k === "buttons") v = await U.buttons(m.p.list);
     else if (m.k === "timing") v = await VB.Engine.runTiming(m.p);
     else if (m.k === "aim") {
-      v = await new Promise(function (res) {
-        var cv = $("court"); cv.classList.add("aiming");
-        $("msg").textContent = "🎯 YOUR AIM — click the court" + (m.p.msg ? " (" + m.p.msg + ")" : "");
-        gState.aimHandler = function (e) {
-          var r = cv.getBoundingClientRect();
-          cv.removeEventListener("click", gState.aimHandler); gState.aimHandler = null; cv.classList.remove("aiming");
-          res({ px: (e.clientX - r.left) / r.width * 640, py: (e.clientY - r.top) / r.height * 900 });
-        };
-        cv.addEventListener("click", gState.aimHandler);
-      });
+      $("msg").textContent = "🎯 YOUR AIM — click the court" + (m.p.msg ? " (" + m.p.msg + ")" : "");
+      v = await VB.Engine.aimLocal(m.p.half);                        // aimed in YOUR camera, with the aim preview
     }
     if (gState.pendingAsk !== m.id) return;                         // the host gave up waiting
     gState.pendingAsk = null;

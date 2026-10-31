@@ -57,7 +57,12 @@
   var popups = [], puffs = [];
   var cheerAt = -9999, refFlagSide = 0, refFlagAt = -9999, netShakeAt = -99;
   var flames = [], lastScorer = null, flowLog = [];
-  var mode = "full", myRole = null, mateRole = null;           // mateRole: the co-op partner's player (P2), controlled remotely
+  var mode = "full", myRole = null, mateRole = null;
+  // co-op streaming: the host records what happens (ball flights, jumps, effects) for the guest's engine to replay
+  var evq = null, mute = 0, spectating = false, curFloor = "arena", flySeq = 0;
+  function emit(e) { if (evq && !mute) evq.push(e); }
+  function xy(p) { return { x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10 }; }
+  function netShake() { netShakeAt = gt; emit({ k: "net" }); }           // mateRole: the co-op partner's player (P2), controlled remotely
   var bg = null, crowdFrames = [], fans = [], arenaTheme = null;
   var lastFrame = 0;
 
@@ -93,7 +98,7 @@
   var pow = [80, 80], mom = [0, 0], run = { side: -1, n: 0 }, tos = [2, 2], trail = [0, 0], comeback = [false, false], rallyDigs = 0, drama = null;
   function edge(s) { return (pow[s.side] - pow[1 - s.side]) / 100; }        // the better team simply wins more of the duels
   function resetDrama() { mom = [0, 0]; run = { side: -1, n: 0 }; tos = [2, 2]; trail = [0, 0]; comeback = [false, false]; rallyDigs = 0; }
-  function banner(text, sub, col, secs) { drama = { text: text, sub: sub || "", col: col || "#ffd21e", at: performance.now(), dur: (secs || 1.6) * 1000 }; }
+  function banner(text, sub, col, secs) { emit({ k: "ban", a: [text, sub, col, secs] }); drama = { text: text, sub: sub || "", col: col || "#ffd21e", at: performance.now(), dur: (secs || 1.6) * 1000 }; }
   function drawDrama(now) {
     if (!drama) return;
     var t = (now - drama.at) / drama.dur;
@@ -145,7 +150,7 @@
     }
   }
   function nearLine(pt) { return Math.min(Math.abs(pt.x - CL), Math.abs(pt.x - CR), Math.abs(pt.y - CB), Math.abs(pt.y - CT)) < 24; }
-  function cheer() { cheerAt = performance.now(); }
+  function cheer() { cheerAt = performance.now(); emit({ k: "cheer" }); }
   // home-crowd chants when the home team serves
   var chant = null, homeIdx = 0;
   function startChant(srv) {
@@ -157,6 +162,7 @@
     if (BANNER_TXT[t.id]) list.push(BANNER_TXT[t.id][0] + "! " + BANNER_TXT[t.id][0] + "!");
     if (big) list = ["ONE MORE POINT! ONE MORE!", "FINISH IT! FINISH IT!"];
     chant = { text: pick(list), at: performance.now(), col: t.kit };
+    emit({ k: "chant", c: { text: chant.text, col: chant.col } });
     feed(srv.side, "🎵 The home crowd: \"" + chant.text + "\"");
   }
   function drawChant(now) {
@@ -252,6 +258,9 @@
     if (ex.indexOf("catears") >= 0) { var CE = face.ears || "#2b2b2b"; p(2, 0, CE); p(3, 0, CE); p(8, 0, CE); p(9, 0, CE); p(3, 1, "#ff9ac0"); p(8, 1, "#ff9ac0"); }
     if (ex.indexOf("strawhat") >= 0) { row(3, 8, 0, "#e8c66a"); row(3, 8, 1, "#d62828"); row(0, 11, 2, "#e8c66a"); }
     if (ex.indexOf("flower") >= 0) { p(9, 1, "#ff5fa2"); p(10, 1, "#ffd21e"); }
+    if (ex.indexOf("crown") >= 0) { var GD = "#ffd21e"; p(3, 0, GD); p(5, 0, GD); p(6, 0, "#e0348a"); p(8, 0, GD); row(3, 8, 1, GD); }
+    if (ex.indexOf("headphones") >= 0) { row(3, 8, 0, "#2b2b2b"); p(2, 1, "#2b2b2b"); p(9, 1, "#2b2b2b"); p(2, 3, "#e0348a"); p(9, 3, "#e0348a"); p(2, 4, "#e0348a"); p(9, 4, "#e0348a"); }
+    if (ex.indexOf("cap") >= 0) { row(3, 8, 0, face.capc || "#1e4fd8"); row(2, 9, 1, face.capc || "#1e4fd8"); row(1, 5, 2, face.capc || "#1e4fd8"); }
     for (var y2 = 6; y2 <= 11; y2++) row(2, 9, y2, kit);
     var trim = kit2 && kit2.toLowerCase() !== String(kit).toLowerCase() ? kit2 : mix(kit, "#ffffff", 0.6);
     pat = pat || "trim";
@@ -261,6 +270,7 @@
     if (pat === "panel") for (var py2 = 7; py2 <= 11; py2++) { p(2, py2, trim); p(9, py2, trim); }
     p(5, 6, pat === "shoulder" ? kit : trim); p(6, 6, pat === "shoulder" ? kit : trim);            // collar
     row(2, 9, 11, mix(kit, "#000000", 0.22));
+    if (ex.indexOf("scarf") >= 0) { row(2, 9, 6, "#d22630"); row(3, 8, 7, "#d22630"); p(7, 8, "#d22630"); p(7, 9, "#ffffff"); }
     if (ex.indexOf("tank") >= 0) { p(2, 6, face.skin); p(9, 6, face.skin); p(2, 7, face.skin); p(9, 7, face.skin); }
     if (ex.indexOf("vampire") >= 0) { for (var vy = 4; vy <= 7; vy++) { p(1, vy, "#b0102a"); p(10, vy, "#b0102a"); } }
     p(1, 7, face.skin); p(10, 7, face.skin);
@@ -533,12 +543,16 @@
   // ================== ANIMATION ==================
   function jump(s, role, ms, h, kind, dir) {
     if (!s.pos[role]) return;
+    emit({ k: "jump", a: [s.side, role, ms, h, kind, dir || 1] }); mute++;
+    try { jump0(s, role, ms, h, kind, dir); } finally { mute--; }
+  }
+  function jump0(s, role, ms, h, kind, dir) {
     s.anim[role] = { t0: gt, dur: ms / 1000, h: h, kind: kind, dir: dir || 1 };
     if (h >= 10 && (kind === "spike" || kind === "block" || kind === "press" || kind === "wipe")) {
       // BOOM JUMP: a take-off ring and a dust kick, then a landing puff
       var Pl = s.roster[role], feet = { x: s.pos[role].x, y: s.pos[role].y + 14 }, hot = Pl.flow || (Pl.skill && Pl.cd > 0 && kind === "spike");
       ring(feet, hot ? "#ff7a2a" : "#ffffff", hot ? 34 : 22, 0.32); puff(feet, hot ? 10 : 5, hot ? "#ffb070" : "#d8c8a8");
-      setTimeout(function () { if (s.pos[role]) puff({ x: s.pos[role].x, y: s.pos[role].y + 14 }, 4, "#d8c8a8"); }, ms * 0.95);
+      setTimeout(function () { mute++; try { if (s.pos[role]) puff({ x: s.pos[role].x, y: s.pos[role].y + 14 }, 4, "#d8c8a8"); } finally { mute--; } }, ms * 0.95);
     }
   }
   var shakeAt = -9999, shakeAmt = 0, hitStopUntil = 0;
@@ -551,12 +565,13 @@
   function proj(x, y, h) { var c = camP(), z = Math.max(80, c.camY - y), s = c.f / z; return { x: CW / 2 + (x - W / 2) * s, y: c.hor + c.camH * s - (h || 0) * s, s: s }; }
   function unproj(sx, sy) { var c = camP(), z = c.camH * c.f / Math.max(1, sy - c.hor); return { x: W / 2 + (sx - CW / 2) * z / c.f, y: c.camY - z }; }
   var BH = 62, LIFT = 2.6, SPR_H = 74, NET_H = 84, trail3 = [];
-  function shake(a) { shakeAt = performance.now(); shakeAmt = a; }
-  function hitStop(ms) { hitStopUntil = performance.now() + ms; }
+  function shake(a) { shakeAt = performance.now(); shakeAmt = a; emit({ k: "shake", a: a }); }
+  function hitStop(ms) { hitStopUntil = performance.now() + ms; emit({ k: "stop", a: ms }); }
   function jumpLater(s, role, delay, ms, h, kind) { setTimeout(function () { jump(s, role, ms, h, kind); }, delay); }
   function flyBall(from, to, ms, o) {
     o = o || {};
-    var peak = o.peak || 0, h0 = o.h0 || 0, h1 = o.h1 || 0, skew = o.skew || 0.5, wob = o.wobble || 0;
+    var peak = o.peak || 0, h0 = o.h0 || 0, h1 = o.h1 || 0, skew = o.skew || 0.5, wob = o.wobble || 0, my = ++flySeq;
+    emit({ k: "fly", a: [xy(from), xy(to), ms, o] });
     ball.visible = true;
     ball.spin = o.spin || 0;
     ball.trail = o.trail || null; trailPts = [];
@@ -566,6 +581,7 @@
         if (!paused && now >= hitStopUntil) t += (now - last) / ms * timeScale;
         last = now;
         var tt = clamp01(t);
+        if (my !== flySeq) { if (tt < 1) requestAnimationFrame(step); else res(); return; }   // a newer flight owns the ball
         var arc = tt < skew ? Math.sin(tt / skew * Math.PI / 2) : Math.cos((tt - skew) / (1 - skew) * Math.PI / 2);
         ball.x = from.x + (to.x - from.x) * tt + Math.sin(tt * Math.PI * 6) * wob * (1 - tt * 0.4);
         ball.y = from.y + (to.y - from.y) * tt;
@@ -820,9 +836,9 @@
   }
 
   // ---- popups & dust ----
-  function popup(text, at, col) { popups.push({ text: text, x: at.x, y: at.y, t0: gt, col: col || "#ffd21e" }); }
+  function popup(text, at, col) { emit({ k: "pop", a: [text, xy(at), col] }); popups.push({ text: text, x: at.x, y: at.y, t0: gt, col: col || "#ffd21e" }); }
   var rings = [], trailPts = [];
-  function ring(at, col, maxR, dur) { rings.push({ x: at.x, y: at.y, t0: gt, col: col || "#ffffff", r: maxR || 30, dur: dur || 0.4 }); }
+  function ring(at, col, maxR, dur) { emit({ k: "ring", a: [xy(at), col, maxR, dur] }); rings.push({ x: at.x, y: at.y, t0: gt, col: col || "#ffffff", r: maxR || 30, dur: dur || 0.4 }); }
   function drawRings() {
     rings = rings.filter(function (q) { return gt - q.t0 < q.dur; });
     rings.forEach(function (q) {
@@ -833,6 +849,7 @@
     g.globalAlpha = 1;
   }
   function puff(at, n, col) {
+    emit({ k: "puff", a: [xy(at), n, col] });
     for (var i = 0; i < n; i++) {
       puffs.push({ x: at.x + rnd(-5, 5), y: at.y + rnd(-5, 5), vx: rnd(-70, 70), vy: rnd(-80, -15), life: 0, max: rnd(0.4, 0.8),
                    col: col || pick(["#ffffff", "#dfe7ef", "#c8d3df"]) });
@@ -1192,7 +1209,12 @@
     if (isMate(role)) {
       var fb = { x: rnd(CL + 40, CR - 40), y: half === "top" ? rnd(CT + 40, NET - 60) : rnd(NET + 60, CB - 40) };
       $("actions").innerHTML = "<div class='coop-wait'>🎯 P2 IS AIMING…</div>";
-      return VB.Coop.ask("aim", { half: half, msg: $("msg").textContent }, null).then(function (a) { $("actions").innerHTML = ""; return a ? courtAt(a.px, a.py, half) : fb; });
+      return VB.Coop.ask("aim", { half: half, msg: $("msg").textContent }, null).then(function (a) {
+        $("actions").innerHTML = "";
+        if (!a) return fb;
+        if (a.x == null) return courtAt(a.px, a.py, half);
+        return { x: clamp(a.x, CL + 10, CR - 10), y: half === "top" ? clamp(a.y, CT + 10, NET - 16) : clamp(a.y, NET + 16, CB - 10) };   // P2 aimed in their own view
+      });
     }
     return new Promise(function (res) {
       cv.classList.add("aiming");
@@ -1497,7 +1519,7 @@
     var winner = await serve(srvSide);
     if (winner !== serving) (winner === 0 ? me : opp).rot = ((winner === 0 ? me : opp).rot + 1) % 6;
     score[winner]++; serving = winner;
-    cheer(); refFlagAt = performance.now(); refFlagSide = winner;
+    cheer(); refFlagSide = winner; refFlagAt = performance.now(); emit({ k: "ref", s: refFlagSide });
     tickCooldowns();
     updateStreaks(winner);
     updateHud();
@@ -1585,7 +1607,7 @@
     if (errKind === "net") {
       var netPt = { x: target.x, y: NET - dirR * 6 };
       await flyBall(contact, netPt, 600, { h0: 1.2, h1: 0.6, peak: 0.3 });
-      netShakeAt = gt;
+      netShake();
       await flyBall(netPt, { x: netPt.x, y: NET - dirR * 30 }, 260, { h0: 0.6, h1: 0 });
       msg("SERVE INTO THE NET!"); feed(srv.side, "...but it catches the net. Service error.");
       Sv.st.se++;
@@ -1682,7 +1704,7 @@
       popup("SHANK!", at, "#ff4d4d");
       var refAt = { x: CR + 34, y: NET - 14 };
       await flyBall(at, refAt, 800, { peak: 1.8, spin: 40, skew: 0.5 });
-      refFlagSide = 1 - s.side; refFlagAt = performance.now();
+      refFlagSide = 1 - s.side; refFlagAt = performance.now(); emit({ k: "ref", s: refFlagSide });
       puff(refAt, 14, "#ffffff"); popup("SORRY REF!", refAt, "#ffd21e");
       cheer(); return "into the referee's stand!";
     }
@@ -1724,7 +1746,7 @@
     var dirR = rcv.side === 0 ? 1 : -1, tape = { x: target.x, y: NET };
     feed(srv.side, Sv.name + "'s serve clips the tape...");
     await flyBall(contact, tape, 700, { h0: 1.2, h1: 0.9, peak: 0.4 });
-    netShakeAt = gt;
+    netShake();
     var drop = clampHalf(rcv, { x: tape.x + rnd(-25, 25), y: NET + dirR * rnd(14, 34) });
     var who = nearest(rcv, drop, null).pos, dir = Math.sign(drop.x - rcv.pos[who].x) || 1;
     rcv.rush[who] = true; moveTo(rcv, who, drop);
@@ -1772,7 +1794,7 @@
     feed(-1, "JOUST! " + A.name + " and " + B.name + " fight over the net...", true);
     jump(atk, hitter, 600, 14, "block"); jump(def, blocker, 600, 13, "block");
     await flyBall(at, { x: at.x, y: NET }, 200, { h0: 1.3, h1: 1.2 });
-    netShakeAt = gt;
+    netShake();
     await sleep(320);
     var aWins = Math.random() < clamp01(0.5 + (A.att + A.spikeReach / 5 - B.blk - B.blockReach / 5) / 60);
     var land = aWins ? clampHalf(def, { x: at.x + rnd(-30, 30), y: NET - dirA * rnd(20, 60) })
@@ -1877,7 +1899,7 @@
     if (read && Math.random() < 0.5) {
       var bp = { x: from.x, y: NET + (def.side === 0 ? 8 : -8) };
       await flyBall(from, bp, 150, { h0: 1.1, h1: 0.8 });
-      netShakeAt = gt;
+      netShake();
       await flyBall(bp, { x: bp.x + rnd(-20, 20), y: NET + (atk.side === 0 ? 1 : -1) * 40 }, 260, { h0: 0.8, h1: 0 });
       msg("READ THE DUMP — STUFFED!"); cheer();
       S.st.bk++; def.roster[mb].st.blk++;
@@ -2032,13 +2054,13 @@
       if (pin && dir === "line" && Math.random() < 0.35) {
         var ant = { x: st.x < W / 2 ? CL : CR, y: NET };
         await flyBall(contact, ant, 200, { h0: 1.4, h1: 1.2 });
-        netShakeAt = gt;
+        netShake();
         await flyBall(ant, { x: ant.x + (st.x < W / 2 ? -30 : 30), y: NET + dirA * 40 }, 300, { h0: 1.2, h1: 0 });
         msg("OFF THE ANTENNA!"); feed(atk.side, "and " + A.name + " clips the antenna — error!");
       } else if (Math.random() < 0.4) {
         var np = { x: contact.x, y: NET + dirA * 6 };
         await flyBall(contact, np, 200, { h0: 1.4, h1: 0.6 });
-        netShakeAt = gt;
+        netShake();
         await flyBall(np, { x: np.x, y: NET + dirA * 30 }, 250, { h0: 0.6, h1: 0 });
         msg("INTO THE NET!"); feed(atk.side, "and " + A.name + " hits it into the net!");
       } else {
@@ -2078,7 +2100,7 @@
     if (n && type === "wipe") pTouch = 0.95;
     if (Math.random() < clamp(pTouch, 0, 0.92)) {
       await flyBall(contact, blockPt, 170, { h0: 1.4, h1: 0.6 });
-      netShakeAt = gt;
+      netShake();
       var r = Math.random(), outcome;
       if (type === "wipe") {
         var wipeP = clamp(0.3 + A.att / 400 - blkAvg / 700 + (pin ? 0.12 : -0.12) + reachDiff / 300, 0.12, 0.72);
@@ -2125,7 +2147,7 @@
         ring(blockPt, "#ffd21e", 30, 0.35);
         jump(def, BtouchRole, 500, 2, "shank");                                     // the blocker spins round to watch it go
         await flyBall(blockPt, toolPt, outside ? 420 : 520, { h0: 0.6, h1: 0, peak: outside ? 0.5 : 1.2, spin: 20, trail: "fast" });
-        refFlagSide = atk.side; refFlagAt = performance.now();                      // the line judge signals the touch
+        refFlagSide = atk.side; refFlagAt = performance.now(); emit({ k: "ref", s: refFlagSide });                      // the line judge signals the touch
         popup("TOUCH — OUT!", toolPt, "#ffffff");
         A.st.k++; assist(atk, setterRole, hitter);
         msg(type === "wipe" ? "WIPED OFF THE BLOCK!" : "TOOLED!"); cheer();
@@ -2407,7 +2429,10 @@
     opp = makeSide(c.foe, 1, foeKit, oppLib);
     var home = c.homeSide === 1 ? c.foe : c.mine, away = c.homeSide === 1 ? c.mine : c.foe;
     homeIdx = c.homeSide === 1 ? 1 : 0; chant = null;
-    buildArena(home, away, c.league || "VNL", pickFloor(c));
+    curFloor = pickFloor(c);
+    buildArena(home, away, c.league || "VNL", curFloor);
+    spectating = false;
+    if (VB.Engine.onStart) VB.Engine.onStart();                       // co-op: tell the guest a match is starting
     flowLog = []; flames = []; ball.visible = false;
     U.clearFeed();
     $("hudMe").textContent = (c.mine.flag || "") + " " + c.mine.name;
@@ -2504,5 +2529,76 @@
     requestAnimationFrame(draw);
   }
 
-  VB.Engine = { runTiming: runTiming, setCam: setCam, init: init, playMatch: playMatch, spriteURL: spriteURL, makeSprite: makeSprite, kitPattern: kitPattern };
+  // ---------- co-op: host snapshots / guest spectator ----------
+  function r1(v) { return Math.round(v * 10) / 10; }
+  function matchInit() {
+    var c = cfg;
+    return { mine: c.mine, foe: c.foe, homeSide: c.homeSide, league: c.league, floor: curFloor, label: c.label, myRole: myRole, mateRole: mateRole,
+             setsTo: c.setsTo, bestOf: c.bestOf, stage: $("stageLine").textContent,
+             nums: [me, opp].map(function (sd) { var o = {}; ROLES.forEach(function (r) { o[r] = sd.roster[r].num; }); return o; }) };
+  }
+  function snapshot() {
+    var q = evq || []; evq = [];
+    function side(sd) {
+      var o = {};
+      Object.keys(sd.pos).forEach(function (r) { var p = sd.pos[r], t = sd.tgt[r] || p; o[r] = [r1(p.x), r1(p.y), r1(t.x), r1(t.y), sd.rush[r] ? 1 : 0, sd.roster[r].flow ? 1 : 0, sd.roster[r].cd || 0]; });
+      return o;
+    }
+    return { s: [side(me), side(opp)], sc: score.slice(), sw: setsWon.slice(), sv: serving, ts: timeScale, bv: ball.visible ? 1 : 0, tr: ball.trail || 0, rot: [me.rot, opp.rot], ev: q };
+  }
+  function spectate(c) {
+    try { var ck = localStorage.getItem("retroVB.cam"); if (ck && VB.CAMS[ck]) CAM = ck; } catch (e) {}
+    camUI();
+    cfg = c; mode = "role"; myRole = c.myRole; mateRole = c.mateRole; spectating = true;
+    var mineKit = c.mine.kit, foeKit = kitClash(c.mine.kit, c.foe.kit) ? (c.foe.kit2 && !kitClash(c.mine.kit, c.foe.kit2) ? c.foe.kit2 : "#f5f5f5") : c.foe.kit;
+    var myLib = pickLiberoKit(mineKit, [foeKit]), oppLib = pickLiberoKit(foeKit, [mineKit, myLib]);
+    me = makeSide(c.mine, 0, mineKit, myLib); opp = makeSide(c.foe, 1, foeKit, oppLib);
+    if (c.nums) [me, opp].forEach(function (sd, i) { ROLES.forEach(function (r) { if (c.nums[i][r]) sd.roster[r].num = c.nums[i][r]; }); });
+    var home = c.homeSide === 1 ? c.foe : c.mine, away = c.homeSide === 1 ? c.mine : c.foe;
+    homeIdx = c.homeSide === 1 ? 1 : 0; chant = null; drama = null;
+    buildArena(home, away, c.league || "VNL", c.floor);
+    flowLog = []; flames = []; rings = []; puffs = []; popups = []; ball.visible = false; aimPreview = null;
+    score = [0, 0]; setsWon = [0, 0]; setNeed = Math.ceil((c.bestOf || 1) / 2); serving = 0; timeScale = 1;
+    $("hudMe").textContent = (c.mine.flag || "") + " " + c.mine.name; $("hudOpp").textContent = c.foe.name + " " + (c.foe.flag || "");
+    $("stageLine").textContent = c.stage || c.label || "CO-OP";
+    updateHud();
+  }
+  function applySnap(sn) {
+    if (!spectating || !me) return;
+    [me, opp].forEach(function (sd, i) {
+      var o = sn.s[i];
+      Object.keys(sd.pos).forEach(function (r) { if (!o[r]) { delete sd.pos[r]; delete sd.tgt[r]; } });
+      Object.keys(o).forEach(function (r) {
+        var v = o[r], p = sd.pos[r];
+        if (!p || Math.hypot(p.x - v[0], p.y - v[1]) > 60) sd.pos[r] = { x: v[0], y: v[1] };
+        sd.tgt[r] = { x: v[2], y: v[3] };
+        if (v[4]) sd.rush[r] = true; else delete sd.rush[r];
+        sd.roster[r].flow = !!v[5]; sd.roster[r].cd = v[6];
+      });
+    });
+    sn.ev.forEach(replay);
+    me.rot = sn.rot[0]; opp.rot = sn.rot[1]; score = sn.sc; setsWon = sn.sw; serving = sn.sv; timeScale = sn.ts;
+    ball.visible = !!sn.bv; ball.trail = sn.tr || null;
+    updateHud();
+  }
+  function replay(e) {
+    var a = e.a;
+    if (e.k === "fly") flyBall(a[0], a[1], a[2], a[3]);
+    else if (e.k === "jump") jump0(a[0] ? opp : me, a[1], a[2], a[3], a[4], a[5]);
+    else if (e.k === "ring") ring(a[0], a[1], a[2], a[3]);
+    else if (e.k === "puff") puff(a[0], a[1], a[2]);
+    else if (e.k === "pop") popup(a[0], a[1], a[2]);
+    else if (e.k === "ban") banner(a[0], a[1], a[2], a[3]);
+    else if (e.k === "shake") shake(a);
+    else if (e.k === "stop") hitStop(a);
+    else if (e.k === "cheer") cheer();
+    else if (e.k === "net") netShakeAt = gt;
+    else if (e.k === "ref") { refFlagSide = e.s; refFlagAt = performance.now(); }
+    else if (e.k === "chant") chant = { text: e.c.text, col: e.c.col, at: performance.now() };
+  }
+  function stopSpectate() { spectating = false; bg = null; ball.visible = false; aimPreview = null; }
+
+  VB.Engine = { runTiming: runTiming, setCam: setCam,
+    stream: function (on) { evq = on ? [] : null; }, snapshot: snapshot, matchInit: matchInit, spectate: spectate, applySnap: applySnap, stopSpectate: stopSpectate,
+    aimLocal: function (half) { return aimClick(half); }, init: init, playMatch: playMatch, spriteURL: spriteURL, makeSprite: makeSprite, kitPattern: kitPattern };
 })(window.VB);

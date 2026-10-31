@@ -4,7 +4,7 @@
   "use strict";
   var U = VB.ui, $ = U.$, esc = U.esc, pick = VB.pick, rnd = VB.rnd;
 
-  var KEY = "hqGacha", COST1 = 100, COST10 = 900, COST100 = 9000, MAX_ROAM = 8, BASE_PULLS = 500;
+  var KEY = "hqGacha", COST1 = 200, COST10 = 1800, COST100 = 17000, MAX_ROAM = 8, BASE_PULLS = 500;
   var RAR = {
     C: { name: "COMMON", col: "#9aa7b5", stars: 1 }, R: { name: "RARE", col: "#3d8bff", stars: 2 }, E: { name: "EPIC", col: "#a64dff", stars: 3 },
     L: { name: "LEGENDARY", col: "#ffc21e", stars: 4 }, M: { name: "MYTHIC", col: "#ff3d7f", stars: 5 }
@@ -17,6 +17,21 @@
               "OSAMU", "SUNA", "OMIMI", "OJIRO", "TAKETORA", "YAKU", "LEV", "AKAASHI", "AONE", "FUTAKUCHI", "KOGANEGAWA", "TERUSHIMA", "DAISHO",
               "IIZUNA", "HIRUGAMI", "HAKUBA", "KIRYU", "HYAKUZAWA", "NAKASHIMA"];
   var EXTRA = { KAR: ["SUGAWARA", "YAMAGUCHI", "ENNOSHITA"], AOB: ["YAHABA", "KUNIMI"], SHI: ["SEMI"], NEK: ["SHIBAYAMA", "INUOKA"] };
+  // coaches, managers, captains and family — cards with their own looks
+  var STAFF = [
+    { id: "UKAI", name: "COACH UKAI", team: "KAR", r: "E", pos: "COACH", kit: ["#2b2b2b", "#ff7a1a"], face: { skin: 0, hair: "#e8d27a", style: "undercut", ex: ["headband"] } },
+    { id: "TAKEDA", name: "TAKEDA-SENSEI", team: "KAR", r: "R", pos: "ADVISOR", kit: ["#6b6f78", "#ffffff"], face: { skin: 0, hair: "#17120d", style: "flat", ex: ["glasses"] } },
+    { id: "SHIMIZU", name: "KIYOKO SHIMIZU", team: "KAR", r: "E", pos: "MANAGER", kit: ["#1b1b1b", "#ff7a1a"], face: { skin: 0, hair: "#17120d", style: "long", ex: ["glasses"] } },
+    { id: "YACHI", name: "HITOKA YACHI", team: "KAR", r: "R", pos: "MANAGER", kit: ["#1b1b1b", "#ff7a1a"], face: { skin: 0, hair: "#f0d870", style: "bowl" } },
+    { id: "SAEKO", name: "SAEKO TANAKA", team: "KAR", r: "E", pos: "DRUMMER", kit: ["#1b1b1b", "#ff7a1a"], face: { skin: 0, hair: "#f0d870", style: "crop" } },
+    { id: "NEKOMATA", name: "COACH NEKOMATA", team: "NEK", r: "R", pos: "COACH", kit: ["#d22630", "#ffffff"], face: { skin: 0, hair: "#c8c8c8", style: "fluffy" } },
+    { id: "KITA", name: "KITA", team: "INA", r: "E", pos: "CAPTAIN", kit: ["#7a1424", "#ffffff"], face: { skin: 0, hair: "#d8d8d8", hair2: "#17120d", style: "flat", ex: ["roots"] } },
+    { id: "MONIWA", name: "MONIWA", team: "DAT", r: "R", pos: "SETTER", kit: ["#2f9e5a", "#ffffff"], face: { skin: 0, hair: "#17120d", style: "flat" } },
+    { id: "AKITERU", name: "AKITERU TSUKISHIMA", team: "KAR", r: "R", pos: "BIG BROTHER", kit: ["#3a6fb0", "#ffffff"], face: { skin: 0, hair: "#e8d27a", style: "crop", ex: ["glasses"] } },
+    { id: "IKEJIRI", name: "IKEJIRI", team: "TKN", r: "R", pos: "CAPTAIN", kit: ["#c8102e", "#ffffff"], face: { skin: 0, hair: "#17120d", style: "crop" } },
+    { id: "HIRUGAMI-F", name: "FUKURO HIRUGAMI", team: "KAM", r: "R", pos: "BIG BROTHER", kit: ["#3a7fd0", "#ffffff"], face: { skin: 0, hair: "#6b4423", style: "flat" } }
+  ];
+  var JPN = ["#d22630", "#ffffff"];
   var MSBY = ["#1b1b1b", "#e8b923"], ADLERS = ["#203a6b", "#ffd21e"], XMAS = ["#c81e2a", "#ffffff"];
   // limited variants: christmas and festival (Legendary) and the whole timeskip cast (Legendary or Mythic)
   var VARIANTS = [
@@ -62,7 +77,35 @@
     { id: "TS-AKAASHI", base: "AKAASHI", team: "FUK", r: "L", title: "TIMESKIP AKAASHI", sub: "MANGA EDITOR", kit: ["#3a3a3a", "#ffffff"] },
     { id: "TS-OSAMU", base: "OSAMU", team: "INA", r: "L", title: "TIMESKIP OSAMU", sub: "ONIGIRI SHOP OWNER", kit: ["#f5f5f5", "#1b1b1b"], ex: ["headband"] },
     { id: "TS-YAKU", base: "YAKU", team: "NEK", r: "L", title: "TIMESKIP YAKU", sub: "PLAYING IN RUSSIA", kit: ["#d81e36", "#1e4fd8"] },
-    { id: "TS-LEV", base: "LEV", team: "NEK", r: "L", title: "TIMESKIP LEV", sub: "FASHION MODEL", kit: ["#2b2b2b", "#d8d8d8"] }
+    { id: "TS-LEV", base: "LEV", team: "NEK", r: "L", title: "TIMESKIP LEV", sub: "FASHION MODEL", kit: ["#2b2b2b", "#d8d8d8"] },
+    // Team Japan (timeskip national team)
+    { id: "JPN-HINATA", base: "HINATA", team: "KAR", r: "M", title: "TEAM JAPAN HINATA", sub: "NATIONAL TEAM", kit: JPN, face: { style: "flat", skin: 2 } },
+    { id: "JPN-KAGEYAMA", base: "KAGEYAMA", team: "KAR", r: "M", title: "TEAM JAPAN KAGEYAMA", sub: "NATIONAL TEAM", kit: JPN, face: { style: "flat" } },
+    { id: "JPN-USHIJIMA", base: "USHIJIMA", team: "SHI", r: "L", title: "TEAM JAPAN USHIJIMA", sub: "NATIONAL TEAM", kit: JPN },
+    { id: "JPN-ATSUMU", base: "ATSUMU", team: "INA", r: "L", title: "TEAM JAPAN ATSUMU", sub: "NATIONAL TEAM", kit: JPN },
+    { id: "JPN-SAKUSA", base: "SAKUSA", team: "ITC", r: "L", title: "TEAM JAPAN SAKUSA", sub: "NATIONAL TEAM", kit: JPN },
+    { id: "JPN-BOKUTO", base: "BOKUTO", team: "FUK", r: "L", title: "TEAM JAPAN BOKUTO", sub: "NATIONAL TEAM", kit: JPN },
+    { id: "JPN-HOSHIUMI", base: "HOSHIUMI", team: "KAM", r: "E", title: "TEAM JAPAN HOSHIUMI", sub: "NATIONAL TEAM", kit: JPN },
+    { id: "JPN-HYAKUZAWA", base: "HYAKUZAWA", team: "KAK", r: "E", title: "TEAM JAPAN HYAKUZAWA", sub: "NATIONAL TEAM", kit: JPN },
+    // New Year
+    { id: "NY-HINATA", base: "HINATA", team: "KAR", r: "L", title: "NEW YEAR HINATA", sub: "SHRINE VISIT", kit: ["#c81e2a", "#ffd21e"], ex: ["scarf"] },
+    { id: "NY-KAGEYAMA", base: "KAGEYAMA", team: "KAR", r: "L", title: "NEW YEAR KAGEYAMA", sub: "SHRINE VISIT", kit: ["#1d2b5a", "#ffffff"] },
+    { id: "NY-OIKAWA", base: "OIKAWA", team: "AOB", r: "L", title: "NEW YEAR OIKAWA", sub: "SHRINE VISIT", kit: ["#e39ac0", "#ffffff"], ex: ["flower"] },
+    { id: "NY-KENMA", base: "KENMA", team: "NEK", r: "E", title: "NEW YEAR KENMA", sub: "SHRINE VISIT", kit: ["#5b2a86", "#ffd21e"], ex: ["roots"] },
+    { id: "NY-ATSUMU", base: "ATSUMU", team: "INA", r: "E", title: "NEW YEAR ATSUMU", sub: "SHRINE VISIT", kit: ["#2b2b2b", "#e8b923"] },
+    { id: "NY-OSAMU", base: "OSAMU", team: "INA", r: "E", title: "NEW YEAR OSAMU", sub: "SHRINE VISIT", kit: ["#4a4a4a", "#e8b923"] },
+    // Winter lights
+    { id: "WI-KUROO", base: "KUROO", team: "NEK", r: "L", title: "WINTER KUROO", sub: "WINTER LIGHTS", kit: ["#2b2b2b", "#d22630"], ex: ["scarf"] },
+    { id: "WI-AKAASHI", base: "AKAASHI", team: "FUK", r: "L", title: "WINTER AKAASHI", sub: "WINTER LIGHTS", kit: ["#3a3a3a", "#ffd21e"], ex: ["scarf"] },
+    { id: "WI-SUGAWARA", base: "SUGAWARA", team: "KAR", r: "E", title: "WINTER SUGAWARA", sub: "WINTER LIGHTS", kit: ["#e8e4d0", "#3a5aa8"], ex: ["scarf"] },
+    { id: "WI-TSUKISHIMA", base: "TSUKISHIMA", team: "KAR", r: "E", title: "WINTER TSUKISHIMA", sub: "WINTER LIGHTS", kit: ["#2f4f6f", "#ffffff"], ex: ["glasses", "scarf"] },
+    { id: "WI-YAKU", base: "YAKU", team: "NEK", r: "E", title: "WINTER YAKU", sub: "WINTER LIGHTS", kit: ["#d81e36", "#ffffff"], ex: ["scarf"] },
+    { id: "WI-IWAIZUMI", base: "IWAIZUMI", team: "AOB", r: "E", title: "WINTER IWAIZUMI", sub: "WINTER LIGHTS", kit: ["#1e4f9e", "#ffffff"], ex: ["scarf"] },
+    // Kings & gamers
+    { id: "KING-KAGEYAMA", base: "KAGEYAMA", team: "KAR", r: "M", title: "KING OF THE COURT", sub: "THE KINGS", kit: ["#1b1b1b", "#ffd21e"], ex: ["crown"] },
+    { id: "KING-OIKAWA", base: "OIKAWA", team: "AOB", r: "M", title: "THE GRAND KING", sub: "THE KINGS", kit: ["#5ac8c8", "#ffd21e"], ex: ["crown"] },
+    { id: "GM-KENMA", base: "KENMA", team: "NEK", r: "L", title: "GAMER KENMA", sub: "LEVEL 99", kit: ["#2b2b2b", "#e0348a"], ex: ["headphones", "roots"] },
+    { id: "GM-HINATA", base: "HINATA", team: "KAR", r: "E", title: "CAP HINATA", sub: "RIO DAYS", kit: ["#2ec4d6", "#ffffff"], ex: ["cap"], face: { skin: 2 } }
   ];
   // banners you pick yourself (genshin-style rate-up with a 50/50 and a guarantee — the guarantee carries between banners)
   var BANNERS = [
@@ -74,8 +117,37 @@
     { id: "halloween", name: "HALLOWEEN NIGHT", col: "#ff8a1e", bg: "#2b1b3d", feat: ["HW-KENMA", "HW-KUROO", "HW-TENDO", "HW-LEV", "HW-TSUKISHIMA", "HW-HINATA"], txt: "Witches, vampires and the Guess Monster." },
     { id: "summer", name: "SUMMER BEACH", col: "#ffffff", bg: "#2ec4d6", feat: ["SU-HINATA", "SU-NISHINOYA", "SU-OIKAWA", "SU-BOKUTO", "SU-TANAKA", "SU-ATSUMU", "SU-OSAMU"], txt: "Beach volley season. Sunglasses on." },
     { id: "karasuno", name: "KARASUNO FOREVER", col: "#ff7a1a", bg: "#1b1b1b", feat: ["TS-HINATA", "TS-KAGEYAMA", "TS-TSUKISHIMA", "TS-NISHINOYA", "TS-AZUMANE", "TS-TANAKA", "TS-SAWAMURA", "TS-SUGAWARA"], txt: "The crows, all grown up." },
+    { id: "japan", name: "TEAM JAPAN", col: "#ffffff", bg: "#d22630", feat: ["JPN-HINATA", "JPN-KAGEYAMA", "JPN-USHIJIMA", "JPN-ATSUMU", "JPN-SAKUSA", "JPN-BOKUTO"], txt: "The national team, timeskip era." },
+    { id: "crowns", name: "THE KINGS (CROWNED)", col: "#ffd21e", bg: "#1b1b1b", feat: ["KING-KAGEYAMA", "KING-OIKAWA", "TS-KAGEYAMA", "TS-OIKAWA"], txt: "Crowns on. The King of the Court and the Grand King." },
+    { id: "newyear", name: "NEW YEAR", col: "#ffd21e", bg: "#c81e2a", feat: ["NY-HINATA", "NY-KAGEYAMA", "NY-OIKAWA", "NY-KENMA", "NY-ATSUMU", "NY-OSAMU"], txt: "A shrine visit, a fortune, a fresh season." },
+    { id: "winter", name: "WINTER LIGHTS", col: "#ffffff", bg: "#2f4f6f", feat: ["WI-KUROO", "WI-AKAASHI", "WI-SUGAWARA", "WI-TSUKISHIMA", "WI-YAKU", "WI-IWAIZUMI", "GM-KENMA"], txt: "Scarves, cold breath and late-night practice." },
     { id: "standard", name: "STANDARD", col: "#13293f", bg: "#e8eef7", feat: [], txt: "Every card at normal odds. No rate-up." }
   ];
+
+  // ---------- showrooms & furniture: big-ticket things to spend coins on ----------
+  var ROOMS = {
+    classroom: { name: "CLASSROOM", price: 0, txt: "Desks, chalkboard, a broom. Home." },
+    clubroom: { name: "CLUB ROOM", price: 30000, txt: "Lockers, posters and a snack shelf." },
+    gym: { name: "SCHOOL GYM", price: 45000, txt: "Wooden floor, a net and a banner on the wall." },
+    rooftop: { name: "SCHOOL ROOFTOP", price: 60000, txt: "Blue sky, a fence and the whole city below." },
+    beach: { name: "BEACH", price: 80000, txt: "Sand, sea and a sunset volleyball net." },
+    arena: { name: "ORANGE COURT ARENA", price: 150000, txt: "The national stage: stands, lights, the orange court." }
+  };
+  var FURN = {
+    plant: { name: "BIG PLANT", price: 4000, x: 610, y: 168, c: [0, -6] },
+    banner: { name: "TEAM BANNER", price: 6000, x: 250, y: 20, c: [70, 15] },
+    poster: { name: "STAR POSTER", price: 7000, x: 470, y: 30, c: [22, 30] },
+    vending: { name: "VENDING MACHINE", price: 9000, x: 588, y: 96, c: [0, 35] },
+    fridge: { name: "MILK FRIDGE", price: 11000, x: 92, y: 104, c: [0, 30] },
+    sofa: { name: "SOFA", price: 14000, x: 300, y: 362 },
+    kotatsu: { name: "KOTATSU", price: 16000, x: 470, y: 372 },
+    arcade: { name: "ARCADE MACHINE", price: 18000, x: 22, y: 250, c: [0, -15] },
+    tv: { name: "BIG TV", price: 22000, x: 150, y: 70 },
+    trophy: { name: "TROPHY CABINET", price: 28000, x: 548, y: 210, c: [0, -20] },
+    karaoke: { name: "KARAOKE MACHINE", price: 32000, x: 22, y: 330, c: [0, -16] },
+    neon: { name: "NEON SIGN", price: 40000, x: 380, y: 64 },
+    statue: { name: "GOLDEN BALL STATUE", price: 75000, x: 614, y: 330 }
+  };
 
   // ---------- card catalogue ----------
   var CARDS = [], BY = {};
@@ -96,8 +168,13 @@
         add({ id: n, name: n, team: t.id, r: EPIC.indexOf(n) >= 0 ? "E" : RARE.indexOf(n) >= 0 ? "R" : "C", face: baseFace(n, t, r), kit: [t.kit, t.kit2], pos: VB.FAMILY_NAMES[VB.FAMILY[r]] });
       });
       (EXTRA[t.id] || []).forEach(function (n) {
+        if (BY[n]) return;
         add({ id: n, name: n, team: t.id, r: RARE.indexOf(n) >= 0 ? "R" : "C", face: baseFace(n, t, "OH2"), kit: [t.kit, t.kit2], pos: "RESERVE" });
       });
+    });
+    STAFF.forEach(function (st) {
+      var f = Object.assign({ mouth: true }, st.face); f.skin = VB.SKINS[st.face.skin || 0];
+      if (!BY[st.id]) add({ id: st.id, name: st.name, team: st.team, r: st.r, face: f, kit: st.kit, pos: st.pos });
     });
     VARIANTS.forEach(function (v) {
       var b = BY[v.base], f = JSON.parse(JSON.stringify(b.face));
@@ -114,6 +191,7 @@
     if (G) return G;
     try { G = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { G = null; }
     if (!G) G = { coins: 0, owned: {}, roam: [], pity: { e: 0, l: 0, m: 0 }, guar: false, pulls: 0, gift: "" };
+    G.rooms = G.rooms || { classroom: 1 }; G.theme = G.theme || "classroom"; G.furn = G.furn || {}; G.furnOn = G.furnOn || {};
     if (!G.base) { G.base = 1; G.coins += BASE_PULLS * COST1; G.welcome = 1; save(); }      // 500 free pulls to start
     return G;
   }
@@ -400,6 +478,10 @@
     };
 
     function desk(x, y) {
+      var th = G.theme || "classroom";
+      if (th === "beach") { c.fillStyle = ["#ff6b6b", "#2ec4d6", "#ffd21e"][(x + y) % 3]; c.fillRect(x, y + 6, DW, 14); c.fillStyle = "#ffffff"; c.fillRect(x, y + 10, DW, 3); return; }
+      if (th === "gym" || th === "rooftop" || th === "clubroom") { c.fillStyle = "#7a5230"; c.fillRect(x + 4, y + 12, 4, 12); c.fillRect(x + DW - 8, y + 12, 4, 12); c.fillStyle = th === "rooftop" ? "#8a8f98" : "#b07a42"; c.fillRect(x, y + 6, DW, 8); return; }
+      if (th === "arena") { c.fillStyle = "#1e3a8a"; c.fillRect(x + 6, y, 18, 18); c.fillRect(x + DW - 24, y, 18, 18); c.fillStyle = "#2b2b2b"; c.fillRect(x + 6, y + 18, 18, 6); c.fillRect(x + DW - 24, y + 18, 18, 6); return; }
       c.fillStyle = "#7a5230"; c.fillRect(x + 4, y + 14, 4, 16); c.fillRect(x + DW - 8, y + 14, 4, 16);
       c.fillStyle = "#c79a62"; c.fillRect(x, y, DW, 16); c.fillStyle = "#e0b57a"; c.fillRect(x, y, DW, 4);
       c.fillStyle = "#6b6f78"; c.fillRect(x + 6, y + 16, DW - 12, 6);
@@ -416,6 +498,7 @@
       c.fillStyle = "#13293f"; c.fillText(t, x, y);
     }
     function scene() {
+      if (G.theme && G.theme !== "classroom" && ROOMS[G.theme]) { drawTheme(c, G.theme, clock); drawFurniture(c, clock); drawCartBroom(); return; }
       c.fillStyle = "#efe6cf"; c.fillRect(0, 0, 640, 140);
       c.fillStyle = "#c8b994"; c.fillRect(0, 132, 640, 8);
       // whiteboard with student scribbles
@@ -447,6 +530,10 @@
       c.fillStyle = "#8a5a32"; c.fillRect(262, 146, 76, 22); c.fillStyle = "#a8743f"; c.fillRect(262, 146, 76, 5);
       c.fillStyle = "#b5562a"; c.fillRect(604, 150, 22, 18); c.fillStyle = "#2f8a4a"; c.beginPath(); c.arc(615, 140, 14, 0, 6.28); c.fill(); c.fillStyle = "#3fae5e"; c.beginPath(); c.arc(608, 134, 8, 0, 6.28); c.fill();
       c.fillStyle = "#6b7684"; c.fillRect(578, 152, 16, 18); c.fillStyle = "#56606d"; c.fillRect(576, 150, 20, 4);
+      drawFurniture(c, clock);
+      drawCartBroom();
+    }
+    function drawCartBroom() {
       // ball cart
       c.fillStyle = "#8f9aa6"; c.fillRect(CART.x - 22, CART.y - 22, 44, 3); c.fillRect(CART.x - 22, CART.y - 22, 3, 26); c.fillRect(CART.x + 19, CART.y - 22, 3, 26); c.fillRect(CART.x - 22, CART.y + 2, 44, 3);
       vball(CART.x - 10, CART.y - 12, 8); vball(CART.x + 8, CART.y - 10, 8); vball(CART.x - 1, CART.y - 22, 8);
@@ -541,6 +628,83 @@
       if (hit) { hit.jump = 0.5; say(hit, "Hm?", 0.8); }
     };
   }
+  // ---------- showroom themes (wall 0-140, floor 140-400) ----------
+  function drawTheme(c, th, clock) {
+    var sky = c.createLinearGradient(0, 0, 0, 140);
+    if (th === "clubroom") {
+      c.fillStyle = "#d8cbb0"; c.fillRect(0, 0, 640, 140);
+      for (var l = 0; l < 10; l++) { c.fillStyle = l % 2 ? "#6f7d8c" : "#7d8b9a"; c.fillRect(20 + l * 42, 24, 38, 106); c.fillStyle = "#3a4450"; c.fillRect(24 + l * 42, 34, 30, 3); c.fillRect(24 + l * 42, 42, 30, 3); c.fillStyle = "#c9b48a"; c.fillRect(48 + l * 42, 70, 4, 10); }
+      c.fillStyle = "#ffffff"; c.fillRect(456, 26, 70, 52); c.fillStyle = "#1e63ff"; c.font = '10px "Press Start 2P", monospace'; c.textAlign = "center"; c.fillText("TEAM", 491, 46); c.fillText("RULES", 491, 64);
+      c.fillStyle = "#8a5a2a"; c.fillRect(540, 70, 90, 6); c.fillStyle = "#ffd21e"; c.fillRect(548, 58, 12, 12); c.fillStyle = "#e0348a"; c.fillRect(566, 60, 10, 10); c.fillStyle = "#3ddc7a"; c.fillRect(582, 56, 14, 14);
+      floor(c, "#a9876a", "rgba(60,30,10,0.18)");
+    } else if (th === "gym") {
+      c.fillStyle = "#cdbb8f"; c.fillRect(0, 0, 640, 140);
+      for (var w = 0; w < 6; w++) { c.fillStyle = "#cfe8ff"; c.fillRect(24 + w * 104, 8, 64, 22); }
+      c.fillStyle = "#1b1b1b"; c.fillRect(170, 40, 300, 34); c.fillStyle = "#ff7a1a"; c.font = '18px "Press Start 2P", monospace'; c.textAlign = "center"; c.fillText("飛 FLY", 320, 64);
+      c.fillStyle = "#2a2f38"; c.fillRect(40, 84, 4, 56); c.fillRect(596, 84, 4, 56); c.fillStyle = "rgba(20,20,20,0.25)"; c.fillRect(44, 86, 552, 22);
+      c.strokeStyle = "rgba(255,255,255,0.4)"; c.lineWidth = 1; for (var nx = 44; nx < 596; nx += 9) { c.beginPath(); c.moveTo(nx, 86); c.lineTo(nx, 108); c.stroke(); }
+      c.fillStyle = "#f5f5f5"; c.fillRect(44, 84, 552, 3);
+      floor(c, "#d9a35b", "rgba(120,70,20,0.16)");
+      c.strokeStyle = "rgba(255,255,255,0.8)"; c.lineWidth = 3; c.strokeRect(30, 150, 580, 240);
+    } else if (th === "rooftop") {
+      sky.addColorStop(0, "#4aa3ff"); sky.addColorStop(1, "#bfe3ff"); c.fillStyle = sky; c.fillRect(0, 0, 640, 140);
+      [[40, 30], [300, 20], [500, 40]].forEach(function (cl) { c.fillStyle = "rgba(255,255,255,0.9)"; var x = (cl[0] + clock * 6) % 700 - 40; c.fillRect(x, cl[1], 60, 14); c.fillRect(x + 12, cl[1] - 8, 34, 10); });
+      for (var b = 0; b < 16; b++) { c.fillStyle = ["#6f7d8c", "#8a96a3", "#5b6875"][b % 3]; var hh = 30 + (b * 37) % 50; c.fillRect(b * 42, 132 - hh, 38, hh); c.fillStyle = "#ffe9a0"; for (var wy = 136 - hh; wy < 126; wy += 10) c.fillRect(b * 42 + 6 + (wy % 3) * 8, wy, 5, 5); }
+      floor(c, "#9aa3ad", "rgba(40,50,60,0.18)");
+      c.strokeStyle = "#3d7a4a"; c.lineWidth = 2; for (var fx2 = 0; fx2 < 640; fx2 += 14) { c.beginPath(); c.moveTo(fx2, 116); c.lineTo(fx2 + 14, 140); c.moveTo(fx2 + 14, 116); c.lineTo(fx2, 140); c.stroke(); }
+      c.fillStyle = "#3d7a4a"; c.fillRect(0, 114, 640, 3);
+    } else if (th === "beach") {
+      sky.addColorStop(0, "#ff9a5a"); sky.addColorStop(1, "#ffd8a0"); c.fillStyle = sky; c.fillRect(0, 0, 640, 100);
+      c.fillStyle = "#ffe066"; c.beginPath(); c.arc(520, 70, 26, 0, 6.28); c.fill();
+      c.fillStyle = "#2a8fd0"; c.fillRect(0, 96, 640, 44); c.fillStyle = "rgba(255,255,255,0.6)"; for (var wv = 0; wv < 640; wv += 40) c.fillRect((wv + clock * 20) % 680 - 20, 104 + (wv % 3) * 10, 22, 2);
+      c.fillStyle = "#f0d9a0"; c.fillRect(0, 140, 640, 260); c.fillStyle = "rgba(180,140,80,0.25)"; for (var sx = 0; sx < 640; sx += 23) for (var sy2 = 150; sy2 < 400; sy2 += 19) c.fillRect(sx + (sy2 % 7), sy2, 2, 2);
+      c.fillStyle = "#6b4a2a"; c.fillRect(120, 70, 4, 74); c.fillRect(516, 70, 4, 74); c.fillStyle = "rgba(20,20,20,0.35)"; c.fillRect(124, 72, 392, 16);
+    } else if (th === "arena") {
+      c.fillStyle = "#0b1430"; c.fillRect(0, 0, 640, 140);
+      for (var ry = 20; ry < 120; ry += 9) for (var rx = (ry / 9) % 2 * 4; rx < 640; rx += 9) { c.fillStyle = ["#e0348a", "#1e63ff", "#ffd21e", "#ffffff", "#3ddc7a"][(rx * 7 + ry) % 5]; c.fillRect(rx, ry + Math.sin(clock * 3 + rx) * 1.5, 5, 6); }
+      for (var li = 0; li < 6; li++) { c.fillStyle = "rgba(255,240,200," + (0.4 + 0.2 * Math.sin(clock * 2 + li)) + ")"; c.fillRect(40 + li * 104, 4, 40, 6); }
+      c.fillStyle = "#1e3a8a"; c.fillRect(0, 120, 640, 20); c.fillStyle = "#ffd21e"; c.font = '10px "Press Start 2P", monospace'; c.textAlign = "center"; c.fillText("SPRING NATIONALS • ORANGE COURT", 320, 134);
+      floor(c, "#e8742a", "rgba(120,40,0,0.15)");
+      c.strokeStyle = "rgba(255,255,255,0.85)"; c.lineWidth = 3; c.strokeRect(40, 156, 560, 230);
+    }
+  }
+  function floor(c, col, line) {
+    c.fillStyle = col; c.fillRect(0, 140, 640, 260);
+    for (var y = 140; y < 400; y += 9) { c.fillStyle = line; c.fillRect(0, y, 640, 1); }
+  }
+  function drawFurniture(c, clock) {
+    Object.keys(FURN).forEach(function (k) { if (G.furn[k] && G.furnOn[k]) drawItem(c, k, FURN[k].x, FURN[k].y, clock); });
+  }
+  function drawItem(c, k, x, y, clock) {
+    c.textAlign = "center"; c.textBaseline = "middle";
+    if (k === "plant") { c.fillStyle = "#b5562a"; c.fillRect(x - 12, y, 24, 22); c.fillStyle = "#2f8a4a"; c.beginPath(); c.arc(x, y - 10, 18, 0, 6.28); c.fill(); c.fillStyle = "#3fae5e"; c.beginPath(); c.arc(x - 8, y - 18, 10, 0, 6.28); c.arc(x + 9, y - 14, 9, 0, 6.28); c.fill(); }
+    if (k === "banner") { c.fillStyle = "#1b1b1b"; c.fillRect(x, y, 140, 30); c.fillStyle = "#ff7a1a"; c.fillRect(x, y, 140, 4); c.fillRect(x, y + 26, 140, 4); c.font = '12px "Press Start 2P", monospace'; c.fillStyle = "#ffffff"; c.fillText("飛 FLY", x + 70, y + 16); }
+    if (k === "poster") { c.fillStyle = "#ffffff"; c.fillRect(x, y, 44, 60); c.fillStyle = "#1e63ff"; c.fillRect(x + 4, y + 4, 36, 40); c.fillStyle = "#ffd21e"; c.beginPath(); c.arc(x + 22, y + 22, 10, 0, 6.28); c.fill(); c.fillStyle = "#13293f"; c.font = '9px "Press Start 2P", monospace'; c.fillText("MVP", x + 22, y + 52); }
+    if (k === "vending") { c.fillStyle = "#c81e2a"; c.fillRect(x - 20, y, 40, 70); c.fillStyle = "#bfe3ff"; c.fillRect(x - 15, y + 6, 30, 34); ["#ffd21e", "#3ddc7a", "#ffffff", "#1e63ff"].forEach(function (cc, i) { c.fillStyle = cc; c.fillRect(x - 12 + (i % 2) * 14, y + 10 + Math.floor(i / 2) * 14, 10, 10); }); c.fillStyle = "#2b2b2b"; c.fillRect(x - 12, y + 52, 24, 8); }
+    if (k === "fridge") { c.fillStyle = "#e8eef7"; c.fillRect(x - 18, y, 36, 60); c.strokeStyle = "#9aa3ad"; c.lineWidth = 2; c.strokeRect(x - 18, y, 36, 60); c.beginPath(); c.moveTo(x - 18, y + 22); c.lineTo(x + 18, y + 22); c.stroke(); c.fillStyle = "#1e63ff"; c.font = '7px "Press Start 2P", monospace'; c.fillText("MILK", x, y + 40); }
+    if (k === "sofa") { c.fillStyle = "#5b2a86"; c.fillRect(x - 50, y - 26, 100, 18); c.fillStyle = "#7a3fb0"; c.fillRect(x - 54, y - 10, 108, 18); c.fillRect(x - 58, y - 22, 10, 30); c.fillRect(x + 48, y - 22, 10, 30); }
+    if (k === "kotatsu") { c.fillStyle = "#c8102e"; c.fillRect(x - 40, y - 14, 80, 22); c.fillStyle = "#a07040"; c.fillRect(x - 36, y - 20, 72, 8); c.fillStyle = "#ff8a1e"; c.beginPath(); c.arc(x - 10, y - 24, 5, 0, 6.28); c.arc(x + 8, y - 24, 5, 0, 6.28); c.fill(); }
+    if (k === "arcade") { c.fillStyle = "#2b1b3d"; c.fillRect(x - 16, y - 50, 32, 70); c.fillStyle = "hsl(" + Math.floor(clock * 90) % 360 + ",90%,60%)"; c.fillRect(x - 11, y - 44, 22, 18); c.fillStyle = "#ffd21e"; c.fillRect(x - 8, y - 18, 4, 4); c.fillStyle = "#e0348a"; c.fillRect(x + 4, y - 18, 4, 4); }
+    if (k === "tv") { c.fillStyle = "#1b1b1b"; c.fillRect(x - 40, y - 26, 80, 48); c.fillStyle = Math.floor(clock * 2) % 2 ? "#1e63ff" : "#2a8fd0"; c.fillRect(x - 36, y - 22, 72, 40); c.fillStyle = "#ffd21e"; c.beginPath(); c.arc(x - 10 + Math.sin(clock * 3) * 18, y - 4 - Math.abs(Math.sin(clock * 3)) * 10, 4, 0, 6.28); c.fill(); }
+    if (k === "trophy") { c.fillStyle = "#6b4423"; c.fillRect(x - 30, y - 60, 60, 80); c.fillStyle = "rgba(200,230,255,0.5)"; c.fillRect(x - 26, y - 56, 52, 72); for (var t = 0; t < 3; t++) { c.fillStyle = "#ffd21e"; c.fillRect(x - 20 + t * 16, y - 40, 10, 10); c.fillRect(x - 18 + t * 16, y - 30, 6, 6); } c.fillStyle = "#c9d1db"; c.fillRect(x - 14, y - 8, 10, 10); c.fillStyle = "#c98a5a"; c.fillRect(x + 4, y - 8, 10, 10); }
+    if (k === "karaoke") { c.fillStyle = "#13293f"; c.fillRect(x - 14, y - 40, 28, 56); c.fillStyle = "#e0348a"; c.beginPath(); c.arc(x, y - 26, 8, 0, 6.28); c.fill(); c.fillStyle = "rgba(224,52,138," + (0.5 + 0.5 * Math.sin(clock * 4)) + ")"; c.font = '18px "VT323", monospace'; c.fillText("♪", x + 18, y - 48 - (clock * 20) % 20); }
+    if (k === "neon") { var on = Math.sin(clock * 5) > -0.7; c.fillStyle = "#13293f"; c.fillRect(x - 70, y - 14, 140, 28); c.font = '11px "Press Start 2P", monospace'; c.fillStyle = on ? "#ff4fa0" : "#6b2a4a"; c.shadowColor = "#ff4fa0"; c.shadowBlur = on ? 10 : 0; c.fillText("HEY HEY HEY", x, y + 1); c.shadowBlur = 0; }
+    if (k === "statue") { c.fillStyle = "#8a6a2a"; c.fillRect(x - 18, y, 36, 26); c.fillStyle = "#ffd21e"; c.beginPath(); c.arc(x, y - 14, 16, 0, 6.28); c.fill(); c.strokeStyle = "#e0a800"; c.lineWidth = 3; c.beginPath(); c.arc(x, y - 14, 10, -0.6, 1.2); c.stroke(); c.fillStyle = "rgba(255,255,255," + (0.5 + 0.5 * Math.sin(clock * 3)) + ")"; c.fillRect(x - 8, y - 24, 4, 4); }
+  }
+  function shopPreview() {
+    document.querySelectorAll("canvas[data-prev]").forEach(function (cv) {
+      var c = cv.getContext("2d"), k = cv.getAttribute("data-prev"); c.save(); c.scale(0.25, 0.25);
+      if (k === "classroom") { c.fillStyle = "#efe6cf"; c.fillRect(0, 0, 640, 140); c.fillStyle = "#2f5d46"; c.fillRect(146, 20, 308, 86); floor(c, "#c9935a", "rgba(90,50,10,0.18)"); }
+      else drawTheme(c, k, 0);
+      c.restore();
+    });
+    document.querySelectorAll("canvas[data-furn]").forEach(function (cv) {
+      var c = cv.getContext("2d"), k = cv.getAttribute("data-furn"), f = FURN[k];
+      c.fillStyle = "#f3f6fb"; c.fillRect(0, 0, 160, 100);
+      var cx = f.x + (f.c ? f.c[0] : 0), cy = f.y + (f.c ? f.c[1] : 0);
+      c.save(); c.translate(80 - cx * 0.9, 50 - cy * 0.9); c.scale(0.9, 0.9); drawItem(c, k, f.x, f.y, 0); c.restore();
+    });
+  }
   function flex() {
     var pts = { C: 1, R: 3, E: 10, L: 40, M: 120 };
     return Object.keys(G.owned).reduce(function (s, id) { return BY[id] ? s + pts[BY[id].r] * G.owned[id] : s; }, 0);
@@ -552,7 +716,7 @@
     var f = featured().map(function (id) { return BY[id]; });
     var head = "<h2 class='hub-h'>HAIKYUU!! GACHA</h2>" +
       "<div class='hub-status'>🏐 " + G.coins + " COINS • " + G.pulls + " PULLS • LEGENDARY PITY " + G.pity.l + "/60 • MYTHIC PITY " + G.pity.m + "/1000</div>" +
-      "<div class='tabs'>" + [["pull", "PULL"], ["room", "SHOWROOM"], ["skins", "SKINS"]].map(function (t) { return "<button class='tab-btn" + (tab === t[0] ? " on" : "") + "' data-g='tab' data-v='" + t[0] + "'>" + t[1] + "</button>"; }).join("") + "</div>";
+      "<div class='tabs'>" + [["pull", "PULL"], ["room", "SHOWROOM"], ["shop", "🛒 SHOP"], ["skins", "SKINS"]].map(function (t) { return "<button class='tab-btn" + (tab === t[0] ? " on" : "") + "' data-g='tab' data-v='" + t[0] + "'>" + t[1] + "</button>"; }).join("") + "</div>";
     var body;
     if (tab === "pull") {
       var bn = banner();
@@ -564,7 +728,21 @@
         "<p class='muted'>Rates: Mythic 0.05% • Legendary 4% • Epic 15% • Rare 30% • Common ~51%. Every 10 pulls guarantees Epic+. Legendary guaranteed by pull 60, Mythic by pull 1000. " +
         (f.length ? "Won a Legendary/Mythic but not a featured one? Your next one IS featured. " : "") + "Pick any banner above — switch whenever you like; pity carries over.</p>" +
         "<div class='hub-actions'><button class='btn big' data-g='pull' data-v='1'>PULL ×1 • " + COST1 + " 🏐</button><button class='btn big' data-g='pull' data-v='10'>PULL ×10 • " + COST10 + " 🏐</button><button class='btn big' data-g='pull' data-v='100'>PULL ×100 • " + COST100 + " 🏐</button></div>" +
-        "<p class='center muted'>Every match pays: a WIN = 10 pulls (1000 🏐), a LOSS = 5 pulls (500 🏐). Story events pay too.</p></div>";
+        "<p class='center muted'>Every match pays: a WIN = 1,000 🏐 (5 pulls), a LOSS = 500 🏐. Story events pay too. Big spender? The 🛒 SHOP has showrooms and furniture.</p></div>";
+    } else if (tab === "shop") {
+      body = "<p class='center'>Spend your coins on new showrooms and furniture for your collection. Furniture shows up in every room.</p>" +
+        "<h3 class='mini'>SHOWROOMS</h3><div class='shop-grid'>" + Object.keys(ROOMS).map(function (k) {
+          var r = ROOMS[k], own = G.rooms[k], on = G.theme === k;
+          return "<div class='shop-card" + (own ? " own" : "") + "'><canvas class='shop-prev' data-prev='" + k + "' width='160' height='100'></canvas><div class='pname'>" + esc(r.name) + "</div><div class='muted small'>" + esc(r.txt) + "</div>" +
+            (own ? "<button class='btn tiny' data-g='theme' data-v='" + k + "'" + (on ? " disabled" : "") + ">" + (on ? "✔ IN USE" : "USE") + "</button>"
+                 : "<button class='btn tiny' data-g='buyroom' data-v='" + k + "'" + (G.coins < r.price ? " disabled" : "") + ">BUY • " + r.price.toLocaleString() + " 🏐</button>") + "</div>";
+        }).join("") + "</div>" +
+        "<h3 class='mini'>FURNITURE</h3><div class='shop-grid'>" + Object.keys(FURN).map(function (k) {
+          var f = FURN[k], own = G.furn[k], on = G.furnOn[k];
+          return "<div class='shop-card" + (own ? " own" : "") + "'><canvas class='shop-prev' data-furn='" + k + "' width='160' height='100'></canvas><div class='pname'>" + esc(f.name) + "</div>" +
+            (own ? "<button class='btn tiny' data-g='furn' data-v='" + k + "'>" + (on ? "✔ PLACED — REMOVE" : "PLACE IN ROOM") + "</button>"
+                 : "<button class='btn tiny' data-g='buyfurn' data-v='" + k + "'" + (G.coins < f.price ? " disabled" : "") + ">BUY • " + f.price.toLocaleString() + " 🏐</button>") + "</div>";
+        }).join("") + "</div>";
     } else if (tab === "skins") {
       var bases = {};
       CARDS.forEach(function (c) { if (c.variant && G.owned[c.id]) (bases[c.base] = bases[c.base] || []).push(c); });
@@ -581,7 +759,10 @@
     } else {
       var owned = CARDS.filter(function (c) { return G.owned[c.id] && (filter === "ALL" || c.r === filter); })
         .sort(function (a, b) { return ORDER.indexOf(a.r) - ORDER.indexOf(b.r) || a.name.localeCompare(b.name); });
-      body = "<canvas id='roomCv' class='room' width='640' height='400'></canvas>" +
+      body = "<div class='focus center-row'>" + Object.keys(ROOMS).filter(function (k2) { return G.rooms[k2]; }).map(function (k2) {
+          return "<button class='btn tiny" + (G.theme === k2 ? " on" : "") + "' data-g='theme' data-v='" + k2 + "'>" + esc(ROOMS[k2].name) + "</button>"; }).join("") +
+          "<button class='btn tiny pink' data-g='tab' data-v='shop'>🛒 MORE ROOMS & FURNITURE</button></div>" +
+        "<canvas id='roomCv' class='room' width='640' height='400'></canvas>" +
         "<p class='center' id='roomSel'>Tap a student in the classroom, then pick an action.</p>" +
         "<div class='focus center-row'>" + ACTIONS.map(function (a) { return "<button class='btn' data-g='act' data-v='" + a[0] + "' disabled>" + a[1] + "</button>"; }).join("") + "</div>" +
         "<p class='center muted'>Up to " + MAX_ROAM + " cards hang out in the classroom (" + G.roam.length + "/" + MAX_ROAM + "). Tap a card below to send it in or out — when the room is full it swaps with the student you selected (or the one who's been there longest).</p>" +
@@ -597,6 +778,7 @@
     }
     $("hub").innerHTML = head + "<div class='tab-body'>" + body + "</div><div class='hub-actions'><button class='btn pink' data-g='exit'>BACK TO MENU</button></div>";
     if (tab === "room") startRoom();
+    if (tab === "shop") shopPreview();
   }
   async function onClick(e) {
     var b = e.target.closest("[data-g]");
@@ -605,6 +787,18 @@
     if (k === "tab") { tab = v; return render(); }
     if (k === "filter") { filter = v; return render(); }
     if (k === "banner") { G.banner = v; save(); return render(); }
+    if (k === "buyroom" || k === "buyfurn") {
+      var item = k === "buyroom" ? ROOMS[v] : FURN[v]; if (!item) return;
+      if (G.coins < item.price) return;
+      var ok = await U.modal("🛒 BUY " + item.name + "?", "<p class='center big'>" + item.price.toLocaleString() + " 🏐</p><p class='center'>You have " + G.coins.toLocaleString() + " 🏐.</p>",
+        [{ label: "BUY", value: true }, { label: "CANCEL", value: false, cls: "pink" }]);
+      if (!ok) return render();
+      G.coins -= item.price;
+      if (k === "buyroom") { G.rooms[v] = 1; G.theme = v; } else { G.furn[v] = 1; G.furnOn[v] = 1; }
+      save(); return render();
+    }
+    if (k === "theme") { if (G.rooms[v]) { G.theme = v; save(); } return render(); }
+    if (k === "furn") { if (G.furn[v]) { G.furnOn[v] = G.furnOn[v] ? 0 : 1; save(); } return render(); }
     if (k === "skin") {
       var pr = v.split("|"); G.skin = G.skin || {};
       if (pr[1] === pr[0]) delete G.skin[pr[0]]; else G.skin[pr[0]] = pr[1];

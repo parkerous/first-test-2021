@@ -27,11 +27,19 @@ through a link (or a 6-letter code) while you're both online:
   your club: they pick a name, position (not your setter/opposite/libero
   spot) and look, and both of you start every match.
 - The host's browser runs the career and the matches; the guest sees a live
-  mirror of the hub, the host's dialogs and the court, and controls their own
+  mirror of the hub and the host's dialogs. In matches no video is sent: the
+  guest's own browser draws the match from the game state (~20 small updates
+  a second plus every ball flight, jump and effect), so it's as sharp and
+  smooth as on the host, in the guest's own camera. The guest controls their own
   player (P2): serve choice and aim, receive and dig timing, set calls, spikes,
   tips and wipes, block lean and block timing (you both time your block jumps
   at the same moment). P2 picks their own training focus and grows from their
   own match rating.
+- While waiting, the guest isn't stuck: 👤 MY PLAYER shows P2's sheet — spend
+  P2's skill points (1 per co-op match, +1 for a good daily training) on
+  attributes or PlayStyles; 🏋️ TRAIN runs a daily minigame session; 🎴 MY
+  GACHA opens their own gacha; 💬 CHAT (both players, with quick messages)
+  works in every co-op mode.
 - If P2 doesn't answer in time or drops out, the match carries on with a
   default choice; offline, P2's player plays as an AI teammate. The save lives
   on the host's device; the same link works again next time.
@@ -102,7 +110,9 @@ through a link (or a 6-letter code) while you're both online:
 - Third-years graduate (rivals too: Oikawa, Ushijima and Bokuto leave after
   year 1), first-years arrive and teammates improve. A captaincy is possible in
   year 3, and an ending depends on your final OVR and trophies.
-- 📰 A NEWSPAPER every other week (each story step is about a week): the
+- 📰 A NEWSPAPER every other week (each story step is about a week), laid out
+  like a real broadsheet — masthead, a lead story with the star's portrait,
+  two columns, a results table and a Player of the Week: the
   hottest games around the country, not just yours — upsets, comebacks from a
   set down, deuce thrillers and routs, with the star of each match, other
   results and a box on your own school. Old issues live in the NEWS tab.
@@ -126,8 +136,16 @@ through a link (or a 6-letter code) while you're both online:
   a SPRINT tap drill.
 
 ### 🎴 Gacha & Showroom (Haikyuu!!)
-- 500 free pulls to start. Every match pays: a win = 10 pulls, a loss = 5 pulls
-  (any mode), plus story events and a daily gift. Pull ×1 (100) or ×10 (900).
+- Pulls cost 200 🏐 (×10 = 1,800, ×100 = 17,000). Every match pays: a win =
+  1,000 🏐, a loss = 500 🏐 (any mode), plus story events and a daily gift.
+- 🛒 SHOP: showrooms — Club Room 30k, School Gym 45k, Rooftop 60k, Beach 80k,
+  Orange Court Arena 150k — and furniture from a 4k plant to a 75k golden ball
+  statue (vending machine, milk fridge, sofa, kotatsu, arcade, big TV, trophy
+  cabinet, karaoke, neon HEY HEY HEY sign...). Furniture shows in every room.
+- More cards: coaches, managers and family (Coach Ukai, Takeda-sensei, Kiyoko,
+  Yachi, Saeko, Coach Nekomata, Akiteru...), Kita, Moniwa, Ikejiri, and new
+  sets: Team Japan, New Year, Winter Lights, the crowned Kings (Mythic King of
+  the Court & Grand King) and Gamer Kenma — with new banners for each.
 - Pull ×1, ×10 or ×100 (a summary with a rarity tally, rarest first).
 - Rarities: Common, Rare, Epic, Legendary, Mythic. Limited variants include
   Christmas Bokuto/Nishinoya/Hinata/Kenma and Festival Oikawa (Legendary),
