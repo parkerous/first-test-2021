@@ -120,7 +120,7 @@
   var TIMEOUT_TALK = ["Breathe. One point at a time.", "Serve tough and trust the block!", "They're reading our sets — mix it up!",
                       "Talk to each other out there!", "Forget the score. Win the next rally.", "Their hitter loves the line — take it away!"];
   function teamOf(i) { return i === 0 ? me : opp; }
-  function preRally() {
+  function preRally() { camServe = true;
     rallyDigs = 0;
     var to = (cfg && cfg.setsTo) || 15, hi = Math.max(score[0], score[1]), lead = score[0] > score[1] ? 0 : score[1] > score[0] ? 1 : -1;
     if (lead >= 0 && score[lead] >= to - 1) {
@@ -566,10 +566,32 @@
   var CAM = "classic";
   try { CAM = localStorage.getItem("retroVB.cam") || "classic"; } catch (e) {}
   if (!VB.CAMS[CAM]) CAM = "classic";
-  function camP() { return CAM === "high" ? { camY: H + 250, camH: 620, f: 520, hor: -237 } : { camY: H + 830, camH: 930, f: 1440, hor: -690 }; }
+  var camPan = 0, camDolly = 0, punchAt = -9999, waveAt = -9999;
+  function camP() {
+    var c = CAM === "high" ? { camY: H + 250, camH: 620, f: 520, hor: -237 } : { camY: H + 830, camH: 930, f: 1440, hor: -690 };
+    c.camY -= camDolly * (CAM === "high" ? 0.35 : 1); return c;
+  }
+  // ---- the moving camera: a "director" that follows the play on every view ----
+  // rallies: pan + push in toward the ball and zoom a little; between points: drift to the server's end (the serve shot).
+  // Off = the old fixed framing. Toggle: 🎬 above the court, the V key, or ⚙ SETTINGS.
+  var CAM_MOVE = true; try { CAM_MOVE = localStorage.getItem("retroVB.camMove") !== "off"; } catch (e) {}
+  var dir = { fx: W / 2, fy: NET, z: 1 }, camT = { Z: 1, tx: 0, ty: 0 }, camServe = false;
+  function direct(dt) {
+    var tx = W / 2, ty = NET, tz = 1;
+    if (CAM_MOVE) {
+      if (camServe && me) { tx = W / 2 + (ball.visible ? (ball.x - W / 2) * 0.5 : 0); ty = serving === 0 ? CB - 70 : CT + 70; tz = 1.2; }   // the serve shot
+      else if (ball.visible) { tx = ball.x; ty = ball.y - Math.min(40, ball.h * 12); tz = ball.trail === "hot" ? 1.34 : 1.28; }
+      else if (me) { ty = NET + (serving === 0 ? 150 : -150); tz = 1.12; }
+    }
+    var kp = 1 - Math.exp(-dt * 2.4), kz = 1 - Math.exp(-dt * 1.5);
+    dir.fx += (tx - dir.fx) * kp; dir.fy += (ty - dir.fy) * kp; dir.z += (tz - dir.z) * kz;
+    // the TV views: pan with the play and dolly toward the far court when the ball is over there
+    var panT = CAM_MOVE ? clamp((dir.fx - W / 2) * 0.8, -120, 120) : ball.visible ? clamp((ball.x - W / 2) * 0.3, -50, 50) : 0;
+    var dolT = CAM_MOVE ? clamp((NET + 60 - dir.fy) * 0.8, -80, 200) : 0;
+    camPan += (panT - camPan) * Math.min(1, dt * 3 + 0.01); camDolly += (dolT - camDolly) * Math.min(1, dt * 2 + 0.01);
+  }
+  function setCamMove(on) { CAM_MOVE = on; try { localStorage.setItem("retroVB.camMove", on ? "on" : "off"); } catch (e) {} camUI(); }
   // world (court x, y, height above the floor in px) → screen
-  // the TV camera pans gently with the ball (an elevated end-line view keeps serve, set and attack in one frame)
-  var camPan = 0, punchAt = -9999, waveAt = -9999;
   function proj(x, y, h) { var c = camP(), z = Math.max(80, c.camY - y), s = c.f / z; return { x: CW / 2 + (x - W / 2 - camPan) * s, y: c.hor + c.camH * s - (h || 0) * s, s: s }; }
   function unproj(sx, sy) { var c = camP(), z = c.camH * c.f / Math.max(1, sy - c.hor); return { x: W / 2 + camPan + (sx - CW / 2) * z / c.f, y: c.camY - z }; }
   function punchZoom(now) { var k = clamp01(1 - (now - punchAt) / 420); return 1 + 0.045 * Math.sin(k * Math.PI / 2) * k; }
@@ -588,6 +610,7 @@
     ball.squashAt = performance.now(); ball.squashAng = Math.atan2(to.y - from.y, to.x - from.x);
     if ((o.spin || 0) >= 20 || o.trail === "hot") flashes.push({ x: from.x, y: from.y, h: h0, t0: performance.now() });
     ball.trail = o.trail || null; trailPts = [];
+    if (!o.quiet) camServe = false;
     if (!o.quiet) sfx(o.trail === "hot" || (o.spin || 0) >= 20 ? "spike" : "touch");
     return new Promise(function (res) {
       var t = 0, last = performance.now();
@@ -1011,7 +1034,13 @@
     if (!paused) stepPlayers(dt);
     if (!bg) { requestAnimationFrame(draw); return; }
     var sk = shakeAmt * Math.max(0, 1 - (now - shakeAt) / 320), zm = punchZoom(now);
-    g.setTransform(zm, 0, 0, zm, (1 - zm) * CW / 2 + (sk ? rnd(-sk, sk) : 0), (1 - zm) * CH / 2 + (sk ? rnd(-sk, sk) : 0));
+    direct(dt);
+    var Z = zm, cx = CW / 2, cy = CH / 2;
+    if (CAM === "classic") { Z = zm * dir.z; cx = OX + W / 2 + (dir.fx - W / 2) * 0.8; cy = OY + NET + (dir.fy - NET) * 0.75; }
+    else { var fp = proj(dir.fx, dir.fy, 0); Z = zm * (1 + (dir.z - 1) * 0.45); cx = CW / 2 + (fp.x - CW / 2) * 0.5; cy = CH / 2 + (fp.y - CH / 2) * 0.4; }
+    var hw = CW / (2 * Z), hh = CH / (2 * Z); cx = clamp(cx, hw, CW - hw); cy = clamp(cy, hh, CH - hh);
+    camT = { Z: Z, tx: CW / 2 - cx * Z, ty: CH / 2 - cy * Z };
+    g.setTransform(Z, 0, 0, Z, camT.tx + (sk ? rnd(-sk, sk) : 0), camT.ty + (sk ? rnd(-sk, sk) : 0));
     if (sk) { g.fillStyle = "#05070b"; g.fillRect(-20, -20, CW + 40, CH + 40); }
     if (ball.visible && ball.trail === "hot" && sdt > 0 && Math.random() < 0.7) puffs.push({ x: ball.x + rnd(-3, 3), y: ball.y - ball.h * 30, vx: rnd(-20, 20), vy: rnd(-30, 10), life: 0, max: rnd(0.25, 0.5), col: pick(["#ff7a2a", "#ffb000", "#ffd21e"]) });
     if (CAM !== "classic") { drawBroadcast(now, sdt); g.setTransform(1, 0, 0, 1, 0, 0); requestAnimationFrame(draw); return; }
@@ -1022,10 +1051,6 @@
     g.drawImage(crowdFrames[frame], 0, 0);
     drawWave(now, function (sx, w) { g.drawImage(crowdFrames[3], sx, 0, w, CH, sx, 0, w, CH); });
     if (cheerAmt > 0.25) phoneFlashes(cheerAmt);
-    drawJumbotron();
-    drawChant(now);
-    drawDrama(now);
-
     g.save(); g.translate(OX, OY);
     drawMarks(function (m) { return { x: m.x, y: m.y, s: 1 }; });
     // net, posts, antennas, officials
@@ -1169,12 +1194,12 @@
     drawPopups();
     g.restore();
     g.setTransform(1, 0, 0, 1, 0, 0);
+    drawJumbotron(); drawChant(now); drawDrama(now);                 // the score bug and banners stay put while the camera moves
+    if (CAM_MOVE) camTag("MOVING CAM");
     requestAnimationFrame(draw);
   }
 
   function drawBroadcast(now, sdt) {
-    var panT = ball.visible ? clamp((ball.x - W / 2) * 0.3, -50, 50) : 0;
-    camPan += (panT - camPan) * Math.min(1, sdt * 3 + 0.01);
     var c = camP();
     // arena backdrop: the far stands and the roof lights
     var farY = proj(0, -100, 0).y;
@@ -1190,7 +1215,7 @@
     for (var sy = Math.floor(farY); sy < CH; sy += 2) {
       var z = c.camH * c.f / Math.max(1, sy - c.hor), wy = c.camY - z, srcY = wy + OY;
       if (srcY < 0 || srcY >= CH) continue;
-      var k = z / c.f, sx0 = W / 2 - (CW / 2) * k + OX, sw = CW * k, dx = 0;
+      var k = z / c.f, sx0 = W / 2 + camPan - (CW / 2) * k + OX, sw = CW * k, dx = 0;
       if (sx0 < 0) { dx = -sx0 / k; sw += sx0; sx0 = 0; }
       if (sx0 + sw > CW) sw = CW - sx0;
       if (sw <= 1) continue;
@@ -1264,10 +1289,15 @@
       g.strokeStyle = "rgba(255,221,0,0.95)"; g.lineWidth = 2;
       g.beginPath(); g.ellipse(ap.x, ap.y, 16 * ap.s, 6 * ap.s, 0, 0, Math.PI * 2); g.stroke();
     }
+    g.setTransform(1, 0, 0, 1, 0, 0);
     drawJumbotron(); drawChant(now); drawDrama(now);
-    g.fillStyle = "rgba(0,0,0,0.55)"; g.fillRect(CW - 150, CH - 22, 150, 22);
-    g.fillStyle = "#ffd21e"; g.font = '9px "Press Start 2P", monospace'; g.textAlign = "right"; g.textBaseline = "middle";
-    g.fillText(CAM === "high" ? "HIGH CAM β" : "BROADCAST β", CW - 8, CH - 11);
+    camTag((CAM === "high" ? "HIGH CAM" : "BROADCAST") + (CAM_MOVE ? " • MOVING" : " β"));
+  }
+  function camTag(t) {
+    g.font = '9px "Press Start 2P", monospace'; var w = g.measureText(t).width + 16;
+    g.fillStyle = "rgba(0,0,0,0.55)"; g.fillRect(CW - w, CH - 22, w, 22);
+    if (CAM_MOVE) { g.fillStyle = Math.floor(performance.now() / 600) % 2 ? "#ff3b3b" : "#7a1a1a"; g.beginPath(); g.arc(CW - w + 8, CH - 11, 3, 0, 6.28); g.fill(); }
+    g.fillStyle = "#ffd21e"; g.textAlign = "right"; g.textBaseline = "middle"; g.fillText(t, CW - 6, CH - 11);
   }
   function drawNet3() {
     var a = proj(CL - 12, NET, NET_H), b = proj(CR + 12, NET, NET_H), a2 = proj(CL - 12, NET, NET_H - 26), b2 = proj(CR + 12, NET, NET_H - 26);
@@ -1302,11 +1332,15 @@
   }
   function setCam(k) { CAM = VB.CAMS[k] ? k : "classic"; try { localStorage.setItem("retroVB.cam", CAM); } catch (e) {} camUI(); }
   var CAM_SHORT = { classic: "CLASSIC", broadcast: "BROADCAST", high: "HIGH CAM" };
-  function camUI() { ["camTop", "camBtn"].forEach(function (id) { var b = $(id); if (b) b.textContent = "🎥 " + (CAM_SHORT[CAM] || CAM); }); }
+  function camUI() {
+    ["camTop", "camBtn"].forEach(function (id) { var b = $(id); if (b) b.textContent = "🎥 " + (CAM_SHORT[CAM] || CAM); });
+    var m = $("moveTop"); if (m) { m.textContent = CAM_MOVE ? "🎬 MOVING" : "🎬 FIXED"; m.classList.toggle("on", CAM_MOVE); }
+  }
   function cycleCam() { var ks = Object.keys(VB.CAMS); setCam(ks[(ks.indexOf(CAM) + 1) % ks.length]); feed(-1, "🎥 Camera: " + VB.CAMS[CAM]); }
 
   // ================== INPUT ==================
   function courtAt(px, py, half) {
+    px = (px - camT.tx) / camT.Z; py = (py - camT.ty) / camT.Z;                // undo the moving camera
     var w0 = CAM === "classic" ? { x: px - OX, y: py - OY } : unproj(px, py);
     var x = clamp(w0.x, CL + 10, CR - 10), y = w0.y;
     y = half === "top" ? clamp(y, CT + 10, NET - 16) : clamp(y, NET + 16, CB - 10);
@@ -1389,7 +1423,7 @@
         wrap.classList.add("hidden"); timingPop(q); res(q);
       }
       function stop(e) {
-        if (done || paused || (e.target && e.target.closest && e.target.closest("#statsPanel, #rosterBtn, #tacPanel, #tacBtn, #backBtn, #camBtn, #camTop, #sndTop"))) return;
+        if (done || paused || (e.target && e.target.closest && e.target.closest("#statsPanel, #rosterBtn, #tacPanel, #tacBtn, #backBtn, #camBtn, #camTop, #sndTop, #moveTop"))) return;
         done = true;
         e.preventDefault(); cancelAnimationFrame(raf);
         document.removeEventListener("pointerdown", stop, true);
@@ -2606,6 +2640,8 @@
     $("camBtn").addEventListener("click", cycleCam);
     $("camTop").addEventListener("click", cycleCam);
     function sndUI() { var b = $("sndTop"); if (b && VB.Sfx) b.textContent = VB.Sfx.on() ? "🔊" : "🔇"; }
+    if ($("moveTop")) { camUI(); $("moveTop").addEventListener("click", function () { setCamMove(!CAM_MOVE); feed(-1, "🎬 Camera motion " + (CAM_MOVE ? "ON" : "OFF")); }); }
+    window.addEventListener("keydown", function (e) { if ((e.key === "v" || e.key === "V") && !/INPUT|TEXTAREA/.test((e.target || {}).tagName || "") && $("matchView") && !$("matchView").classList.contains("hidden")) setCamMove(!CAM_MOVE); });
     if ($("sndTop")) { sndUI(); $("sndTop").addEventListener("click", function () { VB.Sfx && VB.Sfx.toggle(); sndUI(); }); }
     window.addEventListener("keydown", function (e) { if ((e.key === "m" || e.key === "M") && !/INPUT|TEXTAREA/.test((e.target || {}).tagName || "") && VB.Sfx) { VB.Sfx.toggle(); sndUI(); } });
     document.addEventListener("keydown", function (e) {             // C switches the camera any time during a match
@@ -2711,5 +2747,5 @@
 
   VB.Engine = { runTiming: runTiming, setCam: setCam,
     stream: function (on) { evq = on ? [] : null; }, snapshot: snapshot, matchInit: matchInit, spectate: spectate, applySnap: applySnap, stopSpectate: stopSpectate,
-    aimLocal: function (half) { return aimClick(half); }, init: init, playMatch: playMatch, spriteURL: spriteURL, makeSprite: makeSprite, kitPattern: kitPattern };
+    aimLocal: function (half) { return aimClick(half); }, setCamMove: setCamMove, camMove: function () { return CAM_MOVE; }, init: init, playMatch: playMatch, spriteURL: spriteURL, makeSprite: makeSprite, kitPattern: kitPattern };
 })(window.VB);

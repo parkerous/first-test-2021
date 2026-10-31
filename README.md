@@ -333,6 +333,13 @@ court or the M key mutes; volume is in ⚙ SETTINGS.
   more often.
 
 ## Camera & impact
+- 🎬 MOVING CAMERA (on by default, works with every view): a TV-style director
+  follows the play. In rallies it pans with the ball, zooms in a little and,
+  in the broadcast/high views, pushes in toward the far court when the ball is
+  over there. Before each serve it drifts to the server's end for the serve shot,
+  and the hardest hits get a punch-in. The score bug, chants and banners stay
+  fixed on screen. Turn it off (🎬 above the court, the V key, or ⚙ SETTINGS)
+  for the old fixed framing. Aiming by clicking works the same either way.
 - The broadcast camera pans with the ball, and big hits get a quick punch-in
   zoom. The crowd sits on shuffled seats with staggered poses, some empty seats,
   thundersticks and phone flashes when it gets loud, and does THE WAVE after

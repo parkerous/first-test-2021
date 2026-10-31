@@ -51,6 +51,7 @@
     function seg(key, cur, list) { return list.map(function (o) { return "<button class='btn tiny" + (cur === o[0] ? " on" : "") + "' data-act='set' data-k='" + key + "' data-v='" + o[0] + "'>" + o[1] + "</button>"; }).join(""); }
     return "<div class='card settings'><div class='pname'>⚙ SETTINGS</div>" +
       row("🎥 CAMERA", "<button class='btn tiny' data-act='cam'>" + VB.CAMS[opt("retroVB.cam", "classic")] + " ▸</button>") +
+      row("🎬 MOVING CAMERA", seg("retroVB.camMove", opt("retroVB.camMove", "on"), [["on", "ON"], ["off", "FIXED"]])) +
       row("🟫 COURT FLOOR", "<button class='btn tiny' data-act='floor'>" + VB.FLOORS[opt("retroVB.floor", "auto")] + " ▸</button>") +
       row("⏱ MATCH PACE", seg("retroVB.pace", pace, [["fast", "FAST"], ["normal", "NORMAL"], ["tv", "TV"]])) +
       row("🔊 SOUND", seg("retroVB.sound", snd ? "on" : "off", [["on", "ON"], ["off", "OFF"]]) +
@@ -151,6 +152,7 @@
     if (act === "set") {
       try { localStorage.setItem(b.getAttribute("data-k"), b.getAttribute("data-v")); } catch (e) {}
       if (b.getAttribute("data-k") === "retroVB.sound" && VB.Sfx) VB.Sfx.play("click");
+      if (b.getAttribute("data-k") === "retroVB.camMove") VB.Engine.setCamMove(b.getAttribute("data-v") === "on");
       return renderMenu();
     }
     if (act === "vnl") { U.setLast("vnl"); $("hub").onclick = null; await VB.VNL.start(); return menu(); }
