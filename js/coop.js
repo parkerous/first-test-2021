@@ -28,9 +28,15 @@
     });
   }
   function setStatus(t) { statusTxt = t; if (onStatus) onStatus(t); var el = $("coopStatus"); if (el) el.textContent = t; }
+  // heartbeat: a closed tab or a dropped network sends no goodbye, so silence for 12 s counts as a drop
+  var lastRx = 0, hbT = 0;
+  function heartbeat() {
+    lastRx = Date.now(); clearInterval(hbT);
+    hbT = setInterval(function () { if (!connected) return clearInterval(hbT); send({ t: "__hb" }); if (Date.now() - lastRx > 12000) lost(); }, 2000);
+  }
   function attach(l, how) {
     if (link) return false;                                       // already paired on the other transport
-    link = l; connected = true;
+    link = l; connected = true; heartbeat();
     setStatus("🟢 CONNECTED (" + how + ")");
     chatUI(); chat.el.classList.remove("hidden");
     if (mode === "sb") { if (role === "guest") send({ t: "hi" }); sbConnected(); return true; }
@@ -38,13 +44,25 @@
     else send({ t: "hi" });
     return true;
   }
+  // dropped out? the guest keeps knocking until the host answers again (the host never stops listening)
+  var dialFn = null, rejoinT = 0;
+  function autoRejoin() {
+    clearInterval(rejoinT);
+    rejoinT = setInterval(function () {
+      if (connected || !role) return clearInterval(rejoinT);
+      if (role !== "guest") return;
+      try { bc && bc.postMessage({ t: "__hello", to: "host" }); } catch (e) {}
+      if (dialFn) dialFn();
+    }, 3000);
+  }
+  function savedCode(kind) { try { var c = localStorage.getItem("retroVB.coopCode." + kind); if (c) return c; c = newCode(); localStorage.setItem("retroVB.coopCode." + kind, c); return c; } catch (e) { return newCode(); } }
   function lost() {
     if (!connected) return;
-    connected = false; link = null;
+    connected = false; link = null; autoRejoin();
     Object.keys(pend).forEach(function (id) { var p = pend[id]; clearTimeout(p.to); delete pend[id]; p.res(p.def); });
     stopMirror(); guestReady = false; if (waitBox) waitBox.done(true);
-    if (mode === "sb") { setStatus("🔴 YOUR FRIEND LEFT — keep playing solo; the link still works"); sbLost(); return; }
-    setStatus(role === "host" ? "🔴 P2 DISCONNECTED — their player plays as AI until they're back (the link still works)" : "🔴 DISCONNECTED FROM THE HOST");
+    if (mode === "sb") { setStatus("🟠 YOUR FRIEND DROPPED OUT — reconnecting automatically; keep playing, they'll catch up"); sbLost(); return; }
+    setStatus(role === "host" ? "🟠 P2 DISCONNECTED — their player plays as AI; they can rejoin with the same link any time" : "🟠 DISCONNECTED — reconnecting to the host…");
     if (role === "guest") guestLost();
     if (role === "host" && opts.onLost) opts.onLost();
   }
@@ -55,7 +73,10 @@
     bc.onmessage = function (ev) {
       var m = ev.data || {};
       if (m.to && m.to !== role) return;
-      if (m.t === "__hello" && role === "host" && !link) { bc.postMessage({ t: "__ack", to: "guest" }); attach(localLink(), "same computer"); return; }
+      if (m.t === "__hello" && role === "host") {
+        if (link) { if (Date.now() - lastRx < 3000) return; lost(); }   // your friend is back in a fresh tab: drop the stale link
+        bc.postMessage({ t: "__ack", to: "guest" }); attach(localLink(), "same computer"); return;
+      }
       if (m.t === "__ack" && role === "guest" && !link) { attach(localLink(), "same computer"); return; }
       if (m.t === "__bye") { if (link && link.local) lost(); return; }
       if (link && link.local) onMsg(m.m);
@@ -68,20 +89,29 @@
     if (!(await loadPeer())) { setStatus(statusTxt + " • online link unavailable (couldn't load PeerJS)"); return; }
     try {
       peer = role === "host" ? new window.Peer(PREFIX + code) : new window.Peer();
-      peer.on("error", function (e) { console.warn("peer", e); if (!connected) setStatus("⚠️ ONLINE LINK ERROR: " + (e.type || e.message || e) + (role === "guest" ? " — is the host online?" : "")); });
+      peer.on("error", function (e) {
+        console.warn("peer", e);
+        if (e && e.type === "unavailable-id" && role === "host") { try { peer.destroy(); } catch (x) {} setTimeout(listenPeer, 4000); return; }   // our old session still holds the code: try again
+        if (!connected) setStatus("⚠️ ONLINE LINK ERROR: " + (e.type || e.message || e) + (role === "guest" ? " — retrying…" : ""));
+      });
+      peer.on("disconnected", function () { try { if (!peer.destroyed) peer.reconnect(); } catch (x) {} });
       if (role === "host") {
         peer.on("connection", function (conn) {
-          conn.on("open", function () { if (!attach(peerLink(conn), "online")) { conn.close(); return; } });
+          conn.on("open", function () { if (link) lost(); if (!attach(peerLink(conn), "online")) { conn.close(); return; } });   // a reconnect replaces the stale link
           conn.on("data", function (m) { if (link && !link.local) onMsg(m); });
           conn.on("close", function () { if (link && !link.local) lost(); });
         });
       } else {
-        peer.on("open", function () {
-          var conn = peer.connect(PREFIX + code, { reliable: true });
-          conn.on("open", function () { attach(peerLink(conn), "online"); });
-          conn.on("data", function (m) { if (link && !link.local) onMsg(m); });
-          conn.on("close", function () { if (link && !link.local) lost(); });
-        });
+        dialFn = function () {
+          if (connected || !peer || peer.destroyed) return;
+          try {
+            var conn = peer.connect(PREFIX + code, { reliable: true });
+            conn.on("open", function () { attach(peerLink(conn), "online"); });
+            conn.on("data", function (m) { if (link && !link.local) onMsg(m); });
+            conn.on("close", function () { if (link && !link.local) lost(); });
+          } catch (x) {}
+        };
+        peer.on("open", dialFn);
       }
     } catch (e) { console.warn(e); }
   }
@@ -89,6 +119,7 @@
   // ---------- messages ----------
   function onMsg(m) {
     if (!m || !m.t) return;
+    lastRx = Date.now(); if (m.t === "__hb") return;
     if (m.t === "chat") { chatAdd(m.who || "FRIEND", String(m.txt || "").slice(0, 120)); return; }
     if (m.t.indexOf("sb-") === 0) return sbMsg(m);
     if (role === "host") return hostMsg(m);
@@ -110,7 +141,7 @@
   function startHost(o) {
     opts = o || {};                                               // the mode you're in now (career or story) takes over the link
     if (role === "host") { if (connected) send({ t: "welcome", re: true, host: opts.hostName ? opts.hostName() : "HOST", info: opts.info ? opts.info() : {} }); return; }
-    role = "host"; code = newCode();
+    role = "host"; code = savedCode("shared");
     setStatus("🟡 WAITING FOR YOUR FRIEND…");
     listenLocal(); listenPeer();
   }
@@ -418,7 +449,7 @@
   }
   function guestLost() {
     clearAsk(); U.showView("hub");
-    $("hub").innerHTML = "<h2 class='hub-h'>CO-OP</h2><p class='center big'>🔴 Disconnected from the host.</p><p class='center'>Their career is saved on their device — open the link again when you're both online.</p>" +
+    $("hub").innerHTML = "<h2 class='hub-h'>CO-OP</h2><p class='center big'>🟠 Lost the host — reconnecting automatically…</p><p class='center'>Their career is saved on their device; you'll drop straight back in as soon as the link is back.</p>" +
       "<div class='hub-actions'><button class='btn' onclick='location.reload()'>RECONNECT</button><button class='btn pink' onclick='location.href=location.pathname'>MAIN MENU</button></div>";
   }
   function leave() {
@@ -449,13 +480,15 @@
   var sb = { me: null, partner: null, myReady: false, theirReady: false, hook: null, sent: "", tick: 0, score: "" };
   function startSB() {
     if (role) { if (mode === "sb") return; leaveQuiet(); }
-    mode = "sb"; role = "host"; code = newCode();
+    mode = "sb"; role = "host"; code = savedCode("sb");
     setStatus("🟡 WAITING FOR YOUR FRIEND…");
     listenLocal(); listenPeer();
   }
   function leaveQuiet() { try { send({ t: "bye" }); if (link) link.close(); } catch (e) {} connected = false; link = null; role = null; }
   function sbGuestStart(m) {
     document.body.classList.remove("coop-guest");
+    if (sb.started) { setStatus("🟢 RECONNECTED — side by side with " + (m.host || "your friend")); sbConnected(); return; }
+    sb.started = true;
     setStatus("🟢 CONNECTED — side by side with " + (m.host || "your friend"));
     sbConnected();                                                    // live score + match streaming work both ways
     U.modal("🧑‍🤝‍🧑 SIDE BY SIDE", "<p>You're linked with <b>" + esc(m.host || "your friend") + "</b>. Each of you plays <b>your own career</b> on your own device.</p>" +
@@ -491,9 +524,12 @@
     if (m.t === "sb-feed") { if (sb.watching) { var f = $("feed"), d = document.createElement("div"); d.innerHTML = m.html; if (d.firstChild) f.appendChild(d.firstChild); while (f.children.length > 60) f.removeChild(f.firstChild); f.scrollTop = f.scrollHeight; } return; }
     if (m.t === "sb-mend") { if (sb.watching) { var bt = $("sbWatchT"); if (bt) bt.textContent = "🏁 " + (sb.partner ? sb.partner.name : "YOUR FRIEND") + "'S MATCH IS OVER"; setTimeout(sbWatchClose, 1800); } return; }
   }
+  function sbGap() { return connected && sb.partner && sb.me && sb.me.day != null && sb.partner.day != null ? sb.me.day - sb.partner.day : 0; }
   function sbCheck() {
     if (!sb.myReady) return;
-    if (connected && sb.partner && !sb.theirReady) return;
+    var gap = sbGap();
+    if (gap > 0) return;                                              // you're ahead: sit tight until they catch up
+    if (gap === 0 && connected && sb.partner && !sb.theirReady) return;   // level: both have to be ready
     sb.myReady = false; sb.theirReady = false;
     if (sb.watchWant) sbWatch(false);                                 // both ready: back to your own day
     if (sb.hook && sb.hook.onGo) setTimeout(sb.hook.onGo, 30);
@@ -571,7 +607,7 @@
     startSB: startSB, sideBySide: function () { return mode === "sb" && !!role; },
     sbHook: function (h) { sb.hook = h; },
     sbSet: function (st) { sb.me = st; sbPush(false); },
-    sbReady: sbReady, sbWaiting: function () { return sb.myReady; },
+    sbReady: sbReady, sbWaiting: function () { return sb.myReady; }, sbGap: sbGap,
     sbNews: function (txt) { sbLog(txt); send({ t: "sb-news", txt: txt }); },
     sbWatch: sbWatch, sbWatching: function () { return !!sb.watching; }, partnerLive: function () { return connected ? sb.score : ""; },
     sbLog: function () { return sb.log || []; }, openChat: function () { chatUI(); if (!chat.open) chat.el.querySelector("[data-c=toggle]").click(); },

@@ -153,3 +153,53 @@
   }
   VB.Sprite = { make: make, W: W, H: H };
 })(window.VB);
+
+// ---------- team crests: ORIGINAL emblems (not the official logos) — a shield in the team colours with a mascot or initials ----------
+(function (VB) {
+  "use strict";
+  // Haikyuu!! schools get a mascot that fits their name/nickname; everyone else gets initials
+  var MASCOT = { KAR: ["🐦", 1], NEK: ["🐱"], FUK: ["🦉"], INA: ["🦊"], SHI: ["🦅"], AOB: ["🏰"], ITC: ["🦦"], KAM: ["🕊️"], DAT: ["🧱"], MUJ: ["🦡"], NOH: ["🐍"],
+                 JOH: ["🎉"], KAK: ["⛰️"], WAK: ["🌾"], TSU: ["🌺"], UBU: ["🌱"], OHG: ["🌊"], TKN: ["🌅"], SHZ: ["⭐"], KOU: ["🗻"], HKY: ["❄️"], SKI: ["⚓"], TNR: ["🐉"], AKN: ["🌇"] };
+  var cache = {};
+  function lum(c) { var n = parseInt(String(c || "#888888").slice(1), 16); return ((n >> 16) * 0.3 + ((n >> 8) & 255) * 0.59 + (n & 255) * 0.11); }
+  function initials(t) {
+    var n = String(t.short || t.name || t.id || "?").replace(/[^A-Za-z0-9 ]/g, " ").trim().split(/\s+/);
+    return (n.length > 1 ? n[0][0] + n[1][0] + (n[2] ? n[2][0] : "") : n[0].slice(0, 3)).toUpperCase();
+  }
+  function crest(t, size) {
+    if (!t) return "";
+    size = size || 48;
+    var key = (t.id || t.name) + "|" + t.kit + "|" + size;
+    if (cache[key]) return cache[key];
+    var c = document.createElement("canvas"); c.width = size; c.height = Math.round(size * 1.15);
+    var g = c.getContext("2d"), w = size, h = c.height, k1 = t.kit || "#1e63ff", k2 = t.kit2 || "#ffffff";
+    if (Math.abs(lum(k1) - lum(k2)) < 40) k2 = lum(k1) > 140 ? "#13293f" : "#ffffff";
+    function shield(inset) {
+      var i = inset; g.beginPath(); g.moveTo(i, i); g.lineTo(w - i, i); g.lineTo(w - i, h * 0.55); g.quadraticCurveTo(w - i, h * 0.85, w / 2, h - i); g.quadraticCurveTo(i, h * 0.85, i, h * 0.55); g.closePath();
+    }
+    g.fillStyle = "#13293f"; shield(0); g.fill();                         // outline
+    g.fillStyle = k2; shield(size * 0.06); g.fill();                     // trim
+    g.save(); shield(size * 0.12); g.clip();
+    g.fillStyle = k1; g.fillRect(0, 0, w, h);
+    g.fillStyle = k2; g.globalAlpha = 0.9; g.beginPath(); g.moveTo(0, h * 0.7); g.lineTo(w, h * 0.25); g.lineTo(w, h * 0.4); g.lineTo(0, h * 0.85); g.fill(); g.globalAlpha = 1;   // a diagonal sash
+    g.fillStyle = "rgba(255,255,255,0.18)"; g.fillRect(0, 0, w, h * 0.18);
+    g.restore();
+    var m = MASCOT[t.id], tc = lum(k1) > 150 ? "#13293f" : "#ffffff";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    if (m) {
+      var tmp = document.createElement("canvas"); tmp.width = w; tmp.height = h; var q = tmp.getContext("2d");
+      q.font = Math.round(size * 0.5) + "px sans-serif"; q.textAlign = "center"; q.textBaseline = "middle"; q.fillText(m[0], w / 2, h * 0.47);
+      if (m[1]) { q.globalCompositeOperation = "source-atop"; q.fillStyle = lum(k1) < 70 ? k2 : "rgba(10,10,14,0.92)"; q.fillRect(0, 0, w, h); }   // a black crow (in the trim colour on a black kit)
+      g.drawImage(tmp, 0, 0);
+      g.font = Math.max(6, Math.round(size * 0.13)) + 'px "Press Start 2P", monospace'; g.fillStyle = tc; g.fillText(initials(t), w / 2, h * 0.8);
+    } else {
+      g.font = Math.round(size * (initials(t).length > 2 ? 0.2 : 0.26)) + 'px "Press Start 2P", monospace';
+      g.lineWidth = Math.max(2, size * 0.05); g.strokeStyle = "rgba(0,0,0,0.45)"; g.strokeText(initials(t), w / 2, h * 0.42); g.fillStyle = tc; g.fillText(initials(t), w / 2, h * 0.42);
+      if (t.flag) { g.font = Math.round(size * 0.26) + "px sans-serif"; g.fillText(t.flag, w / 2, h * 0.72); }
+      else { g.fillStyle = "#ffd21e"; g.beginPath(); g.arc(w / 2, h * 0.72, size * 0.1, 0, 6.283); g.fill(); g.strokeStyle = "#1e4fd8"; g.lineWidth = size * 0.03; g.beginPath(); g.arc(w / 2, h * 0.72, size * 0.06, 0.3, 2.6); g.stroke(); }   // a ball
+    }
+    return (cache[key] = c.toDataURL());
+  }
+  VB.crest = crest;
+  VB.crestImg = function (t, size, cls) { var u = crest(t, size || 48); return u ? "<img class='crest" + (cls ? " " + cls : "") + "' src='" + u + "' alt=''/>" : ""; };
+})(window.VB);

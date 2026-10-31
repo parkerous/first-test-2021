@@ -889,3 +889,10 @@ details.controls[open] summary { margin-bottom: 6px; }
 .live-dot { width: 10px; height: 10px; border-radius: 50%; background: #ff3b3b; box-shadow: 0 0 8px #ff3b3b; animation: contBlink 1s steps(2) infinite; }
 body.sb-watching #backBtn, body.sb-watching #dock, body.sb-watching .side-btns, body.sb-watching #endScreen .btn { display: none !important; }
 body.sb-watching #matchView { padding-top: 40px; }
+.duo-gap { margin-top: 8px; text-align: center; font-family: var(--pixel); font-size: 8px; color: var(--blue-d); background: #fff6c9; border: 2px dashed var(--yellow-d); border-radius: 8px; padding: 6px; }
+/* original team crests */
+.crest { image-rendering: auto; vertical-align: middle; }
+.crest.tiny { width: 16px; height: auto; margin-right: 2px; }
+.team-grid .crest.tiny { width: 24px; }
+.crest.club { float: right; width: 52px; margin: 0 0 4px 8px; filter: drop-shadow(0 2px 0 rgba(0,0,0,0.25)); }
+.sb-kit { width: 26px !important; height: 30px !important; border: 0 !important; box-shadow: none !important; background-color: transparent !important; background-size: contain; background-position: center; background-repeat: no-repeat; }

@@ -16,6 +16,14 @@ through a link (or a 6-letter code) while you're both online:
     side: portraits, club, OVR, season, a status chip (📋 IN THE HUB /
     🔴 PLAYING / ✅ READY), two NEXT DAY lights, a live score when they're
     mid-match, the latest news from both of you, and 💬 CHAT.
+  - DROP-OUTS: a closed tab or lost connection is noticed within ~12 s
+    (heartbeat). The one who dropped reconnects automatically, or just opens the
+    same link again (invite codes are kept, even after a reload). You drop
+    straight back into your own career.
+  - AHEAD / BEHIND: if one of you played on solo, the one AHEAD sits and waits
+    ("⏸ WAITING — X IS CATCHING UP…"), and the one BEHIND advances freely
+    without waiting until you're level; then it's lockstep again. The duo panel
+    shows how many days apart you are.
   - 📺 WATCH LIVE: when you're ready and your friend is still playing, their
     match opens on your screen automatically, drawn by your own game from their
     live state (court, score, commentary). ◀ BACK TO MY CAREER leaves any time;
@@ -389,6 +397,16 @@ court or the M key mutes; volume is in ⚙ SETTINGS.
   more often.
 
 ## Camera & impact
+- PRO ARENAS (club leagues, the VNL, the V.League): TV camera operators on
+  tripods in all four corners with red tally lights, a rail camera along the far
+  end line, sponsor LED boards (made-up brands) mixed with the club and league
+  name, and a PLAYERS' TUNNEL in the near stand with an inflatable arch in the
+  home colours. High-school gyms stay as they are.
+- TEAM CRESTS: every team has an original crest (not an official logo): a
+  shield in its colours with a mascot for Haikyuu!! schools (crow, cat, owl,
+  fox, eagle, snake, badger...), and initials (plus the flag for national
+  teams) for real-life clubs. Shown on the score bar, team pickers, the club
+  card and league tables.
 - 🎬 MOVING CAMERA (on by default, works with every view): a TV-style director
   follows the play. In rallies it pans with the ball, zooms in a little and,
   in the broadcast/high views, pushes in toward the far court when the ball is
@@ -419,7 +437,7 @@ court or the M key mutes; volume is in ⚙ SETTINGS.
 
 ## Files
 `index.html` (layout) · `style.css` · `js/data.js` (teams, clubs, players) ·
-`js/haikyuu.js` (Spring Nationals teams) · `js/ui.js` · `js/sprites.js` (24×32 chibi player sprites) · `js/sfx.js` (sound) · `js/stats.js` (box scores, sims, awards) · `js/engine.js` (match
+`js/haikyuu.js` (Spring Nationals teams) · `js/ui.js` · `js/sprites.js` (24×32 chibi player sprites + team crests) · `js/sfx.js` (sound) · `js/stats.js` (box scores, sims, awards) · `js/engine.js` (match
 engine + arena) · `js/vnl.js` (tournaments) · `js/story.js` (Haikyuu story) · `js/hqvoice.js` (story dialogue) · `js/gacha.js` (gacha + showroom) · `js/ceremony.js` (award ceremonies) · `js/career.js` · `js/coop.js` (online co-op) · `js/minigames.js` (training minigames) · `js/practice.js` (home practice court) · `js/main.js` (menu).
 
 ## Deploy to Netlify

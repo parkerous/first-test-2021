@@ -1024,7 +1024,7 @@
     var pl = { name: me.name, role: me.role, nat: me.nat, age: me.age, height: me.height, vert: me.vert, face: me.face, pot: me.pot, skill: me.skill || null, ps: me.ps || null };
     VB.ATTRS.forEach(function (a) { pl[a] = me[a]; });
     return { name: me.name, role: me.role, ovr: ovr(me), clubId: cl ? cl.id : null, club: cl ? cl.short : "FREE AGENT", kit: cl ? cl.kit : "#888888",
-             league: cl ? lg(cl.league).name : "", season: C.season, stage: CAL_TXT[CAL[C.stage]] || "ROUND " + CAL[C.stage].slice(1), last: last != null ? last : null, mode: C.mode || "player", player: pl };
+             league: cl ? lg(cl.league).name : "", season: C.season, day: C.season * 100 + C.stage, stage: CAL_TXT[CAL[C.stage]] || "ROUND " + CAL[C.stage].slice(1), last: last != null ? last : null, mode: C.mode || "player", player: pl };
   }
   function syncFriend(st, first) {
     if (!st || !st.player || C.mode === "coach") return;
@@ -1060,11 +1060,13 @@
       "<span class='duo-chip " + (VB.Coop.partnerReady() ? "ok" : live ? "live" : "") + "'>" + (VB.Coop.partnerReady() ? "✅ READY" : live ? "🔴 PLAYING" : "📋 IN THE HUB") + "</span>" +
       "<div class='duo-live' id='duoLive'>" + (live ? "🔴 LIVE — " + esc(live.replace(/^.*? — /, "")) : "") + "</div></div></div>"
       : "<div class='duo-p them off'><div class='duo-face empty'>?</div><div><div class='duo-k'>FRIEND</div><div>" + esc(VB.Coop.status()) + "</div><div class='muted'>Playing solo until they're back — days advance freely.</div></div></div>";
-    var both = waiting && p && VB.Coop.partnerReady();
+    var both = waiting && p && VB.Coop.partnerReady(), gap = VB.Coop.sbGap();
+    var gapTxt = !p || !gap ? "" : gap > 0 ? "⏸ You're " + (gap < 100 ? gap + " day" + (gap > 1 ? "s" : "") : "a season") + " ahead — you'll wait for " + esc(p.name) + " to catch up."
+                                           : "⏩ You're " + (-gap < 100 ? -gap + " day" + (gap < -1 ? "s" : "") : "a season") + " behind — play on, no waiting until you catch up.";
     var log = VB.Coop.sbLog();
     return "<div class='card coop-card duo'><div class='duo-row'>" + mine +
       "<div class='duo-mid'><div class='duo-ic'>🤝</div><div class='duo-lights'><i class='" + (waiting ? "on" : "") + "'></i><i class='" + (p && VB.Coop.partnerReady() ? "on" : "") + "'></i></div><div class='duo-k'>" + (both ? "GO!" : "NEXT DAY") + "</div></div>" +
-      theirs + "</div>" +
+      theirs + "</div>" + (gapTxt ? "<div class='duo-gap'>" + gapTxt + "</div>" : "") +
       (log.length ? "<div class='duo-log'>" + log.map(function (t) { return "<div>🤝 " + esc(t) + "</div>"; }).join("") + "</div>" : "") +
       "<div class='hub-actions'>" + (p && live ? "<button class='btn' data-act='sbWatch'>📺 WATCH " + esc(p.name) + " LIVE</button>" : "") +
       (p ? "<button class='btn' data-act='sbChat'>💬 CHAT</button>" : "") +
@@ -1166,7 +1168,7 @@
   function tableHTML(L) {
     return "<table class='standings'><tr><th>" + L.flag + " " + esc(L.name) + "</th><th>W</th><th>L</th><th>+/-</th></tr>" + rank(L).map(function (id, i) {
       var t = L.table[id];
-      return "<tr class='" + (id === C.club ? "you " : "") + (i < 4 ? "q" : "") + "'><td><span class='dot' style='background:" + club(id).kit + "'></span>" + esc(club(id).short) + "</td><td>" + t.w + "</td><td>" + t.l + "</td><td>" + (t.pf - t.pa) + "</td></tr>";
+      return "<tr class='" + (id === C.club ? "you " : "") + (i < 4 ? "q" : "") + "'><td>" + VB.crestImg(club(id), 18, "tiny") + " " + esc(club(id).short) + "</td><td>" + t.w + "</td><td>" + t.l + "</td><td>" + (t.pf - t.pa) + "</td></tr>";
     }).join("") + "</table>";
   }
   function squadHTML() {
@@ -1249,7 +1251,7 @@
           "<div class='muted'>" + VB.ATTRS.map(function (a) { return a.toUpperCase() + " " + me[a]; }).join(" • ") + "</div>" +
           (VB.psText(me) ? "<div class='ps-line'>" + esc(VB.psText(me)) + "</div>" : "") + "</div></div>" +
         "<div class='card club-card' style='border-color:" + (cl ? cl.kit : "#9cc4ea") + "'>" +
-          (cl ? "<div class='pname'>" + esc(cl.name) + "</div><div class='muted'>" + esc(lg(cl.league).flag + " " + lg(cl.league).name) + " • COACH " + esc(cl.coach) + "</div>" +
+          (cl ? VB.crestImg(cl, 56, "club") + "<div class='pname'>" + esc(cl.name) + "</div><div class='muted'>" + esc(lg(cl.league).flag + " " + lg(cl.league).name) + " • COACH " + esc(cl.coach) + "</div>" +
                 "<div><b>" + esc(cl.arc) + "</b></div><div class='muted'><i>" + esc(cl.story) + "</i></div>" +
                 "<div class='muted'>CONTRACT " + me.salary + "k • " + Math.max(0, me.years) + " YR LEFT</div>"
               : "<div class='pname'>FREE AGENT</div><div class='muted'>No club. Offers come in the transfer windows.</div>") +
@@ -1258,7 +1260,7 @@
       coopCard() +
       "<div class='hub-status'>CAREER SLOT " + C.slot + " • SEASON " + C.season + " • " + stageTxt +
         (nf ? " • NEXT: " + esc(nf.foe.short) + (nf.home ? " (H)" : " (A)") + " • " + (starter ? "LIKELY STARTER" : "FIGHTING FOR A SPOT") : "") + "</div>" +
-      "<div class='hub-actions'><button class='btn big' data-act='advance'>" + esc(sideBySide() && VB.Coop.sbWaiting() ? "⏳ WAITING FOR " + ((VB.Coop.partner() || {}).name || "YOUR FRIEND") + "…" : actionLabel()) + "</button>" +
+      "<div class='hub-actions'><button class='btn big' data-act='advance'>" + esc(sideBySide() && VB.Coop.sbWaiting() ? (VB.Coop.sbGap() > 0 ? "⏸ WAITING — " + ((VB.Coop.partner() || {}).name || "YOUR FRIEND") + " IS CATCHING UP…" : "⏳ WAITING FOR " + ((VB.Coop.partner() || {}).name || "YOUR FRIEND") + "…") : actionLabel()) + "</button>" +
         "<button class='btn' data-act='look'>CHANGE LOOK</button><button class='btn' data-act='cam'>🎥 CAMERA: " + esc(VB.CAMS[localStorage.getItem("retroVB.cam") || "classic"] || "CLASSIC") + "</button>" +
         (C.mode === "coach" || sideBySide() ? "" : "<button class='btn' data-act='coop'>🤝 CO-OP</button>") +
         "<button class='btn pink' data-act='menu'>SAVE &amp; MENU</button></div>" +

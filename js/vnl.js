@@ -205,7 +205,7 @@
       } else {
         U.msg("PICK YOUR TEAM");
         var mine = await U.pickFrom("CHOOSE YOUR TEAM — " + cfg.size + "-TEAM TOURNAMENT", cfg.teams.map(function (t) {
-          return { html: "<span>" + t.flag + " " + t.name + "</span><span class='stars'>" + stars(t.ovr) + "</span>", value: t };
+          return { html: "<span>" + VB.crestImg(t, 28, "tiny") + " " + t.flag + " " + t.name + "</span><span class='stars'>" + stars(t.ovr) + "</span>", value: t };
         }), cfg.pickTitle);
         var playMode = await U.pickFrom("HOW DO YOU WANT TO PLAY?", [
           { html: "<span>🎮 FULL TEAM</span><span class='stars'>CALL IT ALL</span>", value: "full" },

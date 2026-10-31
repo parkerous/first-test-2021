@@ -755,8 +755,11 @@
     // aisle between stands and boards
     b.fillStyle = "#0b0f16";
     b.fillRect(74, 84, 492, 8); b.fillRect(74, 808, 492, 8); b.fillRect(74, 84, 14, 732); b.fillRect(552, 84, 14, 732);
+    // pro arenas (club leagues, the VNL): sponsors on the boards, TV cameras, a players' tunnel
+    var pro = floor !== "wood" && !/HQ|HIGH|SPRING|INTER|CAMP|SCHOOL|PREFECT|PRACTICE|HARUKO|EXHIBITION|YOUTH|QUALIFIER/i.test(league || "");
+    var SPONSORS = ["VOLTA", "SKYLINE AIR", "NOVA BANK", "KAIZEN", "PRISMA", "TERRA FOODS", "AQUA+", "ORBIT TEL", "HELIX", "SOLENNE"], sIdx = irnd(0, 9);
     // advertising boards
-    var boardCols = [hk, "#ffffff", hk2, "#13293f"];
+    var boardCols = pro ? [hk, "#0b0f16", hk2, "#ffffff", "#e8352e", "#13293f"] : [hk, "#ffffff", hk2, "#13293f"];
     function boards(x, y, w, h, horizontal) {
       var seg = horizontal ? 58 : 58, n = Math.ceil((horizontal ? w : h) / seg);
       for (var i = 0; i < n; i++) {
@@ -765,7 +768,7 @@
         if (horizontal) b.fillRect(x + i * seg, y, seg, h); else b.fillRect(x, y + i * seg, w, seg);
         b.fillStyle = mix(col, "#ffffff", 0.5) === "#ffffff" ? "#13293f" : (col === "#ffffff" ? "#13293f" : "#ffffff");
         b.font = '11px "VT323", monospace'; b.textAlign = "center"; b.textBaseline = "middle";
-        var label = i % 2 ? (league || "VNL") : (home.short || home.name);
+        var label = pro ? [home.short || home.name, SPONSORS[(i + sIdx) % SPONSORS.length], league || "VNL", SPONSORS[(i + sIdx + 3) % SPONSORS.length]][i % 4] : i % 2 ? (league || "VNL") : (home.short || home.name);
         if (horizontal) b.fillText(label, x + i * seg + seg / 2, y + h / 2 + 1);
         else { b.save(); b.translate(x + w / 2, y + i * seg + seg / 2); b.rotate(-Math.PI / 2); b.fillText(label, 0, 1); b.restore(); }
       }
@@ -824,12 +827,35 @@
     b.fillText("MIKASA", (CL + CR) / 2, CT - 9); b.fillText("MIKASA", (CL + CR) / 2, CB + 10); b.globalAlpha = 1;
     b.restore();
 
+    if (pro) {
+      // TV cameras: operators on tripods at the four corners of the free zone, red tally light on
+      [[106, 110, 1], [516, 110, -1], [106, 768, 1], [516, 768, -1]].forEach(function (c) {
+        var x = c[0], y = c[1], f = c[2];
+        b.strokeStyle = "#1a1d24"; b.lineWidth = 2; b.beginPath(); b.moveTo(x + 9, y + 14); b.lineTo(x + 3, y + 26); b.moveTo(x + 9, y + 14); b.lineTo(x + 15, y + 26); b.moveTo(x + 9, y + 14); b.lineTo(x + 9, y + 27); b.stroke();
+        b.fillStyle = "#2b2f3a"; b.fillRect(x + 2, y + 6, 15, 9); b.fillStyle = "#4a5060"; b.fillRect(x + 3, y + 7, 13, 3);
+        b.fillStyle = "#0b0f16"; b.fillRect(f > 0 ? x + 16 : x - 3, y + 8, 5, 6); b.fillStyle = "#6fa8ff"; b.fillRect(f > 0 ? x + 19 : x - 3, y + 9, 2, 4);   // the lens
+        b.fillStyle = "#ff2b2b"; b.fillRect(x + 4, y + 4, 3, 2);                                                  // tally light
+        b.fillStyle = "#13293f"; b.fillRect(x - 6 * f + 5, y + 10, 7, 12); b.fillStyle = "#ffdcc2"; b.fillRect(x - 6 * f + 6, y + 5, 5, 5); b.fillStyle = "#2b2b2b"; b.fillRect(x - 6 * f + 6, y + 4, 5, 2);   // the operator
+        b.fillStyle = "#e8eef7"; b.font = '7px "VT323", monospace'; b.textAlign = "center"; b.fillText("TV", x + 9, y + 32);
+      });
+      // a rail camera along the far end line
+      b.fillStyle = "#3a4050"; b.fillRect(200, 107, 240, 2); b.fillStyle = "#2b2f3a"; b.fillRect(300, 101, 16, 8); b.fillStyle = "#6fa8ff"; b.fillRect(306, 108, 4, 3); b.fillStyle = "#ff2b2b"; b.fillRect(302, 102, 2, 2);
+      // the players' tunnel, cut into the near stand, with an inflatable arch in the home colours
+      var tx = 286, tw = 68;
+      var tg = b.createLinearGradient(0, 816, 0, 900); tg.addColorStop(0, "#05070b"); tg.addColorStop(1, "#1a2030");
+      b.fillStyle = tg; b.fillRect(tx, 816, tw, 84);
+      b.fillStyle = hk; b.fillRect(tx - 8, 808, 8, 92); b.fillRect(tx + tw, 808, 8, 92); b.fillRect(tx - 8, 808, tw + 16, 10);
+      b.fillStyle = hk2; b.fillRect(tx - 5, 812, 2, 88); b.fillRect(tx + tw + 3, 812, 2, 88);
+      b.fillStyle = "#ffd21e"; b.font = '8px "Press Start 2P", monospace'; b.textAlign = "center"; b.textBaseline = "middle"; b.fillText("PLAYERS", tx + tw / 2, 813);
+      b.fillStyle = "rgba(255,240,200,0.12)"; for (var tl = 0; tl < 4; tl++) b.fillRect(tx + 6, 830 + tl * 18, tw - 12, 2);    // lights down the tunnel
+    }
     // crowd: home fans everywhere, an away section in one corner
     fans = [];
     function seats(x0, y0, w, h, sx, sy) {
       for (var y = y0 + 3; y < y0 + h - 8; y += sy) {
         for (var x = x0 + 2; x < x0 + w - 6; x += sx) {
           if (y < 46 && x > 236 && x < 404) continue;                // jumbotron
+          if (pro && y > 806 && x > 276 && x < 364) continue;         // the players' tunnel
           var awaySec = (y < 84 && x > 470) || (x > 566 && y < 300);
           var roll = Math.random();
           var shirt = roll < 0.22 ? pick(["#ffffff", "#2b2b2b", "#d0d0d0", "#3b5b8c", "#6b6b6b"]) : (awaySec ? (roll < 0.75 ? ak : away.kit2 || "#ffffff") : (roll < 0.8 ? hk : hk2));
@@ -848,7 +874,7 @@
     if (stars.length) hTxt.push(pick(stars).name + " #1");
     var aTxt = (BANNER_TXT[away.id] || []).concat(["GO " + (away.short || away.name) + "!"]);
     var banners = [];
-    [[30, 58], [150, 58], [430, 58], [40, 836], [190, 868], [330, 836], [470, 868], [6, 250], [6, 560], [572, 420], [572, 640]].forEach(function (pt, i) {
+    [[30, 58], [150, 58], [430, 58], [40, 836], [130, 868], [pro ? 380 : 330, 836], [470, 868], [6, 250], [6, 560], [572, 420], [572, 640]].forEach(function (pt, i) {
       var awaySec = (pt[1] < 84 && pt[0] > 400) || (pt[0] > 566 && pt[1] < 300);
       var t = awaySec ? pick(aTxt) : hTxt[i % hTxt.length];
       var col = awaySec ? ak : (i % 2 ? hk : hk2), rgb = parseInt(String(col).slice(1), 16);
@@ -2585,8 +2611,7 @@
     if ($("scorebug")) {
       ["sMe", "sOpp"].forEach(function (id, i) { if (hudLast[i] >= 0 && score[i] !== hudLast[i]) { var e = $(id); e.classList.remove("bump"); void e.offsetWidth; e.classList.add("bump"); } hudLast[i] = score[i]; });
       if (me && opp) {
-        $("kitMe").style.background = me.team.kit; $("kitMe").style.borderColor = me.team.kit2 || "#fff";
-        $("kitOpp").style.background = opp.team.kit; $("kitOpp").style.borderColor = opp.team.kit2 || "#fff";
+        if (VB.crest) { $("kitMe").style.backgroundImage = "url(" + VB.crest(me.team, 48) + ")"; $("kitOpp").style.backgroundImage = "url(" + VB.crest(opp.team, 48) + ")"; }
       }
       $("srvMe").classList.toggle("on", serving === 0); $("srvOpp").classList.toggle("on", serving === 1);
       $("setsMe").textContent = setsWon[0]; $("setsOpp").textContent = setsWon[1];
