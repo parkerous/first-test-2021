@@ -76,8 +76,9 @@ through a link (or a 6-letter code) while you're both online:
   🎴 cards collected, 🏐 coins, tournament W-L and saves used.
 - ▶ CONTINUE jumps straight back into the career slot, story slot or tournament
   you played last.
-- ⚙ SETTINGS: camera, court floor, MATCH PACE (FAST trims the dead time between
-  points, sets and timeouts; TV lingers; timing bars never change), SOUND on/off
+- ⚙ SETTINGS: camera, court floor, MATCH PACE (FAST is the default: rallies play
+  ~25% quicker and the dead time between points, sets and timeouts is cut; TV
+  lingers; timing bars never change), SOUND on/off
   with a volume slider, and SCREEN SHAKE (LOW turns off the big punch-ins).
 - Save slots show a portrait of your player plus key progress: titles, awards,
   national caps, seasons, Interhigh / Spring results, newspapers and when you

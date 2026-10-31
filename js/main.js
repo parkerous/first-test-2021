@@ -46,7 +46,7 @@
   var showSet = false;
   function opt(k, def) { try { return localStorage.getItem(k) || def; } catch (e) { return def; } }
   function settingsHTML() {
-    var pace = opt("retroVB.pace", "normal"), snd = VB.Sfx && VB.Sfx.on(), shk = opt("retroVB.shake", "on");
+    var pace = opt("retroVB.pace", "fast"), snd = VB.Sfx && VB.Sfx.on(), shk = opt("retroVB.shake", "on");
     function row(label, html) { return "<div class='set-row'><span>" + label + "</span><span class='set-ctl'>" + html + "</span></div>"; }
     function seg(key, cur, list) { return list.map(function (o) { return "<button class='btn tiny" + (cur === o[0] ? " on" : "") + "' data-act='set' data-k='" + key + "' data-v='" + o[0] + "'>" + o[1] + "</button>"; }).join(""); }
     return "<div class='card settings'><div class='pname'>⚙ SETTINGS</div>" +

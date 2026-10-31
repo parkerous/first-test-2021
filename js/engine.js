@@ -94,6 +94,7 @@
   }
   function gclock() { return performance.now() - pausedTotal - (paused ? performance.now() - pauseStart : 0); }
   function sleep(ms) {
+    ms = ms / spd();
     return new Promise(function (res) {
       var end = gclock() + ms;
       (function tick() { var left = end - gclock(); if (left <= 0) res(); else setTimeout(tick, Math.min(50, left)); })();
@@ -101,7 +102,10 @@
   }
   // dead time between points / sets / timeouts follows the PACE setting (timing bars and ball flights never change)
   var PACES = { fast: 0.45, normal: 1, tv: 1.35 };
-  function rest(ms) { var k = 1; try { k = PACES[localStorage.getItem("retroVB.pace") || "normal"] || 1; } catch (e) {} return sleep(ms * k); }
+  function pace() { try { return localStorage.getItem("retroVB.pace") || "fast"; } catch (e) { return "fast"; } }
+  function rest(ms) { return sleep(ms * (PACES[pace()] || 1)); }
+  // FAST pace also plays the rally itself quicker: flights, jumps, runs and the beats in between (timing bars unchanged)
+  function spd() { return pace() === "fast" ? 1.25 : pace() === "tv" ? 0.92 : 1; }
   function slow() { timeScale = 0.2; }
   function fast() { timeScale = 1; }
   function other(s) { return s === me ? opp : me; }
@@ -585,6 +589,7 @@
   // ================== ANIMATION ==================
   function jump(s, role, ms, h, kind, dir) {
     if (!s.pos[role]) return;
+    ms = ms / spd();
     emit({ k: "jump", a: [s.side, role, ms, h, kind, dir || 1] }); mute++;
     try { jump0(s, role, ms, h, kind, dir); } finally { mute--; }
   }
@@ -639,6 +644,7 @@
   function jumpLater(s, role, delay, ms, h, kind) { setTimeout(function () { jump(s, role, ms, h, kind); }, delay); }
   function flyBall(from, to, ms, o) {
     o = o || {};
+    if (!spectating) ms = ms / spd();                                // the host's pace; a spectator replays it as sent
     var peak = o.peak || 0, h0 = o.h0 || 0, h1 = o.h1 || 0, skew = o.skew || 0.5, wob = o.wobble || 0, my = ++flySeq;
     emit({ k: "fly", a: [xy(from), xy(to), ms, o] });
     ball.visible = true;
@@ -937,7 +943,7 @@
   var ROLE_FONT = '16px "VT323", monospace';
 
   function stepPlayers(dt) {
-    var k = 1 - Math.exp(-dt * 5.5 * timeScale), kr = 1 - Math.exp(-dt * 13 * timeScale);
+    var sf = spd(), k = 1 - Math.exp(-dt * 5.5 * timeScale * sf), kr = 1 - Math.exp(-dt * 13 * timeScale * sf);
     [me, opp].forEach(function (s) {
       if (!s) return;
       Object.keys(s.pos).forEach(function (r) {
@@ -2583,8 +2589,8 @@
       slow(); var q = await timingBar("COVER THE BLOCK — " + Pl.name + "!", 760, 0.2 + (Pl.def - 70) / 300 + (who === "L" ? 0.04 : 0), who); fast();
       return q >= 0.5 ? who : null;
     }
-    var p = (who === "L" ? 0.3 : 0.13) + ((Pl.def || 70) - 70) / 250 + ((Pl.spd || 70) - 70) / 400 - clamp01((d - 40) / 160) * 0.12 + bot() * 0.03 + ps(Pl, "acrobat") * 0.04;
-    return Math.random() < clamp(p, 0.04, 0.5) ? who : null;
+    var p = (who === "L" ? 0.2 : 0.08) + ((Pl.def || 70) - 70) / 250 + ((Pl.spd || 70) - 70) / 400 - clamp01((d - 40) / 160) * 0.12 + bot() * 0.03 + ps(Pl, "acrobat") * 0.04;
+    return Math.random() < clamp(p, 0.03, 0.38) ? who : null;
   }
   async function freeBall(s, from) {
     var o2 = other(s), dirO = o2.side === 0 ? 1 : -1;
