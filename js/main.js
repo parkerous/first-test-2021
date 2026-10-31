@@ -15,6 +15,8 @@
           "<div class='muted'>Join Karasuno, Nekoma, Inarizaki or any school as a first-year. Three years to earn your spot and reach the orange court.</div></button>" +
         "<button class='card menu-card' data-act='gacha'><div class='menu-icon'>🎴</div><div class='pname'>GACHA &amp; SHOWROOM</div>" +
           "<div class='muted'>🏐 " + VB.Gacha.coins() + " coins. Pull Haikyuu!! cards from Common to Mythic (Christmas Bokuto, Timeskip Hinata...) and show them off.</div></button>" +
+        "<button class='card menu-card' data-act='coop'><div class='menu-icon'>🤝</div><div class='pname'>CO-OP (ONLINE)</div>" +
+          "<div class='muted'>Play with a friend through a link while you're both online: TOGETHER on one team (career or Haikyuu!! story), or SIDE BY SIDE — each with your own career, new days only when you're both ready.</div></button>" +
         "<button class='card menu-card' data-act='career'><div class='menu-icon'>🏟️</div><div class='pname'>PLAYER CAREER</div>" +
           "<div class='muted'>FIFA-style: pick an archetype, earn XP and skill points, hit your manager's objectives and move between 8 leagues (Italy, Japan, Poland, Türkiye, Brazil, France, Germany, Korea).</div></button>" +
       "</div>" +
@@ -41,6 +43,26 @@
         [{ label: "🌍 VNL", value: "vnl" }, { label: "🏐🔥 SPRING NATIONALS", value: "hq" }, { label: "BACK", value: null, cls: "pink" }]);
       if (!k) return;
       act = k;
+    }
+    if (act === "coop") {
+      var how = await U.modal("🤝 CO-OP", "<p><b>🤝 TOGETHER — SAME TEAM.</b> Your friend joins YOUR Player Career or Haikyuu!! Story as a teammate and controls their own player in your matches (your device runs the game; they see it live).</p>" +
+        "<p><b>🧑‍🤝‍🧑 SIDE BY SIDE — YOUR OWN CAREERS.</b> Each of you plays your own career on your own device. A new day starts only when you're both ready; you see each other's results live, and your friend's player appears in your world.</p>" +
+        "<p><b>🔗 JOIN.</b> Got a link or a code from a friend? Paste it here.</p>",
+        [{ label: "🤝 TOGETHER", value: "together" }, { label: "🧑‍🤝‍🧑 SIDE BY SIDE", value: "sbs" }, { label: "🔗 JOIN", value: "join" }, { label: "BACK", value: null, cls: "pink" }]);
+      if (how === "together") {
+        var where = await U.modal("🤝 TOGETHER", "<p>Open your save, then press <b>🤝 CO-OP</b> in its hub to get the invite link.</p>",
+          [{ label: "🏟️ PLAYER CAREER", value: "career" }, { label: "🏫 HAIKYUU!! STORY", value: "story" }, { label: "BACK", value: null, cls: "pink" }]);
+        if (!where) return;
+        act = where;
+      } else if (how === "sbs") {
+        VB.Coop.startSB(); await VB.Coop.invite();
+        $("hub").onclick = null; await VB.Career.start(); return menu();
+      } else if (how === "join") {
+        var go = await U.modal("🔗 JOIN A FRIEND", "<p>Paste the link (or just the 6-letter code) your friend sent you:</p><p><input id='joinCode' class='text-in coop-link' placeholder='e.g. 4UGY8W'/></p>", [{ label: "JOIN", value: 1 }, { label: "BACK", value: 0, cls: "pink" }]);
+        var raw = (($("joinCode") || {}).value || "").trim(), m = raw.match(/coop=([A-Za-z0-9]+)/), code = (m ? m[1] : raw).toUpperCase().replace(/[^A-Z0-9]/g, "");
+        if (go && code.length >= 4) location.href = location.pathname + "?coop=" + code;
+        return;
+      } else return;
     }
     if (act === "pteam") {
       var n = VB.Practice.teams().length, cur = +(localStorage.getItem("retroVB.practice") || 0);

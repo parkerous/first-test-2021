@@ -75,6 +75,33 @@ window.VB = window.VB || {};
   VB.SKILL_TXT  = { spike: "SUPER SPIKE", block: "SUPER BLOCK", rec: "SUPER RECEIVE", dump: "SETTER DUMP", dig: "SUPER DIG", serve: "SUPER SERVE" };
   VB.SKILL_ATTR = { spike: "att", block: "blk", rec: "rec", dump: "set", dig: "def", serve: "srv" };
   VB.ROLE_SKILL = { S: "dump", OH: "spike", MB: "block", OP: "serve", L: "dig" };   // signature move a career player unlocks
+  // signature moves you can CHOOSE when yours unlocks (kind → your own move name)
+  VB.SKILL_CHOICES = {
+    S: [["dump", "SETTER DUMP"], ["serve", "JUMP-FLOAT ACE"], ["block", "SETTER'S WALL"]],
+    OH: [["spike", "CANNON SPIKE"], ["serve", "JUMP SERVE"], ["rec", "ANCHOR RECEIVE"], ["dig", "ACE'S DIG"]],
+    MB: [["block", "KILL BLOCK"], ["spike", "MINUS-TEMPO QUICK"], ["serve", "FLOAT BOMB"]],
+    OP: [["spike", "OPPOSITE HAMMER"], ["serve", "SERVE BOMB"], ["block", "RIGHT-SIDE WALL"]],
+    L: [["dig", "GUARDIAN DIG"], ["rec", "PERFECT PLATFORM"]]
+  };
+  // PLAYSTYLES: passive abilities (level 1, or 2 = "+") that change specific moments of a rally
+  VB.PS = {
+    power_serve: { name: "POWER SERVE", icon: "💥", fams: ["OH", "OP", "MB", "S"], txt: "Topspin serves come in harder." },
+    float_master: { name: "FLOAT MASTER", icon: "🍃", fams: ["OH", "OP", "MB", "S"], txt: "Float serves dance: passers' timing windows shrink." },
+    safe_serve: { name: "SAFE SERVE", icon: "🎯", fams: ["OH", "OP", "MB", "S"], txt: "Far fewer service errors." },
+    platform: { name: "ROCK PLATFORM", icon: "🧱", fams: ["OH", "L", "OP", "S"], txt: "Wider serve-receive timing; steadier passes." },
+    acrobat: { name: "ACROBAT", icon: "🤸", fams: ["L", "OH", "S", "OP"], txt: "Wider dig timing; you reach more balls." },
+    soft_hands: { name: "SOFT HANDS", icon: "🙌", fams: ["S", "L"], txt: "Cleaner sets: your hitters get better balls." },
+    high_point: { name: "HIGH POINT", icon: "🦅", fams: ["OH", "OP", "MB"], txt: "You hit at the very top: extra reach over the block." },
+    tool_master: { name: "TOOL MASTER", icon: "🛠️", fams: ["OH", "OP"], txt: "Swings off the block's edge tool it far more often." },
+    quick_strike: { name: "QUICK STRIKE", icon: "⚡", fams: ["MB", "OP", "OH"], txt: "Fast sets to you beat the block more often." },
+    pipe: { name: "BACK-ROW CANNON", icon: "🚀", fams: ["OH", "OP"], txt: "Pipes and back-row swings hit harder past the block." },
+    feint: { name: "FEINT", icon: "🎭", fams: ["S", "OH", "OP", "MB"], txt: "Disguised tips: defenders read them late." },
+    read_block: { name: "READ BLOCKER", icon: "👀", fams: ["MB", "OP", "OH", "S"], txt: "Your hands cover more of the net." },
+    stuff_block: { name: "STUFF BLOCK", icon: "🚫", fams: ["MB", "OP"], txt: "When you touch it, you stuff it more often." },
+    clutch: { name: "CLUTCH", icon: "🧊", fams: ["S", "OH", "MB", "OP", "L"], txt: "Wider timing windows in tight set endings." }
+  };
+  VB.psFor = function (fam) { return Object.keys(VB.PS).filter(function (k) { return VB.PS[k].fams.indexOf(fam) >= 0; }); };
+  VB.psText = function (p) { return p && p.ps ? Object.keys(p.ps).map(function (k) { return VB.PS[k] ? VB.PS[k].icon + " " + VB.PS[k].name + (p.ps[k] > 1 ? "+" : "") : ""; }).filter(Boolean).join(" • ") : ""; };
 
   // [height cm, vertical cm] for well-known names (an arcade homage, not official data)
   VB.KNOWN = {
@@ -236,6 +263,11 @@ window.VB = window.VB || {};
     p.spd = clamp(Math.round(p.spd - (p.height - hMid) * 0.35), 25, 99);
     if (p.skill) p[VB.SKILL_ATTR[p.skill]] = clamp(p[VB.SKILL_ATTR[p.skill]] + 5, 25, 99);
     VB.applyLook(p);
+    // good players come with a PlayStyle or two (variety across every league)
+    if (VB.PS && o.base + rnd(-4, 4) >= 84) {
+      var pool = VB.psFor(fam).slice(); p.ps = {};
+      for (var k = 0; k < (o.base >= 90 ? 2 : 1) && pool.length; k++) { var id = pool.splice(Math.floor(Math.random() * pool.length), 1)[0]; p.ps[id] = o.base >= 92 && Math.random() < 0.4 ? 2 : 1; }
+    }
     var ov = VB.ovr(p);
     p.pot = clamp(ov + (p.age < 23 ? irnd(5, 14) : p.age < 27 ? irnd(0, 6) : 0), 40, 99);
     return p;

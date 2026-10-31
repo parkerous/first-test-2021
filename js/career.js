@@ -332,11 +332,35 @@
     });
     if (!C.skillUnlocked && ovr(p) >= 76) {
       C.skillUnlocked = true;
-      p.skill = VB.ROLE_SKILL[p.role];
-      news("★ SIGNATURE MOVE UNLOCKED: " + p.name + " learns " + VB.SKILL_TXT[p.skill] + "!", "you");
+      p.skill = VB.ROLE_SKILL[p.role]; C.pickSkill = true;                  // a default until you choose your own
+      news("★ SIGNATURE MOVE UNLOCKED: " + p.name + " is ready to make a move their own!", "you");
       gains.skill = 1;
     }
     return gains;
+  }
+
+  // ---------- choosing your signature move and PlayStyles ----------
+  async function chooseSkill(change) {
+    var p = you(), opts = VB.SKILL_CHOICES[p.role] || [[VB.ROLE_SKILL[p.role], VB.SKILL_TXT[VB.ROLE_SKILL[p.role]]]];
+    var k = await U.modal(change ? "★ CHANGE YOUR SIGNATURE MOVE" : "★ CHOOSE YOUR SIGNATURE MOVE",
+      "<p>Your coach: \"You've earned a weapon. What do you want them to fear?\"</p><ul>" + opts.map(function (o) { return "<li><b>" + esc(o[1]) + "</b> — " + esc(VB.SKILL_TXT[o[0]]) + "</li>"; }).join("") + "</ul>" +
+      "<p class='muted'>Signature moves recharge after a few points and swing a rally your way.</p>",
+      opts.map(function (o, i) { return { label: "★ " + o[1], value: i }; }));
+    p.skill = opts[k][0]; p.skillName = opts[k][1]; C.pickSkill = false;
+    news("★ " + p.name + "'s signature move: " + p.skillName + "!", "you"); save();
+  }
+  function psSlots() { return C.lvl >= 10 ? 4 : 3; }
+  function psHTML() {
+    var p = you(), own = p.ps || {}, ids = VB.psFor(p.role), n = Object.keys(own).length;
+    return "<h3 class='mini'>PLAYSTYLES (" + n + "/" + psSlots() + ")</h3><p class='muted small'>Passive abilities for specific moments. Unlock for 2 SP, upgrade to + for 3 SP. A 4th slot opens at level 10.</p>" +
+      "<div class='ps-grid'>" + ids.map(function (id) {
+        var d = VB.PS[id], lv = own[id] || 0;
+        var btn = lv === 0 ? "<button class='btn tiny' data-act='psUnlock' data-arg='" + id + "'" + (C.sp < 2 || n >= psSlots() ? " disabled" : "") + ">UNLOCK • 2 SP</button>"
+                : lv === 1 ? "<button class='btn tiny' data-act='psUp' data-arg='" + id + "'" + (C.sp < 3 ? " disabled" : "") + ">UPGRADE TO + • 3 SP</button>" : "<b class='gain'>MAXED</b>";
+        return "<div class='ps-card" + (lv ? " on" : "") + "'><div class='pname'>" + d.icon + " " + d.name + (lv === 2 ? "+" : "") + "</div><div class='muted small'>" + esc(d.txt) + "</div>" + btn + "</div>";
+      }).join("") + "</div>" +
+      "<h3 class='mini'>SIGNATURE MOVE</h3>" + (p.skill ? "<p>★ <b>" + esc(p.skillName || VB.SKILL_TXT[p.skill]) + "</b> (" + esc(VB.SKILL_TXT[p.skill]) + ") <button class='btn tiny' data-act='skillChange'" + (C.sp < 4 || C.pickSkill ? " disabled" : "") + ">CHANGE • 4 SP</button>" +
+        (C.pickSkill ? " <button class='btn tiny' data-act='skillPick'>CHOOSE NOW</button>" : "") + "</p>" : "<p class='muted'>Unlocks at OVR 76 — then you choose it.</p>");
   }
 
   async function userMatch(L, h, a, label) {
@@ -359,6 +383,7 @@
       var why = C.injured > 0 ? "You're injured and watch from the stands." :
         "Coach " + club().coach + " starts " + (rival ? rival.name : "someone else") + " ahead of you. \"" +
         pick(["Earn it in training.", "Your form isn't there yet.", "Be ready when I call you.", "It's a squad game, kid."]) + "\"";
+      if (sideBySide()) VB.Coop.sbNews(you().name + " watched from the bench as " + mine.name + " " + (s.a > s.b ? "beat " : "lost to ") + foe.name + " " + s.a + "-" + s.b + ".");
       await U.modal("BENCHED", "<p>" + esc(why) + "</p><p class='center big'>" + esc(mine.name + " " + s.a + " : " + s.b + " " + foe.name) + "</p>" +
                     (tgt ? "<p class='center gain'>EXTRA TRAINING: " + esc(tgt) + "</p>" : ""),
                     [{ label: "CONTINUE", value: 1 }]);
@@ -398,10 +423,12 @@
       "<p class='center'>" + esc(VB.Stats.lineText(line)) + "</p>" + mateHTML +
       (gtxt ? "<p class='center gain'>TRAINING GAINS: " + esc(gtxt) + "</p>" : "") +
       (after > before ? "<p class='center gain'>OVR " + before + " → " + after + "</p>" : "") +
-      (gains.skill ? "<p class='center gain'>★ SIGNATURE MOVE UNLOCKED: " + esc(VB.SKILL_TXT[you().skill]) + "</p>" : "") +
+      (gains.skill ? "<p class='center gain'>★ SIGNATURE MOVE UNLOCKED — choose it next!</p>" : "") +
       (flowed ? "<p class='center'>🔵🔥 You hit the FLOW STATE this match.</p>" : "") +
       "<p class='center'>+" + xpGot + " XP" + (lvUp ? " • <b class='gain'>LEVEL UP! +" + lvUp + " SKILL POINT</b>" : "") + " • MANAGER RATING " + Math.round(C.mgr) + "</p>",
       [{ label: "CONTINUE", value: 1 }]);
+    if (C.pickSkill) await chooseSkill();
+    if (sideBySide()) VB.Coop.sbNews(you().name + " (" + club(mineId).short + ") " + (res.won ? "beat " : "lost to ") + foe.name + " " + res.score[0] + "-" + res.score[1] + " — rating " + rating + "/10.");
     if (pre && pre.tone === "fiery") { C.interest += res.won ? 0.04 : -0.02; C.mgr = clamp(C.mgr + (res.won ? 2 : -4), 0, 100); }
     var champ = /PLAYOFF FINAL/.test(label) && res.won;
     if (VB.Media && (champ || /PLAYOFF/.test(label) || rating >= 8 || rating <= 5 || Math.random() < 0.35)) {
@@ -957,10 +984,15 @@
   }
 
   // ================== ADVANCE ==================
+  var sbGo = false;
   async function advance() {
     if (busy) return;
+    // side by side: a new day only when you're both ready
+    if (sideBySide() && VB.Coop.partner() && !sbGo) { VB.Coop.sbReady(); render(); return; }
+    sbGo = false;
     busy = true;
     try {
+      if (VB.Coop && VB.Coop.live() && !(await VB.Coop.agree(actionLabel()))) return;      // together: P2 has to agree too
       var st = CAL[C.stage];
       if (st.indexOf("window") === 0) await transferWindow(st === "window-pre");
       else if (st[0] === "R") await playRound(+st.slice(1) - 1);
@@ -980,7 +1012,48 @@
   // ================== CO-OP (a friend's player on your club) ==================
   var SINGLE = ["S", "OP", "L"];
   function mate() { return C && C.players.mate && C.club && club().roster.indexOf("mate") >= 0 ? C.players.mate : null; }
+  // ---------- side by side: your friend has their own career; you share days, results and a world ----------
+  function sideBySide() { return !!(VB.Coop && VB.Coop.sideBySide()); }
+  function sbState() {
+    var me = you(), cl = C.club ? club() : null, last = (C.srat || []).slice(-1)[0];
+    var pl = { name: me.name, role: me.role, nat: me.nat, age: me.age, height: me.height, vert: me.vert, face: me.face, pot: me.pot, skill: me.skill || null, ps: me.ps || null };
+    VB.ATTRS.forEach(function (a) { pl[a] = me[a]; });
+    return { name: me.name, role: me.role, ovr: ovr(me), clubId: cl ? cl.id : null, club: cl ? cl.short : "FREE AGENT", kit: cl ? cl.kit : "#888888",
+             league: cl ? lg(cl.league).name : "", season: C.season, stage: CAL_TXT[CAL[C.stage]] || "ROUND " + CAL[C.stage].slice(1), last: last != null ? last : null, mode: C.mode || "player", player: pl };
+  }
+  function syncFriend(st, first) {
+    if (!st || !st.player || C.mode === "coach") return;
+    var f = C.players.friend, was = f ? f.club : undefined;
+    if (!f) { f = C.players.friend = { id: "friend" }; }
+    Object.keys(st.player).forEach(function (k) { f[k] = st.player[k]; });
+    f.id = "friend"; f.friend = true; f.salary = f.salary || salaryFor(f); f.years = 2;
+    Object.keys(C.clubs).forEach(function (id) { var r = C.clubs[id].roster, i = r.indexOf("friend"); if (i >= 0 && id !== st.clubId) r.splice(i, 1); });
+    var fi = C.free.indexOf("friend"); if (fi >= 0) C.free.splice(fi, 1);
+    if (st.clubId && C.clubs[st.clubId]) { if (C.clubs[st.clubId].roster.indexOf("friend") < 0) C.clubs[st.clubId].roster.push("friend"); f.club = st.clubId; }
+    else { f.club = null; C.free.push("friend"); }
+    if (first || was !== f.club) news("🤝 Your friend " + f.name + (f.club ? " plays for " + C.clubs[f.club].short + (f.club === C.club ? " — your teammate in this world!" : " in your world.") : " is a free agent in your world."), "you");
+    save();
+  }
+  function sbHook() {
+    if (!sideBySide()) return;
+    VB.Coop.sbHook({
+      onGo: function () { if (C) { sbGo = true; advance(); } },
+      onPartner: function () { if (C && !busy && !$("hub").classList.contains("hidden")) render(); },
+      onFriend: function (st, first) { if (C) syncFriend(st, first); },
+      onNews: function (txt) { if (C) { news("🤝 " + txt, "you"); if (!busy) render(); } }
+    });
+  }
+  function sbCard() {
+    var p = VB.Coop.partner(), waiting = VB.Coop.sbWaiting();
+    return "<div class='card coop-card'><div><div class='pname'>🧑‍🤝‍🧑 SIDE BY SIDE</div>" +
+      (p ? "<div><b>" + esc(p.name) + "</b> • " + VB.FAMILY_NAMES[p.role] + " • OVR " + p.ovr + " • " + esc(p.club) + (p.league ? " (" + esc(p.league) + ")" : "") + "</div>" +
+           "<div class='muted'>SEASON " + p.season + " • " + esc(p.stage) + (p.last != null ? " • LAST RATING " + p.last : "") + "</div>" +
+           "<div>" + (VB.Coop.partnerReady() ? "✅ " + esc(p.name) + " IS READY" : "⏳ " + esc(p.name) + " is still playing") + (waiting ? " • ✅ YOU'RE READY" : "") + "</div>"
+         : "<div>" + esc(VB.Coop.status()) + "</div><div class='muted'>Playing solo until your friend is back — days advance freely.</div>") +
+      "<div class='hub-actions'><button class='btn tiny' data-act='coopInvite'>🔗 LINK</button><button class='btn tiny pink' data-act='coopLeave'>LEAVE CO-OP</button></div></div></div>";
+  }
   function coopCard() {
+    if (sideBySide()) return sbCard();
     var m = C.players.mate, hosting = VB.Coop && VB.Coop.hosting();
     if (!m && !hosting) return "";
     return "<div class='card coop-card'>" + (m ? "<img class='pix' src='" + VB.Engine.spriteURL(m.face, club() ? club().kit : "#888888") + "' alt=''/>" : "") +
@@ -1107,7 +1180,7 @@
     var attrs = VB.ATTRS.concat(you().role === "L" ? [] : ["vert"]);
     var drillOk = C.drillAt !== C.season + "-" + C.stage && !(C.injured > 0);
     return "<div class='dev-top'><div><b>LEVEL " + C.lvl + "</b> • XP " + C.xp + "/" + xpNeed() + "<div class='xpbar'><i style='width:" + Math.round(C.xp / xpNeed() * 100) + "%'></i></div></div>" +
-        "<div><b>" + C.sp + "</b> SKILL POINTS</div><div>ARCHETYPE: <b>" + (ar ? ar.name : "—") + "</b></div><div>MANAGER RATING: <b>" + Math.round(C.mgr) + "</b></div></div>" +
+        "<div><b>" + C.sp + "</b> SKILL POINTS</div><div>ARCHETYPE: <b>" + (ar ? ar.name : "—") + "</b></div><div>MANAGER RATING: <b>" + Math.round(C.mgr) + "</b></div></div>" + psHTML() +
       "<h3 class='mini'>SPEND SKILL POINTS</h3><div class='focus'>" + attrs.map(function (a) {
         var v = a === "vert" ? you().vert + "cm" : you()[a], c2 = spCost(a), off = C.sp < c2 || (a === "vert" && C.vertGain >= 12) || (a !== "vert" && you()[a] >= 99);
         return "<button class='btn' data-act='spend' data-arg='" + a + "'" + (off ? " disabled" : "") + ">" + ATTR_TXT[a] + " " + v + " +1 (" + c2 + " SP)</button>";
@@ -1131,7 +1204,8 @@
 
   function render() {
     var me = you(), cl = C.club ? club() : null, rch = VB.reach(me), st = CAL[C.stage];
-    var stageTxt = CAL_TXT[st] || ("ROUND " + st.slice(1) + " / 7");
+    if (sideBySide() && C.mode !== "coach") VB.Coop.sbSet(sbState());
+    var stageTxt = CAL_TXT[st] || ("ROUND " + st.slice(1) + " / " + (C.club ? lg(club().league).rounds.length : 9));
     var nf = nextFixture(), starter = cl && st[0] === "R" ? isLikelyStarter() : null;
     var tabs = C.mode === "coach" ? ["news", "table", "squad", "market", "stats", "career"] : ["news", "table", "squad", "stats", "develop", "training", "career"];
     var body = tab === "news" ? "<ul class='newslist'>" + C.news.slice(0, 30).map(function (n) {
@@ -1151,7 +1225,8 @@
           "<div class='muted'>LV " + C.lvl + " • " + C.sp + " SP • " + (ARCH[C.arch] ? ARCH[C.arch].name : "") + " • MANAGER " + Math.round(C.mgr) + "</div>" +
           "<div class='muted'>HT " + me.height + "cm • VERT " + me.vert + "cm • REACH " + rch.spike + "/" + rch.block + "</div>" +
           "<div>FORM " + formBar(C.form) + (C.injured > 0 ? " 🚑 INJURED" : "") + (me.skill ? " <span class='star'>★ " + VB.SKILL_TXT[me.skill] + "</span>" : "") + "</div>" +
-          "<div class='muted'>" + VB.ATTRS.map(function (a) { return a.toUpperCase() + " " + me[a]; }).join(" • ") + "</div></div></div>" +
+          "<div class='muted'>" + VB.ATTRS.map(function (a) { return a.toUpperCase() + " " + me[a]; }).join(" • ") + "</div>" +
+          (VB.psText(me) ? "<div class='ps-line'>" + esc(VB.psText(me)) + "</div>" : "") + "</div></div>" +
         "<div class='card club-card' style='border-color:" + (cl ? cl.kit : "#9cc4ea") + "'>" +
           (cl ? "<div class='pname'>" + esc(cl.name) + "</div><div class='muted'>" + esc(lg(cl.league).flag + " " + lg(cl.league).name) + " • COACH " + esc(cl.coach) + "</div>" +
                 "<div><b>" + esc(cl.arc) + "</b></div><div class='muted'><i>" + esc(cl.story) + "</i></div>" +
@@ -1162,9 +1237,9 @@
       coopCard() +
       "<div class='hub-status'>CAREER SLOT " + C.slot + " • SEASON " + C.season + " • " + stageTxt +
         (nf ? " • NEXT: " + esc(nf.foe.short) + (nf.home ? " (H)" : " (A)") + " • " + (starter ? "LIKELY STARTER" : "FIGHTING FOR A SPOT") : "") + "</div>" +
-      "<div class='hub-actions'><button class='btn big' data-act='advance'>" + esc(actionLabel()) + "</button>" +
+      "<div class='hub-actions'><button class='btn big' data-act='advance'>" + esc(sideBySide() && VB.Coop.sbWaiting() ? "⏳ WAITING FOR " + ((VB.Coop.partner() || {}).name || "YOUR FRIEND") + "…" : actionLabel()) + "</button>" +
         "<button class='btn' data-act='look'>CHANGE LOOK</button><button class='btn' data-act='cam'>🎥 CAMERA: " + esc(VB.CAMS[localStorage.getItem("retroVB.cam") || "classic"] || "CLASSIC") + "</button>" +
-        (C.mode === "coach" ? "" : "<button class='btn' data-act='coop'>🤝 CO-OP</button>") +
+        (C.mode === "coach" || sideBySide() ? "" : "<button class='btn' data-act='coop'>🤝 CO-OP</button>") +
         "<button class='btn pink' data-act='menu'>SAVE &amp; MENU</button></div>" +
       "<div class='tabs'>" + tabs.map(function (t) { return "<button class='tab-btn" + (t === tab ? " on" : "") + "' data-act='tab' data-arg='" + t + "'>" + t.toUpperCase() + "</button>"; }).join("") + "</div>" +
       "<div class='tab-body'>" + body + "</div>";
@@ -1249,9 +1324,11 @@
       save(); return render();
     }
     if (act === "coop") { busy = true; try { await startCoop(); } finally { busy = false; } return render(); }
+    if (act === "coopInvite") { await VB.Coop.invite(); return render(); }
+    if (act === "coopLeave") { VB.Coop.leave(); return render(); }
     if (act === "cam") { var ck = Object.keys(VB.CAMS), cur = localStorage.getItem("retroVB.cam") || "classic"; VB.Engine.setCam(ck[(ck.indexOf(cur) + 1) % ck.length]); return render(); }
     if (act === "menu" || act === "exit") { if (C) save(); C = null; $("hub").onclick = null; var r = exitCareer; exitCareer = null; return r && r(); }
-    if (act === "load") { C = load(+arg); Object.keys(C.players).forEach(function (id) { VB.fillAttrs(C.players[id]); }); ensureLeagues(); save(); tab = "news"; return render(); }
+    if (act === "load") { C = load(+arg); Object.keys(C.players).forEach(function (id) { VB.fillAttrs(C.players[id]); }); ensureLeagues(); save(); tab = "news"; sbHook(); return render(); }
     if (act === "del") {
       var ok = await U.modal("DELETE CAREER?", "<p>Slot " + arg + " will be erased for good.</p>", [{ label: "DELETE", value: true, cls: "pink" }, { label: "KEEP IT", value: false }]);
       if (ok) localStorage.removeItem(SLOT_KEY + arg);
@@ -1271,6 +1348,15 @@
       if (arg === "vert") { you().vert++; C.vertGain++; } else you()[arg] = Math.min(99, you()[arg] + 1);
       save(); return render();
     }
+    if (act === "psUnlock" || act === "psUp") {
+      var pp = you(), cost2 = act === "psUnlock" ? 2 : 3; pp.ps = pp.ps || {};
+      if (C.sp < cost2 || (act === "psUnlock" && Object.keys(pp.ps).length >= psSlots()) || !VB.PS[arg]) return;
+      C.sp -= cost2; pp.ps[arg] = act === "psUnlock" ? 1 : 2;
+      news("🎓 New PlayStyle: " + VB.PS[arg].icon + " " + VB.PS[arg].name + (pp.ps[arg] > 1 ? "+" : "") + ".", "you");
+      save(); return render();
+    }
+    if (act === "skillChange") { if (C.sp < 4) return; C.sp -= 4; busy = true; try { await chooseSkill(true); } finally { busy = false; } return render(); }
+    if (act === "skillPick") { busy = true; try { await chooseSkill(); } finally { busy = false; } return render(); }
     if (act === "drill") {
       busy = true;
       var lvl = C.focus === "vert" ? 75 : you()[C.focus];
@@ -1314,7 +1400,7 @@
   VB.Career = {
     start: function () {
       return new Promise(function (res) {
-        exitCareer = res;
+        exitCareer = res; sbHook();
         U.showView("hub");
         $("hub").onclick = onHubClick;
         renderSlots();

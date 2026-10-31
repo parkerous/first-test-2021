@@ -11,6 +11,8 @@
 
   var role = null, code = null, link = null, connected = false, opts = {}, peer = null, bc = null;
   var pend = {}, seq = 0, statusTxt = "", onStatus = null, streamT = 0, obs = [];
+  var mode = "shared";                                            // "shared": one career, two players • "sb": side by side, each their own career
+  var guestReady = false, waitBox = null;
 
   // ---------- transports ----------
   function loadPeer() {
@@ -30,6 +32,7 @@
     if (link) return false;                                       // already paired on the other transport
     link = l; connected = true;
     setStatus("🟢 CONNECTED (" + how + ")");
+    if (mode === "sb") { if (role === "guest") send({ t: "hi" }); sbConnected(); return true; }
     if (role === "host") { startMirror(); if (opts.onConnect) opts.onConnect(); }
     else send({ t: "hi" });
     return true;
@@ -38,7 +41,8 @@
     if (!connected) return;
     connected = false; link = null;
     Object.keys(pend).forEach(function (id) { var p = pend[id]; clearTimeout(p.to); delete pend[id]; p.res(p.def); });
-    stopMirror();
+    stopMirror(); guestReady = false; if (waitBox) waitBox.done(true);
+    if (mode === "sb") { setStatus("🔴 YOUR FRIEND LEFT — keep playing solo; the link still works"); sbLost(); return; }
     setStatus(role === "host" ? "🔴 P2 DISCONNECTED — their player plays as AI until they're back (the link still works)" : "🔴 DISCONNECTED FROM THE HOST");
     if (role === "guest") guestLost();
     if (role === "host" && opts.onLost) opts.onLost();
@@ -84,6 +88,7 @@
   // ---------- messages ----------
   function onMsg(m) {
     if (!m || !m.t) return;
+    if (m.t.indexOf("sb-") === 0) return sbMsg(m);
     if (role === "host") return hostMsg(m);
     return guestMsg(m);
   }
@@ -108,6 +113,8 @@
     listenLocal(); listenPeer();
   }
   function hostMsg(m) {
+    if (m.t === "hi" && mode === "sb") { send({ t: "welcome", mode: "sb", host: sb.me ? sb.me.name : "HOST" }); sbPush(true); return; }
+    if (m.t === "agree") { guestReady = true; if (waitBox) waitBox.done(true); return; }
     if (m.t === "hi") { send({ t: "welcome", host: opts.hostName ? opts.hostName() : "HOST", info: opts.info ? opts.info() : {} }); pushHub(true); pushModal(); return; }
     if (m.t === "join") { var r = opts.onJoin ? opts.onJoin(m) : { ok: false, msg: "The host isn't in a career." }; send({ t: "joined", ok: r.ok, msg: r.msg }); pushHub(true); return; }
     if (m.t === "ans") { var p = pend[m.id]; if (p) { clearTimeout(p.to); delete pend[m.id]; p.res(m.v); } return; }
@@ -156,10 +163,11 @@
   // the invite dialog (host)
   async function invite() {
     var url = inviteURL();
-    var html = "<p>Send this link to your friend. When you're both online at the same time, they join <b>your " + esc(opts.what || "career") + "</b> as a second player on your team and control their own player in every match.</p>" +
+    var html = "<p>Send this link to your friend. When you're both online at the same time, they " + (mode === "sb" ? "link up with you while each of you plays <b>your own career</b>.</p>" : "join <b>your " + esc(opts.what || "career") + "</b> as a second player on your team and control their own player in every match.</p>") +
       "<p><input id='coopLink' class='text-in coop-link' readonly value='" + esc(url) + "'/></p>" +
       "<p class='center'><button class='btn' id='coopCopy'>📋 COPY LINK</button></p>" +
       "<p class='center big' id='coopStatus'>" + esc(statusTxt) + "</p>" +
+      (mode === "sb" ? "<p class='center gain'>SIDE BY SIDE: each of you plays your own career; a new day starts when you're both ready.</p>" : "") +
       "<p class='muted'>Same computer? Open the link in a second tab or window. Online, it connects browser to browser (WebRTC through the free PeerJS service) — a few strict school/office networks block that. Your save stays on your device; your friend's player lives in it.</p>";
     var p = U.modal("🤝 CO-OP CAREER — INVITE A FRIEND", html, [{ label: "DONE", value: 1 }]);
     setTimeout(function () {
@@ -173,6 +181,7 @@
   var gState = { joined: false, pendingAsk: null, aimHandler: null };
   function guestShell(inner) {
     $("hub").innerHTML = "<div class='coop-bar'><b>🤝 CO-OP</b> <span id='coopStatus'>" + esc(statusTxt) + "</span>" +
+      (gState.joined ? "<button class='btn tiny' id='coopReady' data-coop='ready'>✅ READY FOR THE NEXT DAY</button>" : "") +
       "<button class='btn tiny pink' data-coop='leave'>LEAVE</button></div>" + inner;
   }
   function startGuest(c) {
@@ -221,6 +230,7 @@
     var b = e.target.closest("[data-coop]"); if (!b) return;
     var k = b.getAttribute("data-coop"), v = b.getAttribute("data-v");
     if (k === "leave") { leave(); return; }
+    if (k === "ready") { send({ t: "agree" }); b.classList.add("on"); b.classList.remove("pulse"); b.textContent = "✔ READY — waiting for the host"; return; }
     if (k === "fam" || k === "hair" || k === "hc" || k === "skin") {
       var n = $("coopName"); if (n) jf.name = (n.value || "P2").toUpperCase().slice(0, 12);
       jf[k] = k === "skin" ? +v : v; return joinForm(gState.welcome);
@@ -236,7 +246,10 @@
   var court = null, cg = null, img = new Image();
   img.onload = function () { if (cg) cg.drawImage(img, 0, 0, 640, 900); };
   function guestMsg(m) {
+    if (m.t === "welcome" && m.mode === "sb") { mode = "sb"; sbGuestStart(m); return; }
     if (m.t === "welcome") { if (m.re) gState.joined = false; if (!gState.joined) joinForm(m); return; }
+    if (m.t === "agree?") { var rb = $("coopReady"); if (rb) { rb.classList.add("pulse"); rb.textContent = "✅ READY — " + (m.label || "NEXT DAY"); } return; }
+    if (m.t === "agreed") { var rb2 = $("coopReady"); if (rb2) { rb2.classList.remove("pulse", "on"); rb2.textContent = "✅ READY FOR THE NEXT DAY"; } return; }
     if (m.t === "joined") {
       if (!m.ok) { U.modal("CAN'T JOIN", "<p>" + esc(m.msg || "") + "</p>"); return; }
       gState.joined = true; mirrorShell(); return;
@@ -306,13 +319,102 @@
   }
   function leave() {
     send({ t: "bye" }); if (link) link.close();
+    if (mode === "sb") { lost(); return; }
     location.href = location.pathname;
+  }
+
+  // ================== "NEXT DAY?" — both players agree (shared mode) ==================
+  // resolves true to go ahead (P2 is ready, P2 is gone, or you go on without them), false to wait
+  function agree(label) {
+    if (role !== "host" || !connected || mode !== "shared") return Promise.resolve(true);
+    if (guestReady) { guestReady = false; send({ t: "agreed" }); return Promise.resolve(true); }
+    send({ t: "agree?", label: label });
+    return new Promise(function (res) {
+      var d = document.createElement("div"); d.className = "coop-wait-box";
+      d.innerHTML = "<div class='pname'>⏳ WAITING FOR P2</div><p>Both of you agree before the next day: <b>" + esc(label) + "</b>.<br/>Your friend needs to press ✅ READY.</p>" +
+        "<div class='hub-actions'><button class='btn' data-w='go'>GO WITHOUT P2</button><button class='btn pink' data-w='no'>NOT YET</button></div>";
+      document.body.appendChild(d);
+      waitBox = { done: function (v) { if (!waitBox) return; waitBox = null; d.remove(); if (v) { guestReady = false; send({ t: "agreed" }); } res(v); } };
+      d.onclick = function (e) { var b = e.target.closest("[data-w]"); if (b) waitBox.done(b.getAttribute("data-w") === "go"); };
+    });
+  }
+
+  // ================== SIDE BY SIDE: each player has their own career ==================
+  // Both play their own career save on their own device; the link keeps you in lockstep (a new day only when
+  // you're BOTH ready), shows each other's progress and live scores, and your friend's player exists in your world.
+  var sb = { me: null, partner: null, myReady: false, theirReady: false, hook: null, sent: "", tick: 0, score: "" };
+  function startSB() {
+    if (role) { if (mode === "sb") return; leaveQuiet(); }
+    mode = "sb"; role = "host"; code = newCode();
+    setStatus("🟡 WAITING FOR YOUR FRIEND…");
+    listenLocal(); listenPeer();
+  }
+  function leaveQuiet() { try { send({ t: "bye" }); if (link) link.close(); } catch (e) {} connected = false; link = null; role = null; }
+  function sbGuestStart(m) {
+    document.body.classList.remove("coop-guest");
+    setStatus("🟢 CONNECTED — side by side with " + (m.host || "your friend"));
+    sbPush(true);
+    U.modal("🧑‍🤝‍🧑 SIDE BY SIDE", "<p>You're linked with <b>" + esc(m.host || "your friend") + "</b>. Each of you plays <b>your own career</b> on your own device.</p>" +
+      "<p>Pick (or create) your career. A new day starts when you're <b>both</b> ready; you'll see each other's results live, and your friend's player shows up in your world.</p>",
+      [{ label: "TO MY CAREER ▸", value: 1 }]).then(function () { $("hub").onclick = null; VB.Career.start().then(function () { location.href = location.pathname; }); });
+  }
+  function sbConnected() { sb.theirReady = false; sbPush(true); if (sb.hook && sb.hook.onPartner) sb.hook.onPartner(); tickerOn(); }
+  function sbLost() { sb.partner = null; sb.theirReady = false; tickerShow(""); if (sb.hook && sb.hook.onPartner) sb.hook.onPartner(); if (sb.myReady) sbCheck(); }
+  function sbPush(force) {
+    if (!sb.me || !connected) return;
+    var j = JSON.stringify(sb.me);
+    if (!force && j === sb.sent) return;
+    sb.sent = j; send({ t: "sb-state", st: sb.me, ready: sb.myReady });
+  }
+  function sbMsg(m) {
+    if (m.t === "sb-state") {
+      var first = !sb.partner;
+      sb.partner = m.st; sb.theirReady = !!m.ready;
+      if (sb.hook && sb.hook.onFriend) sb.hook.onFriend(m.st, first);
+      if (sb.hook && sb.hook.onPartner) sb.hook.onPartner();
+      sbCheck(); return;
+    }
+    if (m.t === "sb-ready") { sb.theirReady = m.on; if (sb.hook && sb.hook.onPartner) sb.hook.onPartner(); sbCheck(); return; }
+    if (m.t === "sb-news") { if (sb.hook && sb.hook.onNews) sb.hook.onNews(m.txt); return; }
+    if (m.t === "sb-score") { sb.score = m.txt; tickerShow(m.txt); return; }
+  }
+  function sbCheck() {
+    if (!sb.myReady) return;
+    if (connected && sb.partner && !sb.theirReady) return;
+    sb.myReady = false; sb.theirReady = false;
+    if (sb.hook && sb.hook.onGo) setTimeout(sb.hook.onGo, 30);
+  }
+  function sbReady() {
+    sb.myReady = true; send({ t: "sb-ready", on: true });
+    sbCheck();
+  }
+  // live score of your friend's match (and yours, sent to them)
+  var tickEl = null, tickT = 0;
+  function tickerShow(t) {
+    if (!tickEl) { tickEl = document.createElement("div"); tickEl.className = "coop-ticker hidden"; document.body.appendChild(tickEl); }
+    tickEl.textContent = t ? "🤝 " + t : ""; tickEl.classList.toggle("hidden", !t);
+  }
+  function tickerOn() {
+    clearInterval(tickT);
+    tickT = setInterval(function () {
+      if (!connected || mode !== "sb") return;
+      var inMatch = !$("matchView").classList.contains("hidden"), txt = "";
+      if (inMatch) txt = (sb.me ? sb.me.name + " — " : "") + $("hudMe").textContent + " " + $("sMe").textContent + " : " + $("sOpp").textContent + " " + $("hudOpp").textContent;
+      if (txt !== sb.lastTick) { sb.lastTick = txt; send({ t: "sb-score", txt: txt }); }
+    }, 900);
   }
 
   window.addEventListener("beforeunload", function () { try { if (link) { send({ t: "bye" }); link.close(); } } catch (e) {} });
 
   VB.Coop = {
-    startHost: startHost, invite: invite, startGuest: startGuest, ask: ask,
+    startHost: startHost, invite: invite, startGuest: startGuest, ask: ask, agree: agree, leave: leave,
+    startSB: startSB, sideBySide: function () { return mode === "sb" && !!role; },
+    sbHook: function (h) { sb.hook = h; },
+    sbSet: function (st) { sb.me = st; sbPush(false); },
+    sbReady: sbReady, sbWaiting: function () { return sb.myReady; },
+    sbNews: function (txt) { send({ t: "sb-news", txt: txt }); },
+    partner: function () { return connected ? sb.partner : null; }, partnerReady: function () { return sb.theirReady; },
+    connected: function () { return connected; },
     live: function () { return role === "host" && connected; },
     hosting: function () { return role === "host"; },
     status: function () { return statusTxt; },

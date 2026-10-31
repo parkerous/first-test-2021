@@ -630,3 +630,16 @@ canvas.screen { border: 4px solid var(--blue-d); box-shadow: 0 0 0 4px var(--yel
 .coop-modal.hidden { display: none; }
 .coop-modal-t { font-family: var(--pixel); font-size: 11px; color: var(--blue, #1e63ff); text-align: center; margin-bottom: 6px; }
 body.coop-guest #camTop, body.coop-guest #rosterBtn, body.coop-guest #tacBtn, body.coop-guest #camBtn, body.coop-guest #backBtn { display: none; }
+
+.coop-wait-box { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 80; background: #fff; border: 4px solid var(--yellow, #ffd21e); border-radius: 12px; padding: 14px 18px; width: min(92vw, 460px); text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.45); font-family: var(--text); font-size: 18px; }
+.btn.pulse { animation: coopPulse 0.8s ease-in-out infinite alternate; }
+@keyframes coopPulse { from { box-shadow: 0 0 0 0 rgba(61,220,122,0.9); } to { box-shadow: 0 0 0 8px rgba(61,220,122,0); } }
+.coop-ticker { position: fixed; right: 10px; bottom: 10px; z-index: 60; background: #13293f; color: #ffd21e; font-family: var(--text); font-size: 18px; padding: 6px 12px; border-radius: 8px; border: 2px solid #3ddc7a; max-width: 80vw; }
+.coop-ticker.hidden { display: none; }
+
+/* playstyles */
+.ps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin: 6px 0 12px; }
+.ps-card { border: 2px solid #c9d6ea; border-radius: 8px; padding: 6px 8px; background: #f7faff; display: flex; flex-direction: column; gap: 4px; }
+.ps-card.on { border-color: #3ddc7a; background: #effff4; }
+.ps-card .pname { font-size: 10px; }
+.ps-line { font-family: var(--text); font-size: 16px; color: #0b6b3a; }

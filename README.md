@@ -3,7 +3,22 @@
 A bird's-eye, pixel-art volleyball game with two modes. Pure HTML/CSS/JS: no
 build step, no server.
 
-## 🤝 Co-op (online, two players) — Player Career and Haikyuu!! Story
+## 🤝 Co-op (online, two players)
+The 🤝 CO-OP card on the main menu offers two ways to play with a friend
+through a link (or a 6-letter code) while you're both online:
+- 🧑‍🤝‍🧑 SIDE BY SIDE — each of you plays YOUR OWN career on your own device.
+  A new day (window, round, playoffs...) starts only when you're BOTH ready;
+  you see each other's club, OVR, stage and results live (with a live score
+  ticker during matches), and your friend's player appears in your world on
+  their club — maybe even as your teammate. If one of you leaves, the other
+  plays on solo; the link works again later.
+- 🤝 TOGETHER — your friend joins your save as a teammate (below).
+- In co-op matches the setter runs the offence automatically (no set menus),
+  if your friend drops out mid-match their player is simply AI-controlled,
+  and before every new day your friend presses ✅ READY (or you go on without
+  them).
+
+### 🤝 Together — Player Career and Haikyuu!! Story
 - In PLAYER CAREER or HAIKYUU!! STORY MODE press 🤝 CO-OP and send your friend
   the link. In story mode they transfer into your school as a first-year in
   your year (same position rules), both of you start every story match, and
@@ -27,7 +42,9 @@ build step, no server.
 ## Home screen
 - The menu sits under a live PRACTICE COURT: your story school, your career
   club or a Haikyuu!! team running a spiking line off the setter, pepper,
-  serves and dig drills, with shouts and catchphrases (tap a player). ◀ ▶ picks
+  serves and dig drills, with shouts and catchphrases (tap a player). The ball
+  has real height and a floor shadow: sets arc, spikes drive down into the far
+  court and bounce, passes stay low. ◀ ▶ picks
   which team is practising.
 - VNL and Haikyuu!! Spring Nationals share one 🏆 TOURNAMENTS card.
 
@@ -101,6 +118,8 @@ build step, no server.
   tryout), do pre-season training, then play the best-of-3 V.League opener,
   Jackals vs Adlers, with the timeskip cast. Finished stories get the
   timeskip too.
+- PLAYSTYLES: every evaluation (year-end, or mid-year with an A/S grade) you
+  pick a PlayStyle to build your game around, up to 3, upgraded to + later.
 - Training MINIGAMES with variety — each drill picks one that fits the skill:
   timing bar, serve/spike TARGET, REACTION dives, MEMORY of setter calls,
   READ THE SETTER, approach RHYTHM, receive PLATFORM, hold-and-release POWER and
@@ -177,7 +196,16 @@ build step, no server.
   offers based on your form. AI players transfer, and fresh faces arrive from
   outside both leagues.
 - Training focus, match-rating-based growth (slow: only good matches grow you,
-  and high attributes rise slowly) and a signature skill at OVR 78.
+  and high attributes rise slowly).
+- SIGNATURE MOVE: at OVR 76 you CHOOSE it from your position's options (e.g.
+  an outside hitter: Cannon Spike, Jump Serve, Anchor Receive or Ace's Dig);
+  change it later for 4 SP.
+- PLAYSTYLES (Develop tab): 14 passive abilities — Power Serve, Float Master,
+  Safe Serve, Rock Platform, Acrobat, Soft Hands, High Point, Tool Master,
+  Quick Strike, Back-Row Cannon, Feint, Read Blocker, Stuff Block, Clutch —
+  each tied to a real moment of the rally. Unlock for 2 SP, upgrade to + for
+  3 SP; 3 slots (4 from level 10). Good AI players around the leagues have
+  PlayStyles too.
 
 ## Gameplay
 - 5-1 rotations, libero swaps, home/base formations, perimeter defense.

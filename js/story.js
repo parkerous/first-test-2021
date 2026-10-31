@@ -453,6 +453,7 @@
     if (busy || S.done) return;
     busy = true;
     try {
+      if (VB.Coop && VB.Coop.live() && !(await VB.Coop.agree(nextTxt()))) return;       // co-op: P2 has to agree to the next day
       if (S.ts) { await timeskip(); save(); render(); return; }
       if (S.pendingEval) { await evaluation(S.pendingEval); S.pendingEval = null; save(); render(); return; }
       if (PH[S.phase] !== "april") {                                     // each step is about a week: the paper comes out every other week
@@ -767,6 +768,24 @@
       "<table class='standings'><tr><th>PLAYER</th><th>POS</th><th>YR</th><th>OVR</th><th>±</th><th>GRADE</th><th></th></tr>" + rows + "</table>" +
       "<p>" + esc(coach()) + " to you: " + esc(note) + "</p><p class='muted'>Grades compare each player to the team's level: S A B C D.</p>",
       [{ label: "CONTINUE", value: 1 }]);
+    // every evaluation (year-end always, mid-year with an A or S): pick a PlayStyle to build your game around
+    var gr = grade(ovr(me));
+    if (kind === "YEAR-END" || gr === "S" || gr === "A") await storyPlayStyle();
+  }
+
+  async function storyPlayStyle() {
+    var me = you(), own = me.ps = me.ps || {}, n = Object.keys(own).length;
+    var fresh = n < 3 ? shuffle(VB.psFor(me.role).filter(function (id) { return !own[id]; })).slice(0, 3) : [];
+    var ups = Object.keys(own).filter(function (id) { return own[id] < 2; });
+    var opts = fresh.map(function (id) { return { id: id, up: false }; }).concat(ups.map(function (id) { return { id: id, up: true }; })).slice(0, 4);
+    if (!opts.length) return;
+    var k = await U.modal("🎓 PLAYSTYLE", "<p>" + esc(coach()) + ": \"Every player needs something that's theirs. Pick what you'll drill until it's second nature.\"</p><ul>" +
+      opts.map(function (o) { var d = VB.PS[o.id]; return "<li><b>" + d.icon + " " + d.name + (o.up ? "+" : "") + "</b> — " + esc(d.txt) + (o.up ? " (upgrade)" : "") + "</li>"; }).join("") + "</ul>" +
+      "<p class='muted'>You can hold 3 PlayStyles; later evaluations can upgrade them to +.</p>",
+      opts.map(function (o, i) { var d = VB.PS[o.id]; return { label: d.icon + " " + d.name + (o.up ? "+" : ""), value: i }; }));
+    var c = opts[k]; own[c.id] = c.up ? 2 : 1;
+    log("🎓 New PlayStyle: " + VB.PS[c.id].icon + " " + VB.PS[c.id].name + (own[c.id] > 1 ? "+" : "") + ".", "you");
+    save();
   }
 
   // ================== RANDOM EVENTS (keep the year from feeling the same) ==================
@@ -1251,7 +1270,8 @@
           "<div class='muted'>HT " + me.height + "cm • VERT " + me.vert + "cm • REACH " + rch.spike + "/" + rch.block + "</div>" +
           "<div>CONFIDENCE " + confBar() + "</div>" +
           "<div>COACH TRUST " + trustBar() + (me.skill ? " <span class='star'>★ " + esc(me.skillName || VB.SKILL_TXT[me.skill]) + "</span>" : S.pendingSkill ? " <span class='muted'>(learning " + esc(S.pendingSkill.name) + ")</span>" : "") + "</div>" +
-          "<div class='muted'>" + VB.ATTRS.map(function (a) { return a.toUpperCase() + " " + me[a]; }).join(" • ") + "</div></div></div>" +
+          "<div class='muted'>" + VB.ATTRS.map(function (a) { return a.toUpperCase() + " " + me[a]; }).join(" • ") + "</div>" +
+          (VB.psText(me) ? "<div class='ps-line'>" + esc(VB.psText(me)) + "</div>" : "") + "</div></div>" +
         "<div class='card club-card' style='border-color:" + t.kit + "'><div class='pname'>" + esc(t.flag + " " + t.name) + "</div>" +
           "<div class='muted'>" + esc(region(S.school) === "LOCAL" ? "PREFECTURE QUALIFIERS vs LOCAL SCHOOLS" : region(S.school) + " PREFECTURE") + " • " + esc(coach().toUpperCase()) + "</div>" +
           "<div>" + (keyOf(myLineup(false)) ? "<b class='gain'>IN THE STARTING SIX</b>" : "<b>FIGHTING FOR A SPOT</b>") + "</div>" +

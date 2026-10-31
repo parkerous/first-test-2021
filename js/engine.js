@@ -61,7 +61,7 @@
   var bg = null, crowdFrames = [], fans = [], arenaTheme = null;
   var lastFrame = 0;
 
-  function iControl(role) { return mode === "full" || role === myRole || (!!mateRole && role === mateRole); }
+  function iControl(role) { return mode === "full" || role === myRole || (!!mateRole && role === mateRole && VB.Coop && VB.Coop.live()); }   // P2 left? their player plays on as AI
   function isMate(role) { return !!mateRole && role === mateRole && VB.Coop && VB.Coop.live(); }
   function humans() { return [myRole, mateRole].filter(Boolean); }
   // every decision goes to whoever controls that player: you, here — or P2, over the co-op link
@@ -302,6 +302,7 @@
       roster[role] = {
         ref: rec, name: rec.name, num: num, face: face, skill: rec.skill || null, skillName: rec.skillName || null,
         cd: 0, ph: rnd(0, Math.PI * 2), streak: 0, flow: false, flowLeft: 0,
+        ps: rec.ps || null,
         srv: rec.srv, rec: rec.rec, set: rec.set, att: rec.att, blk: rec.blk, def: rec.def, men: rec.men || 70, tec: rec.tec || 70, spd: rec.spd || 70,
         height: rec.height, vert: rec.vert, spikeReach: reach.spike, blockReach: reach.block,
         sprite: makeSprite(role === "L" ? libKit : kit, face, role === "L" ? kit : (kit === team.kit ? team.kit2 : team.kit), kitPattern(team.id)),
@@ -1292,9 +1293,10 @@
     return { power: clamp01(power), wobble: wobble, errP: Math.max(0.02, errP) };
   }
   // mental: composure in tight moments (and the confidence a story/career brings in) widens your green zone a little
+  function ps(Pl, id) { return (Pl && Pl.ps && Pl.ps[id]) || 0; }      // PlayStyle level: 0, 1 or 2 (+)
   function clutchAdj(Pl) {
     var to = (cfg && cfg.setsTo) || 15, tight = Math.max(score[0], score[1]) >= to - 3 && Math.abs(score[0] - score[1]) <= 2;
-    return (tight ? ((Pl.men || 70) - 70) / 300 : 0) + ((cfg && cfg.confAdj) || 0);
+    return (tight ? ((Pl.men || 70) - 70) / 300 + ps(Pl, "clutch") * 0.03 : 0) + ((cfg && cfg.confAdj) || 0);
   }
   // technique: clean contacts mean fewer shanks
   function techShank(Pl) { return clamp(1.7 - (Pl.tec || 70) / 100, 0.6, 1.4); }
@@ -1352,7 +1354,7 @@
   function handSpans(def, blockers) {
     return blockers.map(function (r) {
       var B = def.roster[r], x = def.tgt[r].x;
-      var hw = 10 + B.blk / 30 + (B.height - 190) / 9 + (def.superBlocker === r ? 4 : 0);
+      var hw = 10 + B.blk / 30 + (B.height - 190) / 9 + (def.superBlocker === r ? 4 : 0) + ps(B, "read_block") * 2.5;
       if (def.jumpQ && def.jumpQ[r] != null) hw *= 0.7 + 0.5 * def.jumpQ[r];   // your (and P2's) block jump timing
       return { lo: x - hw, hi: x + hw, r: r };
     }).sort(function (a, b) { return a.lo - b.lo; });
@@ -1564,6 +1566,9 @@
     if (superServe) { kind = "spin"; useSkill(srv, Sv); }
     var sp = serveParams(kind, Sv.srv, srv === me ? 0.5 + Sv.srv / 250 : 0.4 + srv.team.ovr / 300);
     if (superServe) { sp.power = clamp01(sp.power + 0.4); sp.errP += 0.02; }
+    if (kind === "spin") sp.power = clamp01(sp.power + ps(Sv, "power_serve") * 0.06);
+    sp.errP = Math.max(0.012, sp.errP - ps(Sv, "safe_serve") * 0.022);
+    var floatM = kind === "float" ? ps(Sv, "float_master") : 0;
     if (tossMod != null) {                                       // a clean toss hits harder; a bad one risks an error
       sp.power = clamp01(sp.power * (0.85 + 0.3 * tossMod));
       sp.errP = Math.max(0.02, sp.errP + (tossMod < 0.35 ? 0.1 : tossMod >= 1 ? -0.02 : 0));
@@ -1606,9 +1611,9 @@
       await sleep(150); slow();
       timing = await timingBar("RECEIVE — " + RP.name + " vs " + Sv.name + " (SRV " + Sv.srv + ")!",
         duelSpeed(Sv.srv + (kind === "spin" ? sp.power * 12 : 0), RP.rec, superServe || Sv.flow),
-        0.28 + (RP.rec - Sv.srv) / 250 - sp.power * 0.08 - (superServe ? 0.07 : 0) - (kind === "float" ? 0.02 : 0) + clutchAdj(RP), rcvRole);
+        0.28 + (RP.rec - Sv.srv) / 250 - sp.power * 0.08 - (superServe ? 0.07 : 0) - (kind === "float" ? 0.02 + floatM * 0.03 : 0) + ps(RP, "platform") * 0.035 + clutchAdj(RP), rcvRole);
       fast();
-    } else if (rcv === me) timing = autoTiming(RP.rec);
+    } else if (rcv === me) timing = autoTiming(RP.rec + ps(RP, "platform") * 6 - floatM * 6);
     await flight;
     if (errKind === "long") { msg("LONG — OUT!"); feed(srv.side, "...long! Service error."); Sv.st.se++; return credit(rcv); }
 
@@ -1813,7 +1818,7 @@
     if (setterRole !== "S") opts = opts.filter(function (o) { return o.hitter !== setterRole && !o.dump; });   // the setter can't set themself
     if (emergency) opts = opts.filter(function (o) { return o.id === "high" || o.id === "five"; });
     var st = null;
-    if (atk === me && !emergency && iControl(setterRole)) {
+    if (atk === me && !emergency && iControl(setterRole) && !mateRole) {       // co-op matches: the setter runs the offence automatically
       msg(SN + " TO SET (" + GRADE_TXT[grade] + ") — 👍 = SETTER'S PICK");
       var choice = await simpleSetMenu(opts, atk, setterRole);
       if (choice === "__more") {
@@ -1830,7 +1835,7 @@
         st = Object.assign({}, st, { setAdj: setTq >= 1 ? 0.12 : setTq >= 0.5 ? 0 : -0.18 });
         if (setTq < 0.5) feed(0, SN + "'s set is a little off...");
       }
-    } else if (atk === me && mode === "role" && !emergency) {
+    } else if (atk === me && mode === "role" && !emergency && !mateRole) {
       var callers = humans().filter(function (h) { return opts.some(function (o) { return !o.disabled && !o.dump && o.hitter === h; }); });
       var caller = callers.length ? pick(callers) : myRole;           // co-op: either of you can call for it
       var mine = opts.filter(function (o) { return !o.disabled && !o.dump && o.hitter === caller; });
@@ -1989,7 +1994,7 @@
   async function resolveHit(atk, def, hitter, st, plan, blockers, lean, superBlock, grade, contact, setterRole) {
     var A = atk.roster[hitter], dirA = atk.side === 0 ? 1 : -1, dirD = -dirA, n = blockers.length;
     var SP = atk.roster[setterRole] || atk.roster.S;
-    var setQ = clamp((grade === 2 ? 1 : grade === 1 ? 0.75 : 0.5) + (st.setAdj || 0) + ((SP.tec || 70) - 72) / 300, 0.4, 1.1);   // the setter's technique
+    var setQ = clamp((grade === 2 ? 1 : grade === 1 ? 0.75 : 0.5) + (st.setAdj || 0) + ((SP.tec || 70) - 72) / 300 + ps(SP, "soft_hands") * 0.05, 0.4, 1.15);   // the setter's technique
     var Bs = blockers.map(function (r) { return def.roster[r]; });
     var blkAvg = n ? Bs.reduce(function (a, b) { return a + b.blk; }, 0) / n : 0;
     var superSpike = plan.type === "super", type = superSpike ? "spike" : plan.type, target = plan.target;
@@ -2012,7 +2017,7 @@
 
     // height & reach duel: spike reach vs the best block reach in front of the hitter
     var topBlock = n ? Bs.reduce(function (m, b) { return b.blockReach > m.blockReach ? b : m; }) : null;
-    var reachDiff = n ? A.spikeReach - topBlock.blockReach : 0;
+    var reachDiff = n ? A.spikeReach - topBlock.blockReach + ps(A, "high_point") * 4 + (st.pipe ? ps(A, "pipe") * 5 : 0) : 0;
     if (plan.jump != null) reachDiff += (plan.jump - 0.6) * 25;           // a late or early jump costs reach
     if (n && Math.abs(reachDiff) >= 12 && Math.random() < 0.45) {
       feed(-1, reachDiff > 0 ? A.name + " (" + A.spikeReach + "cm reach) is hitting over the block!"
@@ -2068,6 +2073,7 @@
              : geo.zone === "seam" ? 0.14 : 0.04;
       stuffAdj = clamp(-reachDiff / 250, -0.15, 0.15);
     }
+    if (n && type === "spike") { if (st.tempo < 0.6) pTouch *= 1 - ps(A, "quick_strike") * 0.12; if (st.pipe) pTouch *= 1 - ps(A, "pipe") * 0.08; }
     if (n && type === "tip") pTouch = 0.1;
     if (n && type === "wipe") pTouch = 0.95;
     if (Math.random() < clamp(pTouch, 0, 0.92)) {
@@ -2080,14 +2086,14 @@
       } else if (type === "tip") outcome = "soft";
       else {
         var zone = geo.zone;
-        var stuffP = zone === "in" ? clamp(0.19 + (blkAvg - A.att) / 250 + (n - 1) * 0.04 + (superBlock ? 0.3 : 0) - (superSpike ? 0.2 : 0) + stuffAdj, 0.05, 0.7)
+        var stuffP = zone === "in" ? clamp(0.19 + (blkAvg - A.att) / 250 + (n - 1) * 0.04 + (superBlock ? 0.3 : 0) - (superSpike ? 0.2 : 0) + stuffAdj + ps(Btouch, "stuff_block") * 0.06, 0.05, 0.75)
                    : zone === "edge" ? 0.07 : 0.03;
         var toolP = (quickMB ? 0.04 : pin ? 0.16 : 0.08) +
                     (A.att - blkAvg) / 400 +
                     clamp(reachDiff / 250, -0.06, 0.08) +           // hitting off high hands
                     (n === 1 ? 0.03 : 0) - (readRight ? 0.04 : 0);
         toolP = clamp(toolP, 0.03, 0.34);
-        if (zone === "edge") toolP = geo.outside ? clamp(toolP + 0.22, 0.25, 0.5) : toolP + 0.03;   // off the outside hand
+        if (zone === "edge") toolP = (geo.outside ? clamp(toolP + 0.22, 0.25, 0.5) : toolP + 0.03) + ps(A, "tool_master") * 0.07;   // off the outside hand
         else if (zone !== "in") toolP = 0.12;
         var offP = zone === "in" ? 0.07 : 0.14, rebP = zone === "in" ? 0.08 : 0.03;
         outcome = r < stuffP ? "stuff" : r < stuffP + toolP ? "tool" : r < stuffP + toolP + offP ? "offblock" :
@@ -2195,9 +2201,9 @@
       timing = await timingBar((o.soft ? "PLAY THE TOUCH — " : o.type === "tip" ? "CHASE THE TIP — " : "DIG — ") + D.name + " vs " + o.A.name + " (ATT " + o.A.att + ")!",
                                duelSpeed(o.A.att, D.def, o.superSpike || o.A.flow) * (o.soft ? 1.25 : o.type === "tip" ? 1.1 : 0.9),
                                0.26 + (D.def - o.A.att) / 250 - (o.superSpike ? 0.07 : 0) - (o.type === "spike" ? (1 - o.st.tempo) * 0.05 : 0) +
-                               (o.soft ? 0.08 : 0) + (o.type === "tip" ? 0.05 : 0) + clutchAdj(D), digRole);
+                               (o.soft ? 0.08 : 0) + (o.type === "tip" ? 0.05 - ps(o.A, "feint") * 0.04 : 0) + ps(D, "acrobat") * 0.035 + clutchAdj(D), digRole);
       fast();
-    } else timing = autoTiming(D.def);
+    } else timing = autoTiming(D.def + ps(D, "acrobat") * 6 - (o.type === "tip" ? ps(o.A, "feint") * 8 : 0));
     await flight;
 
     async function killed(text, txtMsg) {
