@@ -251,66 +251,131 @@
   // ---------- the spike reveal ----------
   function best(res) { return res.map(function (x) { return x.card.r; }).sort(function (a, b) { return ORDER.indexOf(a) - ORDER.indexOf(b); })[0]; }
   function fxColor(r, t) { return r === "M" ? "hsl(" + Math.floor(t / 4) % 360 + ",100%,60%)" : RAR[r].col; }
+// ---------- the pull: a cinematic spike, a rarity tease, a Mythic scene, then cards to flip ----------
+  // (colour tells the rarity; higher rarity = longer, louder; tap to speed up, SKIP / Space / Enter to jump to the cards)
   function spikeReveal(res) {
     return new Promise(function (resolve) {
-      var top = best(res), fx = document.createElement("div");
+      var top = best(res), myths = res.filter(function (x) { return x.card.r === "M"; }).slice(0, 3);
+      var fake = top === "E" || top === "L" || top === "M";                  // the trail starts one tier lower, then "upgrades"
+      var tease = fake ? ORDER[ORDER.indexOf(top) + 1] : top;
+      var fx = document.createElement("div");
       fx.id = "gachaFx";
       fx.innerHTML = "<canvas width='480' height='640'></canvas><div class='gfx-cards hidden'></div>" +
-        "<button class='btn gfx-skip'>SKIP ▸▸</button><button class='btn big gfx-done hidden'>CONTINUE</button>";
+        "<div class='gfx-bar'><button class='btn gfx-all hidden'>REVEAL ALL</button><button class='btn gfx-skip'>SKIP ▸▸</button><button class='btn big gfx-done hidden'>CONTINUE</button></div>";
       document.body.appendChild(fx);
-      var cv = fx.querySelector("canvas"), c = cv.getContext("2d"), t0 = performance.now(), raf = 0, shown = false;
+      var cv = fx.querySelector("canvas"), c = cv.getContext("2d"), t = 0, last = performance.now(), raf = 0, stage = "spike", speed = 1, mi = 0, sceneT = 0, done = false;
       c.imageSmoothingEnabled = false;
-      var setter = VB.Engine.makeSprite("#2b3445", { skin: "#2b3445", hair: "#2b3445", style: "flat" }, "#3a4558");
-      var hitter = VB.Engine.makeSprite("#2b3445", { skin: "#2b3445", hair: "#2b3445", style: "spiky" }, "#3a4558");
-      var parts = [];
-      function ballAt(t) {
-        if (t < 900) { var u = t / 900; return { x: 360 - u * 150, y: 380 - Math.sin(u * Math.PI) * 260 - u * 40 }; }   // the set
-        if (t < 1150) return { x: 210, y: 340 - (t - 900) / 250 * 60 };
-        var v = Math.min(1, (t - 1150) / 300);                                                        // the spike
-        return { x: 210 - v * 110, y: 280 + v * 300 };
+      var dark = { skin: "#d8b8a0", hair: "#17120d", style: "spiky", mouth: true };
+      var setter = VB.Engine.makeSprite("#1b2a4a", { skin: "#d8b8a0", hair: "#17120d", style: "bowl", mouth: true }, "#ffd21e", "trim", 2);
+      var hitter = VB.Engine.makeSprite("#1b2a4a", dark, "#ffd21e", "trim", 10);
+      var parts = [], feathers = [], cracks = [];
+      function col(r, tt) { return fxColor(r, tt); }
+      function trailRarity(tt) { return tt < 1350 || !fake ? tease : top; }
+      function ballAt(tt) {
+        if (tt < 900) { var u = tt / 900; return { x: 370 - u * 150, y: 400 - Math.sin(u * Math.PI) * 270 - u * 40 }; }
+        if (tt < 1150) return { x: 220, y: 360 - (tt - 900) / 250 * 60 };
+        var v = Math.min(1, (tt - 1150) / 320); return { x: 220 - v * 120, y: 300 + v * 285 };
       }
-      function frame(now) {
-        var t = now - t0;
-        var shake = t > 1150 && t < 1550 ? (Math.random() - 0.5) * 10 : 0;
-        c.setTransform(1.15, 0, 0, 1.15, shake - 30, shake - 95);            // frame the action
-        c.fillStyle = "#070a12"; c.fillRect(-10, -10, 500, 660);
-        // floor + net
-        c.fillStyle = "#1a2236"; c.fillRect(0, 560, 480, 80);
-        c.fillStyle = "#cfd8e3"; c.fillRect(240, 330, 4, 230); c.fillRect(150, 330, 180, 6);
-        for (var i = 0; i < 9; i++) { c.fillStyle = "rgba(207,216,227,0.4)"; c.fillRect(150 + i * 20, 336, 1, 40); }
-        // setter tosses, hitter approaches and jumps
-        c.drawImage(setter, 330, 470, 48, 64);
-        var jy = t < 600 ? 0 : t < 1150 ? -Math.sin(Math.min(1, (t - 600) / 550) * Math.PI / 2) * 190 : -190 + Math.min(1, (t - 1150) / 500) * 190;
-        var hx = t < 600 ? 60 + t / 600 * 110 : 170;
-        if (t > 600) { c.globalAlpha = 0.35; c.fillStyle = fxColor(top, t); c.beginPath(); c.arc(hx + 24, 500 + jy + 32, 44, 0, 6.28); c.fill(); c.globalAlpha = 1; }
-        c.drawImage(hitter, hx, 470 + jy, 48, 64);
-        if (t > 1000 && t < 1250) { c.fillStyle = "#e9eef4"; c.fillRect(hx + 30, 450 + jy, 8, 24); }        // the swing
-        // ball + rarity trail
-        var bp = ballAt(Math.min(t, 1450));
-        if (t > 1150 && t < 1450) {
-          for (var k = 0; k < 10; k++) { var q = ballAt(t - k * 22); c.globalAlpha = 0.6 - k * 0.055; c.fillStyle = fxColor(top, t + k * 30); c.beginPath(); c.arc(q.x, q.y, 14 - k, 0, 6.28); c.fill(); }
+      function gym(tt) {
+        var gr = c.createLinearGradient(0, 0, 0, 640); gr.addColorStop(0, "#04060c"); gr.addColorStop(1, "#111a2e"); c.fillStyle = gr; c.fillRect(-20, -20, 520, 680);
+        for (var k = 0; k < 3; k++) {                                         // sweeping spotlights
+          var a = Math.sin(tt / 700 + k * 2.1) * 0.35; c.save(); c.translate(80 + k * 160, -20); c.rotate(a);
+          var lg = c.createLinearGradient(0, 0, 0, 640); lg.addColorStop(0, "rgba(255,240,200,0.18)"); lg.addColorStop(1, "rgba(255,240,200,0)");
+          c.fillStyle = lg; c.beginPath(); c.moveTo(-8, 0); c.lineTo(8, 0); c.lineTo(90, 660); c.lineTo(-90, 660); c.fill(); c.restore();
+        }
+        c.fillStyle = "#c98a4a"; c.fillRect(-20, 560, 520, 100); for (var y = 566; y < 660; y += 8) { c.fillStyle = "rgba(90,50,10,0.25)"; c.fillRect(-20, y, 520, 1); }
+        c.fillStyle = "rgba(255,255,255,0.8)"; c.fillRect(-20, 560, 520, 3);
+        c.fillStyle = "#cfd8e3"; c.fillRect(250, 330, 4, 232); c.fillRect(150, 330, 200, 6);
+        for (var i = 0; i < 10; i++) { c.fillStyle = "rgba(207,216,227,0.35)"; c.fillRect(150 + i * 20, 336, 1, 44); }
+      }
+      function vball(x, y, r) {
+        c.fillStyle = "#ffd21e"; c.beginPath(); c.arc(x, y, r, 0, 6.28); c.fill();
+        c.strokeStyle = "#1e4fd8"; c.lineWidth = r * 0.4; c.beginPath(); c.arc(x + r * 0.6, y - r * 0.6, r * 0.9, 1.9, 3.6); c.stroke(); c.beginPath(); c.arc(x - r * 0.6, y + r * 0.6, r * 0.9, -1.2, 0.5); c.stroke();
+        c.fillStyle = "rgba(255,255,255,0.6)"; c.fillRect(x - r * 0.55, y - r * 0.6, r * 0.35, r * 0.35);
+      }
+      function spikeFrame(tt) {
+        var shake = tt > 1460 && tt < 1800 ? (Math.random() - 0.5) * 12 : 0;
+        c.setTransform(1.12, 0, 0, 1.12, shake - 28, shake - 80);
+        gym(tt);
+        c.drawImage(setter, 336, 452, 72, 96);
+        var jy = tt < 600 ? 0 : tt < 1150 ? -Math.sin(Math.min(1, (tt - 600) / 550) * Math.PI / 2) * 200 : -200 + Math.min(1, (tt - 1150) / 520) * 200;
+        var hx = tt < 600 ? 40 + tt / 600 * 128 : 168;
+        if (tt > 600) { c.globalAlpha = 0.4; c.fillStyle = col(trailRarity(tt), tt); c.beginPath(); c.ellipse(hx + 36, 548 + jy, 50, 60, 0, 0, 6.28); c.fill(); c.globalAlpha = 1; }
+        c.fillStyle = "rgba(0,0,0,0.35)"; c.beginPath(); c.ellipse(hx + 36, 560, 30 - Math.min(20, -jy / 10), 6, 0, 0, 6.28); c.fill();
+        c.drawImage(hitter, hx, 452 + jy, 72, 96);
+        if (tt > 1000 && tt < 1260) { c.fillStyle = "#f2d9c4"; c.fillRect(hx + 52, 430 + jy, 9, 30); }        // the swing
+        var bp = ballAt(Math.min(tt, 1470));
+        if (tt > 1150 && tt < 1470) {
+          for (var k = 0; k < 12; k++) { var q = ballAt(tt - k * 20); c.globalAlpha = 0.65 - k * 0.05; c.fillStyle = col(trailRarity(tt - k * 20), tt + k * 30); c.beginPath(); c.arc(q.x, q.y, 16 - k, 0, 6.28); c.fill(); }
           c.globalAlpha = 1;
+          if (fake && tt > 1350 && tt < 1420) { c.globalAlpha = 1 - (tt - 1350) / 70; c.fillStyle = "#ffffff"; c.fillRect(-20, -20, 520, 680); c.globalAlpha = 1; }   // the upgrade flash
         }
-        if (t < 1450) {
-          c.fillStyle = "#ffd21e"; c.beginPath(); c.arc(bp.x, bp.y, 10, 0, 6.28); c.fill();
-          c.strokeStyle = "#1e4fd8"; c.lineWidth = 3; c.beginPath(); c.arc(bp.x, bp.y, 10, -0.6, 1.2); c.stroke();
+        if (tt < 1470) vball(bp.x, bp.y, 11);
+        if (tt > 1470 && !parts.length) {
+          for (var p = 0; p < 90; p++) parts.push({ x: 100, y: 580, vx: rnd(-8, 8), vy: rnd(-14, -2), life: rnd(0.6, 1.5) });
+          for (var cr = 0; cr < 7; cr++) { var a = Math.PI + cr * Math.PI / 6; cracks.push([100, 582, 100 + Math.cos(a) * rnd(40, 110), 582 + Math.sin(a) * rnd(4, 14)]); }
         }
-        // impact burst
-        if (t > 1450 && !parts.length) for (var p = 0; p < 70; p++) parts.push({ x: 100, y: 580, vx: rnd(-7, 7), vy: rnd(-12, -2), life: rnd(0.6, 1.4) });
-        if (t > 1450) {
-          var a = Math.max(0, 1 - (t - 1450) / 450);
-          c.globalAlpha = a; c.fillStyle = fxColor(top, t); c.fillRect(-10, -10, 500, 660); c.globalAlpha = 1;
-          parts.forEach(function (pp) { pp.x += pp.vx; pp.y += pp.vy; pp.vy += 0.3; pp.life -= 0.016; if (pp.life > 0) { c.fillStyle = fxColor(top, t + pp.x * 3); c.fillRect(pp.x, pp.y, 5, 5); } });
-          c.font = '20px "Press Start 2P", monospace'; c.textAlign = "center";
-          c.lineWidth = 6; c.strokeStyle = "#070a12"; c.strokeText(RAR[top].name + "!", 240, 200);
-          c.fillStyle = a > 0.3 ? "#ffffff" : fxColor(top, t); c.fillText(RAR[top].name + "!", 240, 200);
+        if (tt > 1470) {
+          var k2 = Math.max(0, 1 - (tt - 1470) / 450);
+          c.strokeStyle = col(top, tt); c.lineWidth = 3; cracks.forEach(function (l) { c.beginPath(); c.moveTo(l[0], l[1]); c.lineTo(l[2], l[3]); c.stroke(); });
+          c.globalAlpha = k2 * 0.85; c.fillStyle = col(top, tt); c.fillRect(-20, -20, 520, 680); c.globalAlpha = 1;
+          parts.forEach(function (pp) { pp.x += pp.vx; pp.y += pp.vy; pp.vy += 0.3; pp.life -= 0.016; if (pp.life > 0) { c.fillStyle = col(top, tt + pp.x * 3); c.fillRect(pp.x, pp.y, 5, 5); } });
+          var stars = Math.min(RAR[top].stars, Math.floor((tt - 1550) / 160) + 1);
+          c.font = '22px "Press Start 2P", monospace'; c.textAlign = "center"; c.lineWidth = 6; c.strokeStyle = "#070a12";
+          c.strokeText(RAR[top].name + "!", 240, 210); c.fillStyle = k2 > 0.3 ? "#ffffff" : col(top, tt); c.fillText(RAR[top].name + "!", 240, 210);
+          c.font = '26px "Press Start 2P", monospace'; c.fillStyle = "#ffd21e"; c.strokeText("★".repeat(Math.max(0, stars)), 240, 260); c.fillText("★".repeat(Math.max(0, stars)), 240, 260);
         }
-        if (t > 2300) return showCards(true);
+        return tt > 2350 + (top === "L" ? 300 : 0);
+      }
+      // ---- the Mythic scene: rainbow rays, crow feathers, the character rising ----
+      function mythicFrame(card, tt) {
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        var gr = c.createRadialGradient(240, 300, 20, 240, 300, 420); gr.addColorStop(0, "#2a0f3d"); gr.addColorStop(1, "#05030a");
+        c.fillStyle = gr; c.fillRect(0, 0, 480, 640);
+        c.save(); c.translate(240, 300); c.rotate(tt / 2200);
+        for (var i = 0; i < 16; i++) { c.fillStyle = "hsla(" + ((i * 22 + tt / 8) % 360) + ",90%,60%,0.22)"; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 520, i * 0.3927, i * 0.3927 + 0.2); c.fill(); }
+        c.restore();
+        if (feathers.length < 46 && Math.random() < 0.6) feathers.push({ x: rnd(0, 480), y: -20, vy: rnd(0.8, 2), ph: rnd(0, 6), r: rnd(0, 3) });
+        feathers.forEach(function (f) {
+          f.y += f.vy; f.ph += 0.05; var x = f.x + Math.sin(f.ph) * 14;
+          c.save(); c.translate(x, f.y); c.rotate(Math.sin(f.ph) * 0.8 + f.r);
+          c.fillStyle = "#0b0b12"; c.fillRect(-2, -9, 4, 18); c.fillRect(-4, -4, 8, 10); c.fillStyle = "#3a3a5a"; c.fillRect(-1, -9, 1, 18); c.restore();
+        });
+        var spr = card._spr || (card._spr = VB.Engine.makeSprite(card.kit[0], card.face, card.kit[1], VB.Engine.kitPattern(card.team)));
+        var rise = Math.min(1, tt / 900), bounce = rise < 1 ? 0 : Math.sin((tt - 900) / 160) * Math.max(0, 1 - (tt - 900) / 700) * 8;
+        var y = 640 - rise * rise * 470 + bounce;
+        for (var k = 0; k < 3; k++) { c.strokeStyle = "hsla(" + ((tt / 4 + k * 120) % 360) + ",100%,65%," + (0.6 - k * 0.15) + ")"; c.lineWidth = 6; c.beginPath(); c.ellipse(240, y + 250, 110 + k * 22 + Math.sin(tt / 140 + k) * 6, 26 + k * 6, 0, 0, 6.28); c.stroke(); }
+        c.drawImage(spr, 144, y, 192, 256);
+        if (tt > 300) {
+          var title = "★★★★★ MYTHIC";
+          c.font = '20px "Press Start 2P", monospace'; c.textAlign = "center"; c.lineWidth = 6; c.strokeStyle = "#05030a";
+          var w = c.measureText(title).width, x0 = 240 - w / 2;
+          for (var j = 0; j < title.length; j++) { var ch = title[j], cw = c.measureText(ch).width; c.fillStyle = "hsl(" + ((j * 28 + tt / 3) % 360) + ",100%,65%)"; c.strokeText(ch, x0 + cw / 2, 70 + Math.sin(tt / 120 + j) * 4); c.fillText(ch, x0 + cw / 2, 70 + Math.sin(tt / 120 + j) * 4); x0 += cw; }
+        }
+        if (tt > 900) {
+          var nm = card.name.slice(0, Math.min(card.name.length, Math.floor((tt - 900) / 45)));
+          c.font = '16px "Press Start 2P", monospace'; c.fillStyle = "#ffffff"; c.strokeText(nm, 240, 590); c.fillText(nm, 240, 590);
+          if (card.pos) { c.font = '18px "VT323", monospace'; c.fillStyle = "#ffd21e"; c.fillText(card.pos, 240, 614); }
+        }
+        if (tt < 160) { c.fillStyle = "rgba(255,255,255," + (1 - tt / 160) + ")"; c.fillRect(0, 0, 480, 640); }
+        return tt > 2700;
+      }
+      var cued = {};
+      function cue(k, cond, name) { if (cond && !cued[k]) { cued[k] = 1; if (VB.Sfx) VB.Sfx.play(name || k); } }
+      function frame(now) {
+        if (done) return;
+        var dt = Math.min(50, now - last) * speed; last = now; t += dt;
+        if (stage === "spike") { cue("rise", t > 600); cue("spike", t > 1150); cue("bounce", t > 1470); cue({ C: "touch", R: "touch", E: "rare", L: "legend", M: "legend" }[top], t > 1560); }
+        if (stage === "myth") cue("mythic" + mi, sceneT > 0, "mythic");
+        if (stage === "spike") { if (spikeFrame(t)) { if (myths.length) { stage = "myth"; sceneT = 0; mi = 0; feathers = []; speed = 1; } else return showCards(true); } }
+        else if (stage === "myth") { sceneT += dt; if (mythicFrame(myths[mi].card, sceneT)) { mi++; sceneT = 0; feathers = []; if (mi >= myths.length) return showCards(true); } }
         raf = requestAnimationFrame(frame);
       }
+      // ---- the cards: face down, flipping one by one (tap one to flip it now) ----
+      var cards = [];
       function showCards(animate) {
-        if (shown) return; shown = true;
-        cancelAnimationFrame(raf);
+        if (cards.length) return;
+        cancelAnimationFrame(raf); stage = "cards";
         cv.classList.add("hidden");
         var box = fx.querySelector(".gfx-cards");
         var big = res.length > 10, list = big ? res.slice().sort(function (a, b) { return ORDER.indexOf(a.card.r) - ORDER.indexOf(b.card.r) || (b.isNew - a.isNew); }) : res;
@@ -318,21 +383,30 @@
         var head = big ? "<div class='gtally'>" + ORDER.map(function (r) { return "<span class='r" + r + "'>" + RAR[r].name + " ×" + (tally[r] || 0) + "</span>"; }).join("") +
           " <span>NEW ×" + res.filter(function (x) { return x.isNew; }).length + "</span></div>" : "";
         box.innerHTML = head + list.map(function (x, i) {
-          var cd = x.card;
-          if (big) return "<div class='gcard mini r" + cd.r + (animate && i < 12 ? " flip" : "") + "' style='animation-delay:" + (animate && i < 12 ? i * 90 : 0) + "ms'>" +
-            (x.isNew ? "<span class='gnew'>NEW</span>" : "") + "<img src='" + cardImg(cd) + "' alt=''/><div class='gname'>" + esc(cd.name) + "</div></div>";
-          return "<div class='gcard r" + cd.r + (animate ? " flip" : "") + "' style='animation-delay:" + (animate ? i * 140 : 0) + "ms'>" +
-            (x.isNew ? "<span class='gnew'>NEW</span>" : "") + "<img src='" + cardImg(cd) + "' alt=''/>" +
-            "<div class='gname'>" + esc(cd.name) + "</div><div class='gteam'>" + esc((teamOf(cd.team) || {}).name || "") + "</div>" +
-            "<div class='grar'>" + "★".repeat(RAR[cd.r].stars) + " " + RAR[cd.r].name + "</div>" +
-            (x.refund ? "<div class='gteam'>MAXED • +" + x.refund + " 🏐</div>" : "") + "</div>";
+          var cd = x.card, back = "<div class='gback'><span>?</span></div>";
+          if (big) return "<div class='gcard mini r" + cd.r + "' data-i='" + i + "'>" + back + (x.isNew ? "<span class='gnew'>NEW</span>" : "") + "<img src='" + cardImg(cd) + "' alt=''/><div class='gname'>" + esc(cd.name) + "</div></div>";
+          return "<div class='gcard r" + cd.r + "' data-i='" + i + "'>" + back + (x.isNew ? "<span class='gnew'>NEW</span>" : "") + "<img src='" + cardImg(cd) + "' alt=''/>" +
+            "<div class='gname'>" + esc(cd.name) + "</div><div class='gteam'>" + esc(cd.pos && cd.variant ? cd.pos : ((teamOf(cd.team) || {}).name || cd.pos || "")) + "</div>" +
+            "<div class='grar'>" + "★".repeat(RAR[cd.r].stars) + " " + RAR[cd.r].name + "</div>" + (x.refund ? "<div class='gteam'>MAXED • +" + x.refund + " 🏐</div>" : "") + "</div>";
         }).join("");
         box.classList.remove("hidden");
+        cards = Array.prototype.slice.call(box.querySelectorAll(".gcard"));
         fx.querySelector(".gfx-skip").classList.add("hidden");
         fx.querySelector(".gfx-done").classList.remove("hidden");
+        if (!animate) { cards.forEach(function (el) { el.classList.add("open"); }); return; }
+        var allBtn = fx.querySelector(".gfx-all");
+        function open(el) { if (!el.classList.contains("open") && VB.Sfx) VB.Sfx.play("flip"); el.classList.add("open"); if (cards.every(function (k) { return k.classList.contains("open"); })) allBtn.classList.add("hidden"); }
+        if (cards.length > 1) allBtn.classList.remove("hidden");
+        cards.forEach(function (el, i) { el.onclick = function () { open(el); }; setTimeout(function () { open(el); }, 300 + i * (big ? 25 : 220)); });
       }
-      fx.querySelector(".gfx-skip").onclick = function () { showCards(false); };
-      fx.querySelector(".gfx-done").onclick = function () { fx.remove(); resolve(); };
+      function skip() { if (stage !== "cards") showCards(false); }
+      cv.onclick = function () { speed = speed === 1 ? 3 : 6; };
+      fx.querySelector(".gfx-skip").onclick = skip;
+      fx.querySelector(".gfx-all").onclick = function () { cards.forEach(function (el) { el.classList.add("open"); }); this.classList.add("hidden"); };
+      function key(e) { if (e.key === " " || e.key === "Enter") { e.preventDefault(); if (stage !== "cards") skip(); else finish(); } }
+      function finish() { if (done) return; done = true; document.removeEventListener("keydown", key); fx.remove(); resolve(); }
+      document.addEventListener("keydown", key);
+      fx.querySelector(".gfx-done").onclick = finish;
       raf = requestAnimationFrame(frame);
     });
   }
@@ -831,6 +905,7 @@
   VB.Gacha = {
     cards: CARDS,
     coins: function () { return load().coins; },
+    collection: function () { load(); return { own: CARDS.filter(function (c) { return G.owned[c.id]; }).length, total: CARDS.length, pulls: G.pulls || 0, rooms: Object.keys(G.rooms || {}).length }; },
     earn: function (n) { load(); n = Math.round(n || 0); G.coins += n; save(); return n; },
     start: function () {
       return new Promise(async function (res) {

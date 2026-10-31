@@ -21,7 +21,7 @@
   }
 
   // ================== PERSISTENCE ==================
-  function save() { try { localStorage.setItem(SLOT_KEY + C.slot, JSON.stringify(C)); } catch (e) { console.warn(e); } }
+  function save() { try { C.saved = Date.now(); localStorage.setItem(SLOT_KEY + C.slot, JSON.stringify(C)); U.setLast("career", C.slot); } catch (e) { console.warn(e); } }
   function load(slot) { try { return JSON.parse(localStorage.getItem(SLOT_KEY + slot) || "null"); } catch (e) { return null; } }
 
   // ================== WORLD HELPERS ==================
@@ -1250,17 +1250,21 @@
   }
 
   // ================== SLOTS & NEW CAREER ==================
+  function openSlot(n) { C = load(n); Object.keys(C.players).forEach(function (id) { VB.fillAttrs(C.players[id]); }); ensureLeagues(); save(); tab = "news"; sbHook(); return render(); }
   function renderSlots() {
     var html = "<h2 class='hub-h'>PLAYER CAREER</h2><p class='center muted'>🇮🇹 🇯🇵 🇵🇱 🇹🇷 🇧🇷 🇫🇷 🇩🇪 🇰🇷 — 8 leagues • one player • archetypes, skill points, manager objectives</p><div class='slots'>";
     for (var s = 1; s <= SLOTS; s++) {
       var c = load(s);
       if (c) {
-        var p = c.players.you, cl = c.club ? c.clubs[c.club] : null;
-        html += "<div class='card slot'><div class='pname'>SLOT " + s + ": " + esc(p.name) + "</div><div class='muted'>" + VB.FAMILY_NAMES[p.role] + " • OVR " + VB.ovr(p) +
-          " • SEASON " + c.season + " • " + esc(cl ? cl.short : "FREE AGENT") + "</div>" +
-          "<button class='btn' data-act='load' data-arg='" + s + "'>CONTINUE</button> <button class='btn pink' data-act='del' data-arg='" + s + "'>DELETE</button></div>";
+        var p = c.players.you, cl = c.club ? c.clubs[c.club] : null, img = "";
+        try { img = VB.Engine.spriteURL(p.face, cl ? cl.kit : "#888888", cl ? cl.kit2 : null, cl ? VB.Engine.kitPattern(cl.id) : null); } catch (e) {}
+        html += U.slotCard({ img: img, title: "SLOT " + s + ": " + esc(p.name),
+          sub: (c.mode === "coach" ? "HEAD COACH" : VB.FAMILY_NAMES[p.role] + " • OVR " + VB.ovr(p) + " • AGE " + (p.age || "—")) + " • SEASON " + c.season + " • " + esc(cl ? cl.name : "FREE AGENT"),
+          chips: ["🏆 " + ((c.trophies || []).length + (c.coachTrophies || []).length) + " TITLES", "🏅 " + (c.awardsWon || []).length + " AWARDS", "🌍 " + (c.caps || 0) + " CAPS",
+                  "📅 " + (c.history || []).length + " SEASONS DONE", "🕒 " + U.ago(c.saved)],
+          btns: "<button class='btn' data-act='load' data-arg='" + s + "'>CONTINUE</button> <button class='btn pink' data-act='del' data-arg='" + s + "'>DELETE</button>" });
       } else {
-        html += "<div class='card slot'><div class='pname'>SLOT " + s + "</div><div class='muted'>Empty</div><button class='btn' data-act='new' data-arg='" + s + "'>NEW CAREER</button></div>";
+        html += U.slotCard({ title: "SLOT " + s, sub: "Empty — start a new pro career", btns: "<button class='btn' data-act='new' data-arg='" + s + "'>NEW CAREER</button>" });
       }
     }
     html += "</div><div class='hub-actions'><button class='btn pink' data-act='exit'>BACK TO MENU</button></div>";
@@ -1332,7 +1336,7 @@
     if (act === "coopLeave") { VB.Coop.leave(); return render(); }
     if (act === "cam") { var ck = Object.keys(VB.CAMS), cur = localStorage.getItem("retroVB.cam") || "classic"; VB.Engine.setCam(ck[(ck.indexOf(cur) + 1) % ck.length]); return render(); }
     if (act === "menu" || act === "exit") { if (C) save(); C = null; $("hub").onclick = null; var r = exitCareer; exitCareer = null; return r && r(); }
-    if (act === "load") { C = load(+arg); Object.keys(C.players).forEach(function (id) { VB.fillAttrs(C.players[id]); }); ensureLeagues(); save(); tab = "news"; sbHook(); return render(); }
+    if (act === "load") return openSlot(+arg);
     if (act === "del") {
       var ok = await U.modal("DELETE CAREER?", "<p>Slot " + arg + " will be erased for good.</p>", [{ label: "DELETE", value: true, cls: "pink" }, { label: "KEEP IT", value: false }]);
       if (ok) localStorage.removeItem(SLOT_KEY + arg);
@@ -1402,12 +1406,12 @@
   }
 
   VB.Career = {
-    start: function () {
+    start: function (slot) {
       return new Promise(function (res) {
         exitCareer = res; sbHook();
         U.showView("hub");
         $("hub").onclick = onHubClick;
-        renderSlots();
+        if (slot && load(slot)) openSlot(slot); else renderSlots();
       });
     }
   };

@@ -79,6 +79,22 @@
       }).join("") + "</div>";
     },
 
+    // "today" / "yesterday" / "3 days ago" for save slots
+    ago: function (ts) {
+      if (!ts) return "—";
+      var d = Math.floor((Date.now() - ts) / 86400000);
+      return d <= 0 ? "TODAY" : d === 1 ? "YESTERDAY" : d < 30 ? d + " DAYS AGO" : new Date(ts).toLocaleDateString();
+    },
+    // a save slot with a portrait, a headline, key progress chips and buttons
+    slotCard: function (o) {
+      return "<div class='card slot slot-rich'>" + (o.img ? "<img class='slot-face' src='" + o.img + "' alt=''/>" : "<div class='slot-face empty'>?</div>") +
+        "<div class='slot-body'><div class='pname'>" + o.title + "</div><div class='muted'>" + o.sub + "</div>" +
+        (o.chips && o.chips.length ? "<div class='slot-chips'>" + o.chips.map(function (c) { return "<span class='chip'>" + c + "</span>"; }).join("") + "</div>" : "") +
+        "<div class='slot-btns'>" + o.btns + "</div></div></div>";
+    },
+    // the last mode played, for CONTINUE on the main menu
+    setLast: function (mode, slot) { try { localStorage.setItem("retroVB.last", JSON.stringify({ mode: mode, slot: slot || 0, at: Date.now() })); } catch (e) {} },
+
     // page-level dialog; btns: [{ label, value, cls }] → resolves with the chosen value
     modal: function (title, html, btns) {
       return new Promise(function (res) {

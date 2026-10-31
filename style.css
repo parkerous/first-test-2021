@@ -691,3 +691,45 @@ body.coop-guest #rosterBtn, body.coop-guest #tacBtn, body.coop-guest #backBtn { 
 .np-you { margin-top: 10px; background: #eef4ff; border-left: 4px solid #1e63ff; padding: 6px 8px; }
 .np-back { margin: 6px 0; } .np-back summary { cursor: pointer; font-size: 17px; padding: 4px; background: #f3efe4; border: 1px solid #d8cfb8; }
 @media (max-width: 560px) { .np-cols, .np-foot { grid-template-columns: 1fr; } .np-cols article + article { border-left: 0; padding-left: 0; } }
+
+/* pull reveal v2: face-down cards that flip */
+.gfx-bar { display: flex; gap: 10px; justify-content: center; align-items: center; margin: 10px; }
+.gfx-bar .btn { height: auto; min-height: 0; margin: 0; align-self: center; padding: 10px 16px; }
+.gfx-bar .gfx-skip { position: static; }
+#gachaFx canvas { cursor: pointer; }
+.gcard .gback { position: absolute; inset: -4px; border-radius: 10px; z-index: 3; display: flex; align-items: center; justify-content: center;
+  background: repeating-linear-gradient(135deg, #1e4fd8 0 14px, #ffd21e 14px 28px); border: 4px solid #13293f; transition: transform .35s ease-in, opacity .35s ease-in; transform-origin: center; }
+.gcard .gback span { font-family: var(--pixel); font-size: 22px; color: #fff; text-shadow: 0 0 0 #13293f, 2px 2px 0 #13293f; }
+.gcard.rE .gback { box-shadow: 0 0 12px #a64dff; } .gcard.rL .gback { box-shadow: 0 0 18px #ffc21e; } .gcard.rM .gback { box-shadow: 0 0 22px #ff3d7f; animation: gbackm 0.8s linear infinite; }
+@keyframes gbackm { 50% { box-shadow: 0 0 26px #3d8bff; } }
+.gcard.open .gback { transform: rotateY(90deg); opacity: 0; pointer-events: none; }
+.gcard.open.rL, .gcard.open.rM { animation: gpop 0.6s ease-out; }
+.gcard.open.rM { animation: gpop 0.6s ease-out, gmyth 2s linear infinite; }
+@keyframes gpop { 0% { transform: scale(0.9); } 50% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
+/* ---------- menu v2: profile strip, continue, settings, rich save slots ---------- */
+.profile { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: 10px 0; }
+.pstat { background: var(--blue); color: #fff; border: 2px solid var(--blue-d); border-radius: 6px; padding: 6px 4px; text-align: center; box-shadow: 0 3px 0 var(--blue-d); }
+.pstat b { display: block; font-family: var(--pixel); font-size: 13px; color: var(--gold); }
+.pstat span { font-family: var(--text); font-size: 15px; letter-spacing: 0.5px; }
+@media (max-width: 560px) { .profile { grid-template-columns: repeat(3, 1fr); } }
+.card.continue { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; cursor: pointer; padding: 10px 14px;
+  background: linear-gradient(90deg, var(--gold), #fff3a8); border: 3px solid var(--blue-d); box-shadow: 0 4px 0 var(--blue-d); }
+.card.continue:hover { transform: translateY(-1px); filter: brightness(1.04); }
+.card.continue img { width: 48px; height: 64px; image-rendering: pixelated; }
+.card.continue .cont-k { font-family: var(--pixel); font-size: 10px; color: var(--pink); margin-bottom: 4px; animation: contBlink 1.2s steps(2) infinite; }
+@keyframes contBlink { 50% { opacity: 0.45; } }
+.settings { margin: 8px 0; }
+.set-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--blue-l); flex-wrap: wrap; }
+.set-row > span:first-child { font-family: var(--pixel); font-size: 9px; }
+.set-ctl { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.set-ctl input[type=range] { width: 110px; accent-color: var(--blue); }
+.tip { text-align: center; font-family: var(--text); font-size: 18px; color: var(--muted); margin: 10px 0 0; }
+.slot-rich { display: flex; gap: 12px; align-items: flex-start; }
+.slot-face { width: 54px; height: 72px; image-rendering: pixelated; flex: none; background: linear-gradient(#dfeefc, #b9d6f2); border: 2px solid var(--blue-l); border-radius: 6px; }
+.slot-face.empty { display: flex; align-items: center; justify-content: center; font-family: var(--pixel); color: var(--blue-l); font-size: 18px; }
+.slot-body { flex: 1; min-width: 0; }
+.slot-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.slot-chips .chip { font-family: var(--text); font-size: 15px; background: #e6f0fb; color: var(--ink); border: 1px solid var(--blue-l); border-radius: 10px; padding: 0 7px; white-space: nowrap; }
+.slot-btns .btn { margin-top: 8px; }
+.snd-top { margin-left: 6px; }

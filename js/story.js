@@ -71,7 +71,7 @@
   var S = null, exitStory = null, busy = false, tab = "team", setup = null;
 
   // ================== PERSISTENCE / HELPERS ==================
-  function save() { try { localStorage.setItem(SLOT_KEY + S.slot, JSON.stringify(S)); } catch (e) { console.warn(e); } }
+  function save() { try { S.saved = Date.now(); localStorage.setItem(SLOT_KEY + S.slot, JSON.stringify(S)); U.setLast("story", S.slot); } catch (e) { console.warn(e); } }
   function load(slot) { try { return JSON.parse(localStorage.getItem(SLOT_KEY + slot) || "null"); } catch (e) { return null; } }
   function you() { return S.players.you; }
   function P(id) { return S.players[id]; }
@@ -1315,6 +1315,14 @@
       "<div class='tab-body'>" + body + "</div>";
   }
 
+  function openSlot(n) {
+    S = load(n); Object.keys(S.players).forEach(function (id) { VB.fillAttrs(S.players[id]); });
+    if (S.conf == null) S.conf = 50; S.bond = S.bond || {}; if (!S.rival) pickRival();
+    if (!S.ph2) { if (S.phase >= 6) S.phase++; S.ph2 = 1; }                  // the youth camp slotted in before nationals
+    S.papers = S.papers || [];
+    if (S.done && !S.ts && !S.tsDone && S.year === 3) { S.done = false; S.ts = { stage: 0 }; S.year = 4; S.phase = 0; save(); }   // finished stories get the timeskip
+    tab = "team"; return render();
+  }
   // ================== SLOTS & NEW STORY ==================
   function renderSlots() {
     var html = "<h2 class='hub-h'>HAIKYUU!! STORY MODE</h2><p class='center muted'>Join a high-school team as a first-year • three years • Interhigh and Spring Nationals</p><div class='slots'>";
@@ -1322,11 +1330,14 @@
       var c = load(s);
       if (c) {
         var p = c.players.you, t = VB.HQ_ALL.find(function (x) { return x.id === c.school; }) || (c.locals || []).find(function (x) { return x.id === c.school; });
-        html += "<div class='card slot'><div class='pname'>SLOT " + s + ": " + esc(p.name) + "</div><div class='muted'>" + esc(t ? t.name : c.school) + " • " + VB.FAMILY_NAMES[p.role] +
-          " • OVR " + VB.ovr(p) + " • " + (c.done ? "GRADUATED" : yearTxt(c.year)) + "</div>" +
-          "<button class='btn' data-act='load' data-arg='" + s + "'>CONTINUE</button> <button class='btn pink' data-act='del' data-arg='" + s + "'>DELETE</button></div>";
+        var img = ""; try { img = VB.Engine.spriteURL(p.face, t ? t.kit : "#888888", t ? t.kit2 : null, VB.Engine.kitPattern(c.school)); } catch (e) {}
+        html += U.slotCard({ img: img, title: "SLOT " + s + ": " + esc(p.name),
+          sub: esc(t ? t.name : c.school) + " • " + VB.FAMILY_NAMES[p.role] + " • OVR " + VB.ovr(p) + " • " + (c.done ? "GRADUATED" : c.ts ? "TIMESKIP" : yearTxt(c.year)),
+          chips: ["🏆 " + (c.trophies || []).length + " TITLES", "🏅 " + (c.awards || []).length + " AWARDS", "🏐 IH: " + esc(c.ih || "—"), "🌸 SPRING: " + esc(c.spring || "—"),
+                  "📰 " + (c.papers || []).length + " PAPERS", "🕒 " + U.ago(c.saved)],
+          btns: "<button class='btn' data-act='load' data-arg='" + s + "'>CONTINUE</button> <button class='btn pink' data-act='del' data-arg='" + s + "'>DELETE</button>" });
       } else {
-        html += "<div class='card slot'><div class='pname'>SLOT " + s + "</div><div class='muted'>Empty</div><button class='btn' data-act='new' data-arg='" + s + "'>NEW STORY</button></div>";
+        html += U.slotCard({ title: "SLOT " + s, sub: "Empty — start as a first-year", btns: "<button class='btn' data-act='new' data-arg='" + s + "'>NEW STORY</button>" });
       }
     }
     html += "</div><div class='hub-actions'><button class='btn pink' data-act='exit'>BACK TO MENU</button></div>";
@@ -1371,14 +1382,7 @@
     if (act === "hang") { busy = true; try { await hangOut(arg); } finally { busy = false; } save(); return render(); }
     if (act === "look") { busy = true; await VB.editLook(you().face, school().kit, school().kit2, VB.Engine.kitPattern(S.school)); busy = false; save(); return render(); }
     if (act === "menu" || act === "exit") { if (S) save(); S = null; $("hub").onclick = null; var r = exitStory; exitStory = null; return r && r(); }
-    if (act === "load") {
-      S = load(+arg); Object.keys(S.players).forEach(function (id) { VB.fillAttrs(S.players[id]); });
-      if (S.conf == null) S.conf = 50; S.bond = S.bond || {}; if (!S.rival) pickRival();
-      if (!S.ph2) { if (S.phase >= 6) S.phase++; S.ph2 = 1; }                  // the youth camp slotted in before nationals
-      S.papers = S.papers || [];
-      if (S.done && !S.ts && !S.tsDone && S.year === 3) { S.done = false; S.ts = { stage: 0 }; S.year = 4; S.phase = 0; save(); }   // finished stories get the timeskip
-      tab = "team"; return render();
-    }
+    if (act === "load") return openSlot(+arg);
     if (act === "del") {
       var ok = await U.modal("DELETE STORY?", "<p>Slot " + arg + " will be erased for good.</p>", [{ label: "DELETE", value: true, cls: "pink" }, { label: "KEEP IT", value: false }]);
       if (ok) localStorage.removeItem(SLOT_KEY + arg);
@@ -1432,12 +1436,12 @@
 
   VB.drillBar = drillBar;
   VB.Story = {
-    start: function () {
+    start: function (slot) {
       return new Promise(function (res) {
         exitStory = res;
         U.showView("hub");
         $("hub").onclick = onHubClick;
-        renderSlots();
+        if (slot && load(slot)) openSlot(slot); else renderSlots();
       });
     }
   };

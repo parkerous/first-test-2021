@@ -78,7 +78,8 @@
     if (digger) place(digger, DIG_HOME.x, DIG_HOME.y);
     bench.forEach(function (p, i) { place(p, 26 + (i % 2) * 24, 206 + i * 22); p.sitting = true; });
 
-    var balls = [], fx = [], last = performance.now(), clock = 0;
+    var balls = [], fx = [], last = performance.now(), clock = 0, tally = { k: 0, a: 0, d: 0 };
+    var coach = { name: "COACH", spr: VB.Engine.makeSprite("#2b2f3a", { skin: "#e0b48a", hair: "#3a3a3a", style: "crew", mouth: true }, "#ffffff"), x: 331, y: NET + 12, tx: 331, ty: NET + 12, z: 0, vz: 0, coach: true };
     function say(p, txt, sec) { if (p) p.bubble = { text: txt, until: clock + (sec || 1.6) }; }
     // a ball flight: ground path a→b, height z0→z1 with an arc of height h; then optionally bounce and roll
     function fly(a, b, z0, z1, h, dur, o) {
@@ -110,7 +111,7 @@
         spike.ph = "hit"; spike.t = 0.9; spike.jumped = false;
         shock(hh.x, hh.y, SPR_H + 46);
         if (good) fly({ x: hh.x + 4, y: hh.y }, { x: rnd(140, 520), y: rnd(FAR[0], FAR[1] - 18) }, SPR_H + 46, 0, -6, 0.3, { hot: true, bounce: true,
-          end: function () { if (Math.random() < 0.4) say(pick(ps), pick(["NICE KILL!", "WHAT A SPIKE!", "STRAIGHT!", "CROSS!"]), 1.2); } });
+          end: function () { tally.k++; if (Math.random() < 0.4) say(pick(ps), pick(["NICE KILL!", "WHAT A SPIKE!", "STRAIGHT!", "CROSS!"]), 1.2); } });
         else fly({ x: hh.x + 4, y: hh.y }, { x: hh.x + rnd(-20, 20), y: NET + 2 }, SPR_H + 46, NET_TOP - 30, -4, 0.2, { bounce: true, end: function () { say(hh, "Argh — the net!", 1.2); } });
       } else if (spike.ph === "hit" && spike.t <= 0) {
         var q = hitters.shift(); hitters.push(q);
@@ -134,7 +135,7 @@
         else if (srv.ph === 1 && srv.t <= 0.28 && !srv.j) { srv.j = true; jump(server, 34); }
         else if (srv.ph === 1 && srv.t <= 0) {
           srv.ph = 0; srv.j = false; srv.t = rnd(2.6, 3.8); shock(server.x, server.y, SPR_H + 70);
-          fly(server, { x: rnd(150, 520), y: rnd(FAR[0], FAR[1] - 10) }, SPR_H + 70, 0, 34, 0.75, { hot: true, bounce: true });
+          fly(server, { x: rnd(150, 520), y: rnd(FAR[0], FAR[1] - 10) }, SPR_H + 70, 0, 34, 0.75, { hot: true, bounce: true, end: function () { tally.a++; } });
           if (Math.random() < 0.3) say(server, pick(["NICE SERVE!", "ACE!", "ONE MORE!"]), 1.2);
         }
       }
@@ -143,9 +144,10 @@
         dig.t -= dt;
         if (dig.t <= 0) {
           dig.t = rnd(2.4, 3.4); var side = Math.random() < 0.5 ? -1 : 1, spot = { x: DIG_HOME.x + side * 46, y: DIG_HOME.y + rnd(-6, 10) };
-          digger.tx = spot.x - 4; digger.ty = spot.y; digger.run = true;
+          digger.tx = spot.x - 4; digger.ty = spot.y; digger.run = true; coach.swing = clock;
+          if (Math.random() < 0.2) say(coach, pick(["AGAIN!", "LOWER!", "MOVE YOUR FEET!", "GOOD!"]), 1.1);
           fly({ x: 330, y: NET + 12 }, spot, SPR_H + 40, 14, -4, 0.42, { end: function () {
-            digger.dive = { t: 0, dir: side }; fx.push({ k: "dust", x: digger.x, y: digger.y, t: 0 });
+            digger.dive = { t: 0, dir: side }; fx.push({ k: "dust", x: digger.x, y: digger.y, t: 0 }); tally.d++;
             fly(spot, { x: SET_SPOT.x - 20, y: SET_SPOT.y + 16 }, 14, 0, 90, 1.25, { bounce: true });
             if (Math.random() < 0.5) say(digger, pick(["UP!", "GOT IT!", "ONE MORE!"]), 1);
             setTimeout(function () { digger.dive = null; digger.tx = DIG_HOME.x; digger.ty = DIG_HOME.y; }, 650);
@@ -186,6 +188,15 @@
       g.font = '12px "Press Start 2P", monospace'; g.textAlign = "center"; g.textBaseline = "middle";
       g.fillStyle = T.kit2 && T.kit2.toLowerCase() !== T.kit.toLowerCase() ? T.kit2 : "#ffffff";
       g.fillText(T.label.replace(/ \((STORY|CAREER) \d\)/, "").slice(0, 24), 320, 42);
+      // the drill scoreboard (left) and the coach's whiteboard (right)
+      g.fillStyle = "#11151c"; g.fillRect(14, 26, 146, 38); g.strokeStyle = "#5a6270"; g.lineWidth = 2; g.strokeRect(14, 26, 146, 38);
+      g.font = '7px "Press Start 2P", monospace'; g.textAlign = "left"; g.textBaseline = "top";
+      [["KILLS", tally.k, "#ff8a3a"], ["ACES", tally.a, "#7fd8ff"], ["DIGS", tally.d, "#3dff7a"]].forEach(function (c, i) {
+        g.fillStyle = "#9aa3b2"; g.fillText(c[0], 20 + i * 48, 31); g.fillStyle = c[2]; g.font = '12px "Press Start 2P", monospace'; g.fillText(String(c[1] % 1000), 20 + i * 48, 44); g.font = '7px "Press Start 2P", monospace';
+      });
+      g.fillStyle = "#f4f6f8"; g.fillRect(482, 24, 144, 42); g.strokeStyle = "#8a96a6"; g.strokeRect(482, 24, 144, 42);
+      g.fillStyle = "#1e4fd8"; g.font = '13px "VT323", monospace'; g.fillText("TODAY: SPIKE LINE", 488, 26); g.fillStyle = "#e0348a"; g.fillText("PEPPER • SERVE • DIG", 488, 38);
+      g.fillStyle = "#13293f"; g.fillText("1-2-3 FIGHT!!", 488, 50);
       g.fillStyle = "#7a5a32"; g.fillRect(0, 70, CW, 4);                                  // skirting board
       g.fillStyle = "#d9a35b"; g.fillRect(0, 74, CW, CHH - 74);
       for (var y = 78; y < CHH; y += 12) { g.fillStyle = y % 24 ? "rgba(120,70,20,0.10)" : "rgba(255,240,200,0.10)"; g.fillRect(0, y, CW, 6); }
@@ -197,6 +208,7 @@
       for (var k = 0; k < 6; k++) vball(437 + (k % 3) * 9, NET + 33 + Math.floor(k / 3) * 6, 4.5);
       g.fillStyle = "#4a4a4a"; g.fillRect(318, NET + 4, 26, 12);                             // the coach's box
       g.fillStyle = "#8a5a2a"; g.fillRect(14, 200, 52, 10 + bench.length * 22);              // bench
+      for (var wb = 0; wb < Math.min(4, bench.length + 1); wb++) { g.fillStyle = wb % 2 ? "#3a8ad8" : "#e8e8e8"; g.fillRect(70, 206 + wb * 14, 5, 10); g.fillStyle = "#13293f"; g.fillRect(70, 204 + wb * 14, 5, 2); }   // water bottles
     }
     function netDraw() {
       g.fillStyle = "rgba(0,0,0,0.18)"; g.fillRect(64, NET, 512, 4);
@@ -218,12 +230,20 @@
       g.fillRect(x - w / 2, y - 18, w, 18); g.strokeRect(x - w / 2, y - 18, w, 18);
       g.fillStyle = "#13293f"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(t, x, y - 9);
     }
+    function drawCoach() {
+      var sw = coach.swing != null && clock - coach.swing < 0.25;
+      g.fillStyle = "rgba(60,30,0,0.3)"; g.beginPath(); g.ellipse(coach.x, coach.y, 13, 4, 0, 0, 6.28); g.fill();
+      g.drawImage(coach.spr, coach.x - 18, coach.y - SPR_H - 8, 12 * SC, 16 * SC);
+      if (sw) { g.fillStyle = "rgba(255,230,200,0.95)"; g.fillRect(coach.x - 3, coach.y - SPR_H - 22, 5, 15); }      // the arm comes over
+      g.font = '13px "VT323", monospace'; g.textAlign = "center"; g.textBaseline = "top"; var w = g.measureText("COACH").width + 6;
+      g.fillStyle = "rgba(19,41,63,0.75)"; g.fillRect(coach.x - w / 2, coach.y + 3, w, 13); g.fillStyle = "#ffd21e"; g.fillText("COACH", coach.x, coach.y + 3);
+    }
     function drawP(p) {
       var bob = p.walk ? Math.abs(Math.sin(clock * 14 + p.x)) * 2 : 0;
       g.fillStyle = "rgba(60,30,0," + (0.3 - Math.min(0.15, p.z / 300)) + ")"; g.beginPath(); g.ellipse(p.x, p.y, 13 - Math.min(4, p.z / 12), 4, 0, 0, 6.28); g.fill();
       if (p.you) { g.strokeStyle = "#ffd21e"; g.lineWidth = 2; g.beginPath(); g.ellipse(p.x, p.y, 17, 6, 0, 0, 6.28); g.stroke(); }
       if (p.dive) { g.save(); g.translate(p.x, p.y - 8); g.rotate(p.dive.dir * 1.25); g.drawImage(p.spr, -18, -SPR_H + 8, 12 * SC, 16 * SC); g.restore(); }
-      else if (p.sitting) g.drawImage(p.spr, 0, 0, 12, 13, p.x - 18, p.y - 39, 12 * SC, 13 * SC);
+      else if (p.sitting) g.drawImage(p.spr, 0, 0, p.spr.width, p.spr.height * 13 / 16, p.x - 18, p.y - 39, 12 * SC, 13 * SC);
       else {
         g.drawImage(p.spr, p.x - 18, p.y - SPR_H - p.z - bob, 12 * SC, 16 * SC);
         if (p.z > 12) { g.fillStyle = "rgba(255,230,200,0.9)"; g.fillRect(p.x - 15, p.y - SPR_H - p.z - 12, 4, 13); g.fillRect(p.x + 11, p.y - SPR_H - p.z - 12, 4, 13); }   // arms up
@@ -240,10 +260,12 @@
       // shadows of the balls on the floor first
       balls.forEach(function (b) { g.fillStyle = "rgba(60,30,0," + Math.max(0.08, 0.35 - b.z / 400) + ")"; g.beginPath(); g.ellipse(b.x, b.y, Math.max(3, 7 - b.z / 40), 2.5, 0, 0, 6.28); g.fill(); });
       var items = ps.map(function (p) { return { y: p.y, p: p }; }).concat([{ y: NET, net: true }]);
+      items.push({ y: coach.y, coach: true });
       balls.forEach(function (b) { items.push({ y: b.y + 0.5, b: b }); });
       items.sort(function (a, b) { return a.y - b.y; });
       items.forEach(function (it) {
         if (it.net) return netDraw();
+        if (it.coach) return drawCoach();
         if (it.p) return drawP(it.p);
         var b = it.b;
         if (b.hot && !b.rolling) { g.fillStyle = "rgba(255,140,40,0.35)"; g.beginPath(); g.arc(b.x, b.y - b.z, 10, 0, 6.28); g.fill(); }
@@ -255,7 +277,7 @@
         if (e.k === "dust") { g.fillStyle = "rgba(160,120,70," + Math.max(0, 0.55 - e.t) + ")"; g.beginPath(); g.ellipse(e.x, e.y, 4 + e.t * 18, 2 + e.t * 5, 0, 0, 6.28); g.fill(); return e.t < 0.55; }
         return false;
       });
-      ps.forEach(function (p) { if (p.bubble && clock < p.bubble.until) bubble(p.x, p.y - SPR_H - 6 - p.z, p.bubble.text); });
+      ps.concat([coach]).forEach(function (p) { if (p.bubble && clock < p.bubble.until) bubble(p.x, p.y - SPR_H - 6 - p.z - (p.coach ? 8 : 0), p.bubble.text); });
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);

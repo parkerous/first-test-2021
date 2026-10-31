@@ -90,6 +90,9 @@
       (function tick() { var left = end - gclock(); if (left <= 0) res(); else setTimeout(tick, Math.min(50, left)); })();
     });
   }
+  // dead time between points / sets / timeouts follows the PACE setting (timing bars and ball flights never change)
+  var PACES = { fast: 0.45, normal: 1, tv: 1.35 };
+  function rest(ms) { var k = 1; try { k = PACES[localStorage.getItem("retroVB.pace") || "normal"] || 1; } catch (e) {} return sleep(ms * k); }
   function slow() { timeScale = 0.2; }
   function fast() { timeScale = 1; }
   function other(s) { return s === me ? opp : me; }
@@ -132,7 +135,7 @@
     if (run.side === winner) run.n++; else run = { side: winner, n: 1 };
     mom[winner] = Math.min(0.05, (run.n - 1) * 0.015); mom[loser] = 0;
     trail[loser] = Math.max(trail[loser], score[winner] - score[loser]);
-    if (rallyDigs >= 3) { banner("WHAT A RALLY!", rallyDigs + " digs — the crowd is on its feet", "#3dff7a", 1.8); feed(-1, "👏 Standing ovation after a " + rallyDigs + "-dig rally!", true); cheer(); await sleep(500); }
+    if (rallyDigs >= 3) { banner("WHAT A RALLY!", rallyDigs + " digs — the crowd is on its feet", "#3dff7a", 1.8); feed(-1, "👏 Standing ovation after a " + rallyDigs + "-dig rally!", true); cheer(); await rest(500); }
     else if (score[winner] > score[loser] && trail[winner] >= 4 && !comeback[winner]) {
       comeback[winner] = true; banner("COMEBACK!", W0.team.name + " were down " + trail[winner] + " — now they lead", "#3dff7a", 1.8);
       feed(winner, "🔄 COMEBACK! " + W0.team.name + " take the lead after trailing by " + trail[winner] + "!", true); cheer();
@@ -142,15 +145,16 @@
     var to = (cfg && cfg.setsTo) || 15;
     if (run.n >= 4 && tos[loser] > 0 && Math.max(score[0], score[1]) < to) {
       tos[loser]--;
-      await sleep(400);
+      await rest(400);
       banner("TIMEOUT", L0.team.name + " — " + tos[loser] + " left", "#ffffff", 1.6);
       feed(loser, "⏸ TIMEOUT " + L0.team.name + ". Coach: \"" + pick(TIMEOUT_TALK) + "\"", true);
-      await sleep(1700);
+      await rest(1700);
       mom = [0, 0]; run = { side: -1, n: 0 };
     }
   }
   function nearLine(pt) { return Math.min(Math.abs(pt.x - CL), Math.abs(pt.x - CR), Math.abs(pt.y - CB), Math.abs(pt.y - CT)) < 24; }
-  function cheer() { cheerAt = performance.now(); emit({ k: "cheer" }); }
+  function cheer() { cheerAt = performance.now(); emit({ k: "cheer" }); sfx("cheer"); }
+  function sfx(n, o) { if (VB.Sfx) VB.Sfx.play(n, o); }
   // home-crowd chants when the home team serves
   var chant = null, homeIdx = 0;
   function startChant(srv) {
@@ -202,7 +206,8 @@
   // face: { skin, hair, style (index or name), hair2?, ex?: ["glasses","beard","streak","roots"], mouth }
   var KIT_PATS = ["trim", "stripe", "sash", "shoulder", "panel"];
   function kitPattern(id) { var h = 0; String(id || "").split("").forEach(function (ch) { h = (h * 31 + ch.charCodeAt(0)) >>> 0; }); return KIT_PATS[h % KIT_PATS.length]; }
-  function makeSprite(kit, face, kit2, pat) {
+  function makeSprite(kit, face, kit2, pat, num) {
+    if (VB.Sprite) return VB.Sprite.make(kit, face, kit2, pat, num);                 // the 24×32 chibi sprites (js/sprites.js)
     var c = document.createElement("canvas");
     c.width = 12; c.height = 16;
     var q = c.getContext("2d");
@@ -302,12 +307,13 @@
 
   // ================== SIDES ==================
   function newStat() { var l = VB.Stats.newLine(); delete l.mp; return l; }
-  function makeSide(team, side, kit, libKit) {
+  function makeSide(team, side, kit, libKit, nums) {
     var roster = {}, taken = {}, hq = VB.HQ_ALL && VB.HQ_ALL.some(function (t) { return t.id === team.id; });
     ROLES.forEach(function (role) {
       var rec = team.lineup[role], num;
       var face = (hq && rec.id !== "you" && VB.skinFace && VB.skinFace(rec.name)) || rec.face;   // gacha skins dress the canon players
-      do { num = irnd(1, 24); } while (taken[num]); taken[num] = 1;
+      if (nums && nums[role]) num = nums[role]; else { do { num = irnd(1, 24); } while (taken[num]); }
+      taken[num] = 1;
       var reach = VB.reach(rec);
       roster[role] = {
         ref: rec, name: rec.name, num: num, face: face, skill: rec.skill || null, skillName: rec.skillName || null,
@@ -315,7 +321,7 @@
         ps: rec.ps || null,
         srv: rec.srv, rec: rec.rec, set: rec.set, att: rec.att, blk: rec.blk, def: rec.def, men: rec.men || 70, tec: rec.tec || 70, spd: rec.spd || 70,
         height: rec.height, vert: rec.vert, spikeReach: reach.spike, blockReach: reach.block,
-        sprite: makeSprite(role === "L" ? libKit : kit, face, role === "L" ? kit : (kit === team.kit ? team.kit2 : team.kit), kitPattern(team.id)),
+        sprite: makeSprite(role === "L" ? libKit : kit, face, role === "L" ? kit : (kit === team.kit ? team.kit2 : team.kit), kitPattern(team.id), num),
         st: newStat()
       };
     });
@@ -562,10 +568,15 @@
   if (!VB.CAMS[CAM]) CAM = "classic";
   function camP() { return CAM === "high" ? { camY: H + 250, camH: 620, f: 520, hor: -237 } : { camY: H + 830, camH: 930, f: 1440, hor: -690 }; }
   // world (court x, y, height above the floor in px) → screen
-  function proj(x, y, h) { var c = camP(), z = Math.max(80, c.camY - y), s = c.f / z; return { x: CW / 2 + (x - W / 2) * s, y: c.hor + c.camH * s - (h || 0) * s, s: s }; }
-  function unproj(sx, sy) { var c = camP(), z = c.camH * c.f / Math.max(1, sy - c.hor); return { x: W / 2 + (sx - CW / 2) * z / c.f, y: c.camY - z }; }
+  // the TV camera pans gently with the ball (an elevated end-line view keeps serve, set and attack in one frame)
+  var camPan = 0, punchAt = -9999, waveAt = -9999;
+  function proj(x, y, h) { var c = camP(), z = Math.max(80, c.camY - y), s = c.f / z; return { x: CW / 2 + (x - W / 2 - camPan) * s, y: c.hor + c.camH * s - (h || 0) * s, s: s }; }
+  function unproj(sx, sy) { var c = camP(), z = c.camH * c.f / Math.max(1, sy - c.hor); return { x: W / 2 + camPan + (sx - CW / 2) * z / c.f, y: c.camY - z }; }
+  function punchZoom(now) { var k = clamp01(1 - (now - punchAt) / 420); return 1 + 0.045 * Math.sin(k * Math.PI / 2) * k; }
+  function startWave() { waveAt = performance.now(); emit({ k: "wave" }); }
   var BH = 62, LIFT = 2.6, SPR_H = 74, NET_H = 84, trail3 = [];
-  function shake(a) { shakeAt = performance.now(); shakeAmt = a; emit({ k: "shake", a: a }); }
+  function shake(a) { try { if (localStorage.getItem("retroVB.shake") === "off") a = Math.min(a, 1.5); } catch (e) {}
+    shakeAt = performance.now(); shakeAmt = a; if (a >= 7) punchAt = shakeAt; emit({ k: "shake", a: a }); }
   function hitStop(ms) { hitStopUntil = performance.now() + ms; emit({ k: "stop", a: ms }); }
   function jumpLater(s, role, delay, ms, h, kind) { setTimeout(function () { jump(s, role, ms, h, kind); }, delay); }
   function flyBall(from, to, ms, o) {
@@ -574,7 +585,10 @@
     emit({ k: "fly", a: [xy(from), xy(to), ms, o] });
     ball.visible = true;
     ball.spin = o.spin || 0;
+    ball.squashAt = performance.now(); ball.squashAng = Math.atan2(to.y - from.y, to.x - from.x);
+    if ((o.spin || 0) >= 20 || o.trail === "hot") flashes.push({ x: from.x, y: from.y, h: h0, t0: performance.now() });
     ball.trail = o.trail || null; trailPts = [];
+    if (!o.quiet) sfx(o.trail === "hot" || (o.spin || 0) >= 20 ? "spike" : "touch");
     return new Promise(function (res) {
       var t = 0, last = performance.now();
       (function step(now) {
@@ -586,11 +600,63 @@
         ball.x = from.x + (to.x - from.x) * tt + Math.sin(tt * Math.PI * 6) * wob * (1 - tt * 0.4);
         ball.y = from.y + (to.y - from.y) * tt;
         ball.h = h0 + (h1 - h0) * tt + arc * peak;
-        if (tt < 1) requestAnimationFrame(step); else res();
+        if (tt < 1) requestAnimationFrame(step);
+        else {
+          if (h1 === 0 && my === flySeq) {                                   // it hit the floor: a mark and a puff of dust
+            sfx("bounce");
+            marks.push({ x: to.x, y: to.y, t0: performance.now() });
+            rings.push({ x: to.x, y: to.y + 2, t0: gt, col: "rgba(255,255,255,0.8)", r: 16, dur: 0.35 });
+          }
+          res();
+        }
       })(last);
     });
   }
   function ballPos() { return { x: ball.x, y: ball.y }; }
+  var flashes = [], marks = [];
+  function drawBallAt(x, y, r, rot) {
+    var k = clamp01(1 - (performance.now() - (ball.squashAt || 0)) / 140), ang = ball.squashAng || 0;
+    g.save(); g.translate(x, y); g.rotate(ang); g.scale(1 + 0.32 * k, 1 - 0.26 * k); g.rotate(-ang);
+    g.fillStyle = "#ffd21e"; g.beginPath(); g.arc(0, 0, r, 0, 6.283); g.fill();
+    g.save(); g.beginPath(); g.arc(0, 0, r, 0, 6.283); g.clip();
+    g.strokeStyle = "#1e4fd8"; g.lineWidth = Math.max(1.6, r * 0.42);
+    for (var i = 0; i < 3; i++) { var a = rot + i * 2.094; g.beginPath(); g.arc(Math.cos(a) * r * 1.15, Math.sin(a) * r * 1.15, r * 0.95, a + 2.35, a + 3.95); g.stroke(); }
+    var sh = g.createRadialGradient(-r * 0.4, -r * 0.45, r * 0.05, 0, 0, r * 1.05);
+    sh.addColorStop(0, "rgba(255,255,255,0.65)"); sh.addColorStop(0.35, "rgba(255,255,255,0)"); sh.addColorStop(1, "rgba(0,20,80,0.4)");
+    g.fillStyle = sh; g.fillRect(-r, -r, r * 2, r * 2);
+    g.restore();
+    g.strokeStyle = "#13306f"; g.lineWidth = 1.2; g.beginPath(); g.arc(0, 0, r, 0, 6.283); g.stroke();
+    g.restore();
+  }
+  function drawSpeedLines(x, y, r) {
+    var dx = x - (ball.lx == null ? x : ball.lx), dy = y - (ball.ly == null ? y : ball.ly), d = Math.hypot(dx, dy);
+    ball.lx = x; ball.ly = y;
+    if (d < 3 || !(ball.trail === "hot" || ball.spin >= 20)) return;
+    var ux = dx / d, uy = dy / d, nx = -uy, ny = ux;
+    g.strokeStyle = ball.trail === "hot" ? "rgba(255,170,60,0.75)" : "rgba(255,255,255,0.7)"; g.lineWidth = 1.5;
+    [-1, 0, 1].forEach(function (o) {
+      var sx = x + nx * o * r * 0.6 - ux * r * 1.2, sy = y + ny * o * r * 0.6 - uy * r * 1.2, L = r * (2.6 + (o === 0 ? 1.4 : 0));
+      g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx - ux * L, sy - uy * L); g.stroke();
+    });
+  }
+  function drawFlashes(toScreen) {
+    var now = performance.now();
+    flashes = flashes.filter(function (f) { return now - f.t0 < 180; });
+    flashes.forEach(function (f) {
+      var k = 1 - (now - f.t0) / 180, p = toScreen(f), r = (10 + 22 * (1 - k)) * (p.s || 1);
+      g.save(); g.globalAlpha = k; g.strokeStyle = "#ffffff"; g.lineWidth = 2.5; g.translate(p.x, p.y);
+      for (var i = 0; i < 8; i++) { var a = i * 0.785 + 0.2; g.beginPath(); g.moveTo(Math.cos(a) * r * 0.35, Math.sin(a) * r * 0.35); g.lineTo(Math.cos(a) * r, Math.sin(a) * r); g.stroke(); }
+      g.restore();
+    });
+  }
+  function drawMarks(toScreen) {
+    var now = performance.now();
+    marks = marks.filter(function (m) { return now - m.t0 < 1600; });
+    marks.forEach(function (m) {
+      var k = 1 - (now - m.t0) / 1600, p = toScreen(m), s = p.s || 1;
+      g.fillStyle = "rgba(10,20,40," + (0.28 * k) + ")"; g.beginPath(); g.ellipse(p.x, p.y, 7 * s, 3 * s, 0, 0, 6.283); g.fill();
+    });
+  }
   // after a kill the ball keeps travelling and bounces away
   function bounce(from, to) {
     var dx = to.x - from.x, dy = to.y - from.y, d = Math.hypot(dx, dy) || 1;
@@ -677,9 +743,26 @@
     b.beginPath(); b.moveTo(CL, NET - ATK); b.lineTo(CR, NET - ATK); b.stroke();
     b.beginPath(); b.moveTo(CL, NET + ATK); b.lineTo(CR, NET + ATK); b.stroke();
     b.beginPath(); b.moveTo(CL, NET); b.lineTo(CR, NET); b.stroke();
-    // benches + scorer's table
+    // benches with the substitutes and the coach, the scorer's table with its officials
     b.fillStyle = "#3a3f4a"; b.fillRect(CL - 60, NET + 120, 10, 70); b.fillRect(CL - 60, NET - 190, 10, 70);
-    b.fillStyle = "#13293f"; b.fillRect(CR + 50, NET - 30, 8, 60);
+    var mineT = homeIdx === 0 ? home : away, foeT = homeIdx === 0 ? away : home;
+    [[mineT, NET + 120], [foeT, NET - 190]].forEach(function (bt) {
+      var tk = bt[0].kit, tk2 = bt[0].kit2 || "#ffffff";
+      for (var bi = 0; bi < 4; bi++) {
+        var sp = makeSprite(tk, VB.makeFace(bt[0].nat || bt[0].id || "ITA"), tk2, kitPattern(bt[0].id), irnd(10, 24));
+        b.drawImage(sp, 0, 0, sp.width, sp.height * 0.8, CL - 66, bt[1] + bi * 17 - 4, 16, 17);
+      }
+      var coachS = makeSprite("#2b2f3a", VB.makeFace(bt[0].nat || "ITA"), "#ffffff", "trim");
+      b.drawImage(coachS, CL - 44, bt[1] + 22, 18, 24);
+    });
+    b.fillStyle = "#13293f"; b.fillRect(CR + 46, NET - 34, 14, 68); b.fillStyle = "#e8eef7"; b.fillRect(CR + 47, NET - 32, 12, 64);
+    b.fillStyle = "#1e63ff"; b.fillRect(CR + 47, NET - 6, 12, 12);
+    [NET - 26, NET + 14].forEach(function (yy) { b.fillStyle = "#2b2f3a"; b.fillRect(CR + 62, yy, 8, 8); b.fillStyle = "#ffdcc2"; b.fillRect(CR + 63, yy - 6, 6, 6); b.fillStyle = "#17120d"; b.fillRect(CR + 63, yy - 6, 6, 2); });
+    // gloss on the playing surface, and a sponsor print in the free zone
+    var gl = b.createLinearGradient(CL, CT, CR, CB); gl.addColorStop(0, "rgba(255,255,255,0.07)"); gl.addColorStop(0.5, "rgba(255,255,255,0)"); gl.addColorStop(1, "rgba(255,255,255,0.05)");
+    b.fillStyle = gl; b.fillRect(CL, CT, CR - CL, CB - CT);
+    b.globalAlpha = 0.22; b.fillStyle = "#ffffff"; b.font = '12px "Press Start 2P", monospace'; b.textAlign = "center"; b.textBaseline = "middle";
+    b.fillText("MIKASA", (CL + CR) / 2, CT - 9); b.fillText("MIKASA", (CL + CR) / 2, CB + 10); b.globalAlpha = 1;
     b.restore();
 
     // crowd: home fans everywhere, an away section in one corner
@@ -692,8 +775,9 @@
           var roll = Math.random();
           var shirt = roll < 0.22 ? pick(["#ffffff", "#2b2b2b", "#d0d0d0", "#3b5b8c", "#6b6b6b"]) : (awaySec ? (roll < 0.75 ? ak : away.kit2 || "#ffffff") : (roll < 0.8 ? hk : hk2));
           var face = VB.makeFace(pick(["ITA", "JPN", "BRA", "USA", "FRA"]));
-          fans.push({ x: x, y: y, shirt: shirt, skin: face.skin, hair: face.hair, ph: Math.random() * 6.28,
-                      flag: Math.random() < 0.06, flagCol: awaySec ? ak : hk });
+          var flag = Math.random() < 0.06;
+          fans.push({ x: x, y: y, shirt: shirt, skin: face.skin, hair: face.hair, ph: Math.random() * 6.28, empty: Math.random() < 0.06,
+                      flag: flag, stick: !flag && Math.random() < 0.12, flagCol: awaySec ? ak : hk });
         }
       }
     }
@@ -733,7 +817,24 @@
       return c;
     });
   }
+  // the wave rolls around the stands: fans stand up as it passes their column
+  function drawWave(now, blit) {
+    var t = (now - waveAt) / 2600;
+    if (t < 0 || t > 1) return;
+    var wx = -80 + t * (CW + 160);
+    for (var sx = Math.max(0, Math.floor((wx - 60) / 20) * 20); sx < Math.min(CW, wx + 60); sx += 20) blit(sx, 20);
+  }
+  function phoneFlashes(k) {
+    var n = Math.round(14 * k);
+    for (var i = 0; i < n; i++) {
+      var side = Math.random(), x, y;
+      if (side < 0.35) { x = rnd(4, CW - 4); y = rnd(4, 74); } else if (side < 0.7) { x = rnd(4, CW - 4); y = rnd(826, 896); }
+      else if (side < 0.85) { x = rnd(4, 62); y = rnd(90, 810); } else { x = rnd(578, 636); y = rnd(90, 810); }
+      g.fillStyle = "rgba(255,255,255," + rnd(0.6, 1) + ")"; g.fillRect(x, y, 2, 2);
+    }
+  }
   function drawFan(c, f, pose) {
+    if (f.empty) { c.fillStyle = "rgba(0,0,0,0.25)"; c.fillRect(f.x, f.y + 2, 5, 5); return; }
     var lift = (pose === 1 && f.ph > 3) ? 1 : (pose === 2 && f.ph <= 3) ? 2 : (pose === 3 && f.ph > 3) ? 2 : 0;
     var x = f.x, y = f.y - lift;
     c.fillStyle = f.shirt; c.fillRect(x, y + 3, 5, 4);
@@ -742,6 +843,7 @@
     if (pose >= 2) {
       c.fillStyle = f.skin; c.fillRect(x - 1, y - 1, 1, 3); c.fillRect(x + 5, y - 1, 1, 3);
       if (f.flag) { c.fillStyle = "#dddddd"; c.fillRect(x + 6, y - 6, 1, 7); c.fillStyle = f.flagCol; c.fillRect(x + 7, y - 6 + (pose === 3 ? 1 : 0), 5, 3); }
+      else if (f.stick) { c.fillStyle = f.flagCol; c.fillRect(x - 2, y - 5 + (pose === 3 ? 1 : 0), 2, 5); c.fillRect(x + 5, y - 5 + (pose === 2 ? 1 : 0), 2, 5); }
     }
   }
 
@@ -908,8 +1010,8 @@
     gt += sdt;
     if (!paused) stepPlayers(dt);
     if (!bg) { requestAnimationFrame(draw); return; }
-    var sk = shakeAmt * Math.max(0, 1 - (now - shakeAt) / 320);
-    g.setTransform(1, 0, 0, 1, sk ? rnd(-sk, sk) : 0, sk ? rnd(-sk, sk) : 0);
+    var sk = shakeAmt * Math.max(0, 1 - (now - shakeAt) / 320), zm = punchZoom(now);
+    g.setTransform(zm, 0, 0, zm, (1 - zm) * CW / 2 + (sk ? rnd(-sk, sk) : 0), (1 - zm) * CH / 2 + (sk ? rnd(-sk, sk) : 0));
     if (sk) { g.fillStyle = "#05070b"; g.fillRect(-20, -20, CW + 40, CH + 40); }
     if (ball.visible && ball.trail === "hot" && sdt > 0 && Math.random() < 0.7) puffs.push({ x: ball.x + rnd(-3, 3), y: ball.y - ball.h * 30, vx: rnd(-20, 20), vy: rnd(-30, 10), life: 0, max: rnd(0.25, 0.5), col: pick(["#ff7a2a", "#ffb000", "#ffd21e"]) });
     if (CAM !== "classic") { drawBroadcast(now, sdt); g.setTransform(1, 0, 0, 1, 0, 0); requestAnimationFrame(draw); return; }
@@ -918,11 +1020,14 @@
     var cheerAmt = clamp01(1 - (now - cheerAt) / 1100);
     var frame = cheerAmt > 0 ? (Math.floor(now / 120) % 2 ? 3 : 2) : chant ? (Math.floor((now - chant.at) / 300) % 2 ? 2 : 0) : (Math.floor(now / 650) % 2);
     g.drawImage(crowdFrames[frame], 0, 0);
+    drawWave(now, function (sx, w) { g.drawImage(crowdFrames[3], sx, 0, w, CH, sx, 0, w, CH); });
+    if (cheerAmt > 0.25) phoneFlashes(cheerAmt);
     drawJumbotron();
     drawChant(now);
     drawDrama(now);
 
     g.save(); g.translate(OX, OY);
+    drawMarks(function (m) { return { x: m.x, y: m.y, s: 1 }; });
     // net, posts, antennas, officials
     var ns = gt - netShakeAt, shake = ns < 0.45 ? Math.sin(ns * 60) * 2.2 * (1 - ns / 0.45) : 0, NY = NET + shake;
     g.fillStyle = "#1a1a1a";
@@ -1057,12 +1162,10 @@
           g.beginPath(); g.arc(tp.x, tp.y, tp.r * (0.4 + k * 0.6), 0, Math.PI * 2); g.fill();
         });
       } else trailPts = [];
-      g.fillStyle = "#ffd500"; g.beginPath(); g.arc(ball.x, by, r, 0, Math.PI * 2); g.fill();
-      g.strokeStyle = "#1e4fd8"; g.lineWidth = Math.max(1.4, r * 0.3);
-      g.beginPath(); g.arc(ball.x, by, r * 0.62, ball.rot + 0.3, ball.rot + 1.8); g.stroke();
-      g.beginPath(); g.arc(ball.x, by, r * 0.62, ball.rot + Math.PI + 0.3, ball.rot + Math.PI + 1.8); g.stroke();
-      g.strokeStyle = "#17408f"; g.lineWidth = 1; g.beginPath(); g.arc(ball.x, by, r, 0, Math.PI * 2); g.stroke();
+      drawSpeedLines(ball.x, by, r);
+      drawBallAt(ball.x, by, r, ball.rot);
     }
+    drawFlashes(function (f) { return { x: f.x, y: f.y - (f.h || 0) * 30, s: 1 }; });
     drawPopups();
     g.restore();
     g.setTransform(1, 0, 0, 1, 0, 0);
@@ -1070,6 +1173,8 @@
   }
 
   function drawBroadcast(now, sdt) {
+    var panT = ball.visible ? clamp((ball.x - W / 2) * 0.3, -50, 50) : 0;
+    camPan += (panT - camPan) * Math.min(1, sdt * 3 + 0.01);
     var c = camP();
     // arena backdrop: the far stands and the roof lights
     var farY = proj(0, -100, 0).y;
@@ -1078,6 +1183,8 @@
     var cheerAmt = clamp01(1 - (now - cheerAt) / 1100);
     var frame = cheerAmt > 0 ? (Math.floor(now / 120) % 2 ? 3 : 2) : (Math.floor(now / 650) % 2);
     g.drawImage(crowdFrames[frame], 0, 0, CW, 84, 0, Math.max(0, farY - 150), CW, 150);
+    drawWave(now, function (sx, w) { g.drawImage(crowdFrames[3], sx, 0, w, 84, sx, Math.max(0, farY - 150), w, 150); });
+    if (cheerAmt > 0.25) for (var pf = 0; pf < 10 * cheerAmt; pf++) { g.fillStyle = "rgba(255,255,255," + rnd(0.6, 1) + ")"; g.fillRect(rnd(0, CW), rnd(Math.max(0, farY - 150), farY - 10), 2, 2); }
     for (var li = 0; li < 6; li++) { g.fillStyle = "rgba(255,240,200," + (0.25 + 0.1 * Math.sin(now / 400 + li)) + ")"; g.fillRect(60 + li * 100, 8, 28, 5); }
     // the floor, scanline by scanline (Mode-7)
     for (var sy = Math.floor(farY); sy < CH; sy += 2) {
@@ -1089,6 +1196,7 @@
       if (sw <= 1) continue;
       g.drawImage(bg, sx0, srcY, sw, Math.max(1, 2 * z * z / (c.camH * c.f)), dx, sy, sw / k, 2);
     }
+    drawMarks(function (m) { return proj(m.x, m.y, 0); });
     // everything with depth: players, net, ball — far to near
     var items = [{ y: NET, net: true }];
     [opp, me].forEach(function (sd) { if (sd) Object.keys(sd.pos).forEach(function (r) { items.push({ y: sd.pos[r].y, s: sd, r: r }); }); });
@@ -1120,6 +1228,7 @@
       }
       if (sd.side === 0 || f0.s > 0.75) labels.push({ x: f0.x, y: top - 8, t: (isYou ? "YOU " : "") + Pl.name.slice(0, 10), you: isYou, mine: sd.side === 0 });
     });
+    drawFlashes(function (f) { return proj(f.x, f.y, (f.h || 0) * BH); });
     labels.forEach(function (l) { pill(l.t, l.x, l.y, '15px "VT323", monospace', l.you ? "#13293f" : "#ffffff", l.you ? "#ffd21e" : l.mine ? "rgba(14,100,50,0.85)" : "rgba(120,20,60,0.85)"); });
     // effects in world space
     rings = rings.filter(function (q) { return gt - q.t0 < q.dur; });
@@ -1188,10 +1297,8 @@
         g.beginPath(); g.arc(tp.x, tp.y, tp.r * (0.4 + kq * 0.6), 0, Math.PI * 2); g.fill();
       });
     } else trail3 = [];
-    g.fillStyle = "#ffd500"; g.beginPath(); g.arc(bp.x, bp.y, r, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = "#1e4fd8"; g.lineWidth = Math.max(1.4, r * 0.3);
-    g.beginPath(); g.arc(bp.x, bp.y, r * 0.62, ball.rot + 0.3, ball.rot + 1.8); g.stroke();
-    g.beginPath(); g.arc(bp.x, bp.y, r * 0.62, ball.rot + Math.PI + 0.3, ball.rot + Math.PI + 1.8); g.stroke();
+    drawSpeedLines(bp.x, bp.y, r);
+    drawBallAt(bp.x, bp.y, r, ball.rot);
   }
   function setCam(k) { CAM = VB.CAMS[k] ? k : "classic"; try { localStorage.setItem("retroVB.cam", CAM); } catch (e) {} camUI(); }
   var CAM_SHORT = { classic: "CLASSIC", broadcast: "BROADCAST", high: "HIGH CAM" };
@@ -1282,7 +1389,7 @@
         wrap.classList.add("hidden"); timingPop(q); res(q);
       }
       function stop(e) {
-        if (done || paused || (e.target && e.target.closest && e.target.closest("#statsPanel, #rosterBtn, #tacPanel, #tacBtn, #backBtn, #camBtn, #camTop"))) return;
+        if (done || paused || (e.target && e.target.closest && e.target.closest("#statsPanel, #rosterBtn, #tacPanel, #tacBtn, #backBtn, #camBtn, #camTop, #sndTop"))) return;
         done = true;
         e.preventDefault(); cancelAnimationFrame(raf);
         document.removeEventListener("pointerdown", stop, true);
@@ -1505,6 +1612,7 @@
 
   // ================== RALLY FLOW ==================
   async function rally() {
+    if (Math.random() < 0.05) startWave();                              // now and then the stands start a wave
     buildLineup(me, serving); buildLineup(opp, serving);
     var srvSide = serving === 0 ? me : opp, rcvSide = other(srvSide);
     setTargets(srvSide, serveFormation(srvSide));
@@ -1515,16 +1623,16 @@
     }
     if (serving === homeIdx && Math.random() < 0.8) startChant(srvSide);
     preRally();
-    await sleep(700);
+    await rest(700);
     var winner = await serve(srvSide);
     if (winner !== serving) (winner === 0 ? me : opp).rot = ((winner === 0 ? me : opp).rot + 1) % 6;
     score[winner]++; serving = winner;
-    cheer(); refFlagSide = winner; refFlagAt = performance.now(); emit({ k: "ref", s: refFlagSide });
+    cheer(); sfx("whistle"); refFlagSide = winner; refFlagAt = performance.now(); emit({ k: "ref", s: refFlagSide });
     tickCooldowns();
     updateStreaks(winner);
     updateHud();
     await postRally(winner);
-    await sleep(800);
+    await rest(800);
   }
 
   async function serveMotion(s, role, kind, jumpFloat, power) {
@@ -1535,7 +1643,7 @@
       var back = { x: spot.x, y: spot.y + 40 * dir };
       moveTo(s, role, back);
       await sleep(380);
-      var toss = flyBall(back, { x: contact.x, y: contact.y + 6 * dir }, 820, { h0: 0.5, h1: 1.6, peak: 1.6, skew: 0.55, spin: 4 });
+      var toss = flyBall(back, { x: contact.x, y: contact.y + 6 * dir }, 820, { h0: 0.5, h1: 1.6, peak: 1.6, skew: 0.55, spin: 4, quiet: 1 });
       await sleep(200);
       jump(s, role, 420, 2, "approach");
       s.rush[role] = true; moveTo(s, role, spot);
@@ -1550,7 +1658,7 @@
       var back2 = { x: spot.x, y: spot.y + 18 * dir };
       moveTo(s, role, back2);
       await sleep(300);
-      var toss2 = flyBall(back2, contact, 600, { h0: 0.5, h1: 1.1, peak: 0.7, skew: 0.55 });
+      var toss2 = flyBall(back2, contact, 600, { h0: 0.5, h1: 1.1, peak: 0.7, skew: 0.55, quiet: 1 });
       await sleep(220);
       moveTo(s, role, spot);
       await sleep(180);
@@ -1559,7 +1667,7 @@
       ring(contact, "#ffffff", 20, 0.3);
     } else {
       jump(s, role, 300, 0, "set");                                   // tosses it from both hands
-      await flyBall(spot, contact, 520, { h0: 0.5, h1: 0.9, peak: 0.6, skew: 0.6 });
+      await flyBall(spot, contact, 520, { h0: 0.5, h1: 0.9, peak: 0.6, skew: 0.6, quiet: 1 });
       jump(s, role, 240, 3, "serve");
       ring(contact, "#ffffff", 16, 0.25);
     }
@@ -2232,7 +2340,7 @@
       if (!o.soft && nearLine(to) && Math.random() < 0.4) {
         banner("VIDEO CHALLENGE", def.team.name + " say it was out...", "#7fd8ff", 1.5);
         feed(def.side, "📺 " + def.team.name + " challenge the call — it was right on the line...", true);
-        await sleep(1500);
+        await rest(1500);
         if (Math.random() < 0.35) {
           banner("OUT!", "Call overturned — point " + def.team.name, "#ff4d6d", 1.5);
           o.A.st.ae++; feed(def.side, "...OUT by a fingernail! The call is overturned!", true); cheer();
@@ -2457,13 +2565,13 @@
     pow = [c.mine.ovr, c.foe.ovr]; resetDrama(); drama = null;
     if (setNeed > 1) feed(-1, "BEST OF " + (setNeed * 2 - 1) + " SETS — first to " + setNeed + ".");
     while (setsWon[0] < setNeed && setsWon[1] < setNeed) {
-      if (setLog.length) { score = [0, 0]; resetDrama(); updateHud(); feed(-1, "— SET " + (setLog.length + 1) + " —"); msg("SET " + (setLog.length + 1) + " — SWITCH ON!"); await sleep(900); }
+      if (setLog.length) { score = [0, 0]; resetDrama(); updateHud(); feed(-1, "— SET " + (setLog.length + 1) + " —"); msg("SET " + (setLog.length + 1) + " — SWITCH ON!"); await rest(900); }
       while (!(Math.max(score[0], score[1]) >= to && Math.abs(score[0] - score[1]) >= 2)) await rally();
       var sw = score[0] > score[1] ? 0 : 1;
       setsWon[sw]++; setLog.push(score.slice());
       if (setsWon[0] < setNeed && setsWon[1] < setNeed) {
         feed(sw, (sw === 0 ? c.mine.name : c.foe.name) + " take set " + setLog.length + ", " + score[sw] + "-" + score[1 - sw] + "!", true);
-        cheer(); updateHud(); await sleep(1500);
+        cheer(); startWave(); updateHud(); await rest(1500);
         serving = 1 - serving;
       }
     }
@@ -2497,6 +2605,9 @@
     $("tacBtn").addEventListener("click", openTac);
     $("camBtn").addEventListener("click", cycleCam);
     $("camTop").addEventListener("click", cycleCam);
+    function sndUI() { var b = $("sndTop"); if (b && VB.Sfx) b.textContent = VB.Sfx.on() ? "🔊" : "🔇"; }
+    if ($("sndTop")) { sndUI(); $("sndTop").addEventListener("click", function () { VB.Sfx && VB.Sfx.toggle(); sndUI(); }); }
+    window.addEventListener("keydown", function (e) { if ((e.key === "m" || e.key === "M") && !/INPUT|TEXTAREA/.test((e.target || {}).tagName || "") && VB.Sfx) { VB.Sfx.toggle(); sndUI(); } });
     document.addEventListener("keydown", function (e) {             // C switches the camera any time during a match
       if (e.code !== "KeyC" || e.repeat || $("matchView").classList.contains("hidden") || !$("modal").classList.contains("hidden")) return;
       if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
@@ -2552,8 +2663,7 @@
     cfg = c; mode = "role"; myRole = c.myRole; mateRole = c.mateRole; spectating = true;
     var mineKit = c.mine.kit, foeKit = kitClash(c.mine.kit, c.foe.kit) ? (c.foe.kit2 && !kitClash(c.mine.kit, c.foe.kit2) ? c.foe.kit2 : "#f5f5f5") : c.foe.kit;
     var myLib = pickLiberoKit(mineKit, [foeKit]), oppLib = pickLiberoKit(foeKit, [mineKit, myLib]);
-    me = makeSide(c.mine, 0, mineKit, myLib); opp = makeSide(c.foe, 1, foeKit, oppLib);
-    if (c.nums) [me, opp].forEach(function (sd, i) { ROLES.forEach(function (r) { if (c.nums[i][r]) sd.roster[r].num = c.nums[i][r]; }); });
+    me = makeSide(c.mine, 0, mineKit, myLib, c.nums && c.nums[0]); opp = makeSide(c.foe, 1, foeKit, oppLib, c.nums && c.nums[1]);
     var home = c.homeSide === 1 ? c.foe : c.mine, away = c.homeSide === 1 ? c.mine : c.foe;
     homeIdx = c.homeSide === 1 ? 1 : 0; chant = null; drama = null;
     buildArena(home, away, c.league || "VNL", c.floor);
@@ -2593,7 +2703,8 @@
     else if (e.k === "stop") hitStop(a);
     else if (e.k === "cheer") cheer();
     else if (e.k === "net") netShakeAt = gt;
-    else if (e.k === "ref") { refFlagSide = e.s; refFlagAt = performance.now(); }
+    else if (e.k === "wave") waveAt = performance.now();
+    else if (e.k === "ref") { refFlagSide = e.s; refFlagAt = performance.now(); sfx("whistle"); }
     else if (e.k === "chant") chant = { text: e.c.text, col: e.c.col, at: performance.now() };
   }
   function stopSpectate() { spectating = false; bg = null; ball.visible = false; aimPreview = null; }

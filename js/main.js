@@ -3,10 +3,76 @@
   "use strict";
   var U = VB.ui, $ = U.$;
 
+  function readJSON(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
+  // everything you've won, across every save: shown as a profile strip on the home screen
+  function profile() {
+    var P = { titles: 0, awards: 0, caps: 0, saves: 0, wins: 0, losses: 0 };
+    for (var i = 1; i <= 3; i++) {
+      var c = readJSON("vnlCareer.slot" + i), st = readJSON("hqStory.slot" + i);
+      if (c) { P.saves++; P.titles += (c.trophies || []).length + (c.coachTrophies || []).length; P.awards += (c.awardsWon || []).length; P.caps += c.caps || 0; }
+      if (st) { P.saves++; P.titles += (st.trophies || []).length; P.awards += (st.awards || []).length; }
+    }
+    ["retroVNL", "retroHQ"].forEach(function (k) { P.titles += Number(localStorage.getItem(k + ".cups")) || 0; var r = readJSON(k + ".record") || {}; P.wins += r.w || 0; P.losses += r.l || 0; });
+    P.col = VB.Gacha.collection ? VB.Gacha.collection() : { own: 0, total: 0 };
+    P.coins = VB.Gacha.coins();
+    return P;
+  }
+  // CONTINUE: straight back into whatever you played last
+  function lastInfo() {
+    var L = readJSON("retroVB.last"); if (!L) return null;
+    if (L.mode === "career") {
+      var c = readJSON("vnlCareer.slot" + L.slot); if (!c) return null;
+      var cl = c.club && c.clubs ? c.clubs[c.club] : null, p = c.players.you, img = "";
+      try { img = VB.Engine.spriteURL(p.face, cl ? cl.kit : "#888", cl ? cl.kit2 : null, cl ? VB.Engine.kitPattern(cl.id) : null); } catch (e) {}
+      return { L: L, icon: "🏟️", img: img, title: "PLAYER CAREER — " + p.name, sub: "SEASON " + c.season + " • " + (cl ? cl.name : "FREE AGENT") + " • 🏆 " + (c.trophies || []).length };
+    }
+    if (L.mode === "story") {
+      var s = readJSON("hqStory.slot" + L.slot); if (!s) return null;
+      var t = (VB.HQ_ALL || []).find(function (x) { return x.id === s.school; }) || (s.locals || []).find(function (x) { return x.id === s.school; }), q = s.players.you, im = "";
+      try { im = VB.Engine.spriteURL(q.face, t ? t.kit : "#888", t ? t.kit2 : null, VB.Engine.kitPattern(s.school)); } catch (e) {}
+      return { L: L, icon: "🏫", img: im, title: "HAIKYUU!! STORY — " + q.name, sub: (t ? t.name : s.school) + " • " + (s.ts ? "TIMESKIP" : "YEAR " + s.year + " • WEEK " + (s.week || 0)) + " • 🏆 " + (s.trophies || []).length };
+    }
+    if (L.mode === "vnl" || L.mode === "hq") {
+      var T = L.mode === "vnl" ? VB.VNL : VB.HQ; if (!T.hasSave()) return null;
+      return { L: L, icon: L.mode === "vnl" ? "🌍" : "🏐", title: L.mode === "vnl" ? "VNL — TOURNAMENT IN PROGRESS" : "SPRING NATIONALS — IN PROGRESS", sub: "Pick up where you left off" };
+    }
+    return null;
+  }
+  var TIPS = ["Tap the canvas during a pull to speed it up — SKIP or Space jumps to the cards.",
+    "Press C in a match to switch camera, M to mute.", "Match pace FAST trims the dead time between points — timing bars stay the same.",
+    "Mythic pity is guaranteed at 1000 pulls, Legendary at 60.", "In co-op SIDE BY SIDE, a new day starts only when you're both ready.",
+    "PlayStyles upgrade to ★ PLUS at evaluations — check your player sheet.", "A perfect timing on a dig gives the setter a free choice of hitter.",
+    "Equip gacha skins on the Skins tab — they show up in matches and on the practice court."];
+  var showSet = false;
+  function opt(k, def) { try { return localStorage.getItem(k) || def; } catch (e) { return def; } }
+  function settingsHTML() {
+    var pace = opt("retroVB.pace", "normal"), snd = VB.Sfx && VB.Sfx.on(), shk = opt("retroVB.shake", "on");
+    function row(label, html) { return "<div class='set-row'><span>" + label + "</span><span class='set-ctl'>" + html + "</span></div>"; }
+    function seg(key, cur, list) { return list.map(function (o) { return "<button class='btn tiny" + (cur === o[0] ? " on" : "") + "' data-act='set' data-k='" + key + "' data-v='" + o[0] + "'>" + o[1] + "</button>"; }).join(""); }
+    return "<div class='card settings'><div class='pname'>⚙ SETTINGS</div>" +
+      row("🎥 CAMERA", "<button class='btn tiny' data-act='cam'>" + VB.CAMS[opt("retroVB.cam", "classic")] + " ▸</button>") +
+      row("🟫 COURT FLOOR", "<button class='btn tiny' data-act='floor'>" + VB.FLOORS[opt("retroVB.floor", "auto")] + " ▸</button>") +
+      row("⏱ MATCH PACE", seg("retroVB.pace", pace, [["fast", "FAST"], ["normal", "NORMAL"], ["tv", "TV"]])) +
+      row("🔊 SOUND", seg("retroVB.sound", snd ? "on" : "off", [["on", "ON"], ["off", "OFF"]]) +
+        " <input type='range' min='0' max='1' step='0.1' value='" + (VB.Sfx ? VB.Sfx.vol() : 0.6) + "' id='volIn' aria-label='Volume'/>") +
+      row("📳 SCREEN SHAKE", seg("retroVB.shake", shk, [["on", "ON"], ["off", "LOW"]])) +
+      "<div class='hub-actions'><button class='link-btn' data-act='resetVnl'>RESET TOURNAMENT RECORDS</button></div></div>";
+  }
   function renderMenu() {
+    var P = profile(), last = lastInfo();
     $("hub").innerHTML =
       "<div class='practice'><canvas id='practiceCv' width='640' height='340'></canvas>" +
         "<div class='practice-bar'><button class='btn tiny' data-act='pteam' data-arg='-1'>◀</button><span id='practiceLbl'></span><button class='btn tiny' data-act='pteam' data-arg='1'>▶</button></div></div>" +
+      "<div class='profile'>" +
+        "<div class='pstat'><b>" + P.titles + "</b><span>🏆 TITLES</span></div>" +
+        "<div class='pstat'><b>" + P.awards + "</b><span>🏅 AWARDS</span></div>" +
+        "<div class='pstat'><b>" + P.col.own + "/" + P.col.total + "</b><span>🎴 CARDS</span></div>" +
+        "<div class='pstat'><b>" + P.coins.toLocaleString() + "</b><span>🏐 COINS</span></div>" +
+        "<div class='pstat'><b>" + P.wins + "-" + P.losses + "</b><span>🌍 TOURNEY W-L</span></div>" +
+        "<div class='pstat'><b>" + P.saves + "/6</b><span>💾 SAVES</span></div>" +
+      "</div>" +
+      (last ? "<button class='card continue' data-act='continue'>" + (last.img ? "<img src='" + last.img + "' alt=''/>" : "<div class='menu-icon'>" + last.icon + "</div>") +
+        "<div><div class='cont-k'>▶ CONTINUE</div><div class='pname'>" + U.esc(last.title) + "</div><div class='muted'>" + U.esc(last.sub) + "</div></div></button>" : "") +
       "<h2 class='hub-h'>MAIN MENU</h2>" +
       "<div class='menu'>" +
         "<button class='card menu-card' data-act='tourney'><div class='menu-icon'>🏆</div><div class='pname'>TOURNAMENTS</div>" +
@@ -14,15 +80,18 @@
         "<button class='card menu-card' data-act='story'><div class='menu-icon'>🏫</div><div class='pname'>HAIKYUU!! STORY MODE</div>" +
           "<div class='muted'>Join Karasuno, Nekoma, Inarizaki or any school as a first-year. Three years to earn your spot and reach the orange court.</div></button>" +
         "<button class='card menu-card' data-act='gacha'><div class='menu-icon'>🎴</div><div class='pname'>GACHA &amp; SHOWROOM</div>" +
-          "<div class='muted'>🏐 " + VB.Gacha.coins() + " coins. Pull Haikyuu!! cards from Common to Mythic (Christmas Bokuto, Timeskip Hinata...) and show them off.</div></button>" +
+          "<div class='muted'>🏐 " + P.coins.toLocaleString() + " coins • " + P.col.own + " of " + P.col.total + " cards. Pull Haikyuu!! cards from Common to Mythic and show them off in your showroom.</div></button>" +
         "<button class='card menu-card' data-act='coop'><div class='menu-icon'>🤝</div><div class='pname'>CO-OP (ONLINE)</div>" +
           "<div class='muted'>Play with a friend through a link while you're both online: TOGETHER on one team (career or Haikyuu!! story), or SIDE BY SIDE — each with your own career, new days only when you're both ready.</div></button>" +
         "<button class='card menu-card' data-act='career'><div class='menu-icon'>🏟️</div><div class='pname'>PLAYER CAREER</div>" +
           "<div class='muted'>FIFA-style: pick an archetype, earn XP and skill points, hit your manager's objectives and move between 8 leagues (Italy, Japan, Poland, Türkiye, Brazil, France, Germany, Korea).</div></button>" +
       "</div>" +
-      "<div class='hub-actions'><button class='btn' data-act='floor'>COURT FLOOR: " + VB.FLOORS[localStorage.getItem("retroVB.floor") || "auto"] + "</button>" +
-        "<button class='btn' data-act='cam'>CAMERA: " + VB.CAMS[localStorage.getItem("retroVB.cam") || "classic"] + "</button></div>" +
-      "<div class='hub-actions'><button class='link-btn' data-act='resetVnl'>RESET TOURNAMENT RECORDS</button></div>";
+      "<div class='hub-actions'><button class='btn' data-act='settings'>⚙ SETTINGS " + (showSet ? "▲" : "▼") + "</button>" +
+        "<button class='btn' data-act='cam'>🎥 " + VB.CAMS[opt("retroVB.cam", "classic")] + "</button>" +
+        "<button class='btn' data-act='mute'>" + (VB.Sfx && VB.Sfx.on() ? "🔊 SOUND ON" : "🔇 SOUND OFF") + "</button></div>" +
+      (showSet ? settingsHTML() : "") +
+      "<p class='tip'>💡 " + TIPS[Math.floor(Math.random() * TIPS.length)] + "</p>";
+    var vol = $("volIn"); if (vol) vol.oninput = function () { VB.Sfx.setVol(+vol.value); VB.Sfx.play("touch"); };
     mountPractice();
   }
   // the home screen is a practice court: your story school / career club / Karasuno, drilling
@@ -69,8 +138,23 @@
       localStorage.setItem("retroVB.practice", String(((cur + (+b.getAttribute("data-arg"))) % n + n) % n));
       return mountPractice();
     }
-    if (act === "vnl") { $("hub").onclick = null; await VB.VNL.start(); return menu(); }
-    if (act === "hq") { $("hub").onclick = null; await VB.HQ.start(); return menu(); }
+    if (act === "continue") {
+      var li = lastInfo(); if (!li) return renderMenu();
+      $("hub").onclick = null;
+      if (li.L.mode === "career") await VB.Career.start(li.L.slot);
+      else if (li.L.mode === "story") await VB.Story.start(li.L.slot);
+      else await (li.L.mode === "vnl" ? VB.VNL : VB.HQ).start();
+      return menu();
+    }
+    if (act === "settings") { showSet = !showSet; return renderMenu(); }
+    if (act === "mute") { VB.Sfx && VB.Sfx.toggle(); return renderMenu(); }
+    if (act === "set") {
+      try { localStorage.setItem(b.getAttribute("data-k"), b.getAttribute("data-v")); } catch (e) {}
+      if (b.getAttribute("data-k") === "retroVB.sound" && VB.Sfx) VB.Sfx.play("click");
+      return renderMenu();
+    }
+    if (act === "vnl") { U.setLast("vnl"); $("hub").onclick = null; await VB.VNL.start(); return menu(); }
+    if (act === "hq") { U.setLast("hq"); $("hub").onclick = null; await VB.HQ.start(); return menu(); }
     if (act === "gacha") { $("hub").onclick = null; await VB.Gacha.start(); return menu(); }
     if (act === "floor") {
       var cur = localStorage.getItem("retroVB.floor") || "auto", keys = Object.keys(VB.FLOORS);

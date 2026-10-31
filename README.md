@@ -55,6 +55,22 @@ through a link (or a 6-letter code) while you're both online:
   court and bounce, passes stay low. ◀ ▶ picks
   which team is practising.
 - VNL and Haikyuu!! Spring Nationals share one 🏆 TOURNAMENTS card.
+- A PROFILE strip adds up everything across your saves: 🏆 titles, 🏅 awards,
+  🎴 cards collected, 🏐 coins, tournament W-L and saves used.
+- ▶ CONTINUE jumps straight back into the career slot, story slot or tournament
+  you played last.
+- ⚙ SETTINGS: camera, court floor, MATCH PACE (FAST trims the dead time between
+  points, sets and timeouts; TV lingers; timing bars never change), SOUND on/off
+  with a volume slider, and SCREEN SHAKE (LOW turns off the big punch-ins).
+- Save slots show a portrait of your player plus key progress: titles, awards,
+  national caps, seasons, Interhigh / Spring results, newspapers and when you
+  last played.
+
+## Sound
+Small synthesized effects, no audio files: a soft "pok" on passes and sets, a
+hard THWACK on spikes, the floor bounce, the ref's whistle, crowd swells, button
+clicks, and a build-up, chimes and a crowd roar in gacha pulls. 🔊 above the
+court or the M key mutes; volume is in ⚙ SETTINGS.
 
 ## Modes
 
@@ -161,6 +177,15 @@ through a link (or a 6-letter code) while you're both online:
   Karasuno Forever or Standard. Rate-up 50/50 with a guarantee that carries over,
   Epic+ every 10 pulls, Legendary by 60, Mythic by 1000. Duplicates level a card
   (C1-C6).
+- THE PULL: a night gym under spotlights — the setter tosses, your hitter
+  spikes, and the ball's trail colour tells the rarity (blue Rare, purple Epic,
+  gold Legendary, rainbow Mythic). Sometimes the trail starts a tier lower and
+  then flashes white and UPGRADES. Higher rarities hit harder and last longer.
+  Every Mythic gets its own scene: rainbow rays, falling crow feathers, the
+  character rising in a rainbow aura while their name types on. Then the cards
+  land face down and flip one by one (tap a card to flip it, or REVEAL ALL).
+  Tap to speed the pull up ×3/×6; SKIP, Space or Enter jumps straight to the
+  cards. Skipping never changes what you got.
 - SKINS: own a special version of a character? Equip it in the SKINS tab and it
   shows up in Haikyuu!! matches, story mode, the practice court and the
   classroom (e.g. Witch Kenma playing for Nekoma).
@@ -308,6 +333,14 @@ through a link (or a 6-letter code) while you're both online:
   more often.
 
 ## Camera & impact
+- The broadcast camera pans with the ball, and big hits get a quick punch-in
+  zoom. The crowd sits on shuffled seats with staggered poses, some empty seats,
+  thundersticks and phone flashes when it gets loud, and does THE WAVE after
+  sets.
+- Courtside: both benches with subs, coaches, the scorer's table, a glossy floor
+  with sponsor text, line judges and the ref.
+- The ball has rotating blue/yellow panels, squashes on contact, leaves speed
+  lines on hard hits, flashes on big contacts and leaves a mark on the floor.
 - Switch the camera any time: the 🎥 button above the court (it shows the
   current view), the C key mid-match, the 🎥 button on the MATCH DAY screen,
   the story and career hubs, or CAMERA on the menu. It cycles CLASSIC (top-down),
@@ -323,7 +356,7 @@ through a link (or a 6-letter code) while you're both online:
 
 ## Files
 `index.html` (layout) · `style.css` · `js/data.js` (teams, clubs, players) ·
-`js/haikyuu.js` (Spring Nationals teams) · `js/ui.js` · `js/stats.js` (box scores, sims, awards) · `js/engine.js` (match
+`js/haikyuu.js` (Spring Nationals teams) · `js/ui.js` · `js/sprites.js` (24×32 chibi player sprites) · `js/sfx.js` (sound) · `js/stats.js` (box scores, sims, awards) · `js/engine.js` (match
 engine + arena) · `js/vnl.js` (tournaments) · `js/story.js` (Haikyuu story) · `js/hqvoice.js` (story dialogue) · `js/gacha.js` (gacha + showroom) · `js/ceremony.js` (award ceremonies) · `js/career.js` · `js/coop.js` (online co-op) · `js/minigames.js` (training minigames) · `js/practice.js` (home practice court) · `js/main.js` (menu).
 
 ## Deploy to Netlify
