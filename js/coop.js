@@ -504,7 +504,33 @@
     sb.theirReady = false; sbPush(true); if (sb.hook && sb.hook.onPartner) sb.hook.onPartner(); tickerOn();
     VB.Engine.onStart = function () { if (mode === "sb" && sbStream.want) { sbStreamStop(false); setTimeout(sbStreamStart, 60); } };   // my match starts: stream it if my friend is watching
   }
-  function sbLost() { sb.partner = null; sb.theirReady = false; sb.score = ""; tickerShow(""); sbStreamStop(false); sbWatchClose(); if (sb.hook && sb.hook.onPartner) sb.hook.onPartner(); if (sb.myReady) sbCheck(); }
+  // both games say "I'm at this linked match"; resolves false if the other doesn't show up in time
+  function linkReady(day) {
+    send({ t: "sb-link-ready", day: day });
+    return new Promise(function (res) {
+      if (sb.peerLinkDay === day) { sb.peerLinkDay = null; return res(true); }
+      var to = setTimeout(function () { sb.linkWait = null; res(false); }, 25000);
+      sb.linkWait = { day: day, done: function (v) { clearTimeout(to); sb.linkWait = null; res(v); } };
+    });
+  }
+  function linkStart(host) {
+    sb.linked = true; document.body.classList.add("sb-linked");
+    if (host) sbStream.want = true; else sbWatch(true);
+  }
+  function linkEnd(host) {
+    sb.linked = false; document.body.classList.remove("sb-linked");
+    if (host) sbStream.want = false; else setTimeout(function () { sbWatch(false); }, 1500);
+  }
+  function linkSend(day, res) { send({ t: "sb-link-res", day: day, res: res }); }
+  function linkAwait(day) {
+    return new Promise(function (res) {
+      if (sb.peerRes && sb.peerRes.day === day) { var pr = sb.peerRes.res; sb.peerRes = null; return res(pr); }
+      sb.resWait = { day: day, done: function (v) { sb.resWait = null; res(v); } };
+    });
+  }
+  function sbLost() {
+    if (sb.resWait) sb.resWait.done(null);                            // the host dropped mid-match: play it yourself
+    if (sb.linkWait) sb.linkWait.done(false); sb.partner = null; sb.theirReady = false; sb.score = ""; tickerShow(""); sbStreamStop(false); sbWatchClose(); if (sb.hook && sb.hook.onPartner) sb.hook.onPartner(); if (sb.myReady) sbCheck(); }
   function sbPush(force) {
     if (!sb.me || !connected) return;
     var j = JSON.stringify(sb.me);
@@ -539,6 +565,9 @@
     if (m.t === "sb-fr-ans") { if (sb.frWait) { var fw = sb.frWait; sb.frWait = null; fw(!!m.yes); } return; }
     if (m.t === "sb-fr-done") { sb.linked = false; document.body.classList.remove("sb-linked"); setTimeout(function () { sbWatch(false); }, 1900); if (sb.hook && sb.hook.onFriendlyDone) sb.hook.onFriendlyDone(m.res); return; }
     if (m.t === "sb-resync") { sb.sent = ""; sbPush(true); return; }
+    // LINKED TEAM: same club, same day → one league match, both of you in it
+    if (m.t === "sb-link-ready") { if (sb.linkWait && sb.linkWait.day === m.day) sb.linkWait.done(true); else sb.peerLinkDay = m.day; return; }
+    if (m.t === "sb-link-res") { if (sb.resWait && sb.resWait.day === m.day) sb.resWait.done(m.res); else sb.peerRes = { day: m.day, res: m.res }; return; }
     if (m.t === "sb-feed") { if (sb.watching) { var f = $("feed"), d = document.createElement("div"); d.innerHTML = m.html; if (d.firstChild) f.appendChild(d.firstChild); while (f.children.length > 60) f.removeChild(f.firstChild); f.scrollTop = f.scrollHeight; } return; }
     if (m.t === "sb-mend") { if (sb.watching) { var bt = $("sbWatchT"); if (bt) bt.textContent = "🏁 " + (sb.partner ? sb.partner.name : "YOUR FRIEND") + "'S MATCH IS OVER"; setTimeout(sbWatchClose, 1800); } return; }
   }
@@ -639,7 +668,7 @@
     sbSet: function (st) { sb.me = st; sbPush(false); },
     sbReady: sbReady, sbWaiting: function () { return sb.myReady; }, sbGap: sbGap,
     sbNews: function (txt) { sbLog(txt); send({ t: "sb-news", txt: txt }); },
-    sbWatch: sbWatch, sbInvite: sbInvite, sbFriendlyDone: sbFriendlyDone, sbResync: function () { sb.sent = ""; sbPush(true); send({ t: "sb-resync" }); },
+    sbWatch: sbWatch, sbInvite: sbInvite, linkReady: linkReady, linkStart: linkStart, linkEnd: linkEnd, linkSend: linkSend, linkAwait: linkAwait, sbFriendlyDone: sbFriendlyDone, sbResync: function () { sb.sent = ""; sbPush(true); send({ t: "sb-resync" }); },
     matchLink: function () { return connected && (mode === "sb" ? !!sb.linked : role === "host"); }, sbWatching: function () { return !!sb.watching; }, partnerLive: function () { return connected ? sb.score : ""; },
     sbLog: function () { return sb.log || []; }, openChat: function () { chatUI(); if (!chat.open) chat.el.querySelector("[data-c=toggle]").click(); },
     partner: function () { return connected ? sb.partner : null; }, partnerReady: function () { return sb.theirReady; },

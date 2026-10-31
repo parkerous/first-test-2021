@@ -24,6 +24,15 @@ through a link (or a 6-letter code) while you're both online:
     ("⏸ WAITING — X IS CATCHING UP…"), and the one BEHIND advances freely
     without waiting until you're level; then it's lockstep again. The duo panel
     shows how many days apart you are.
+  - 🔗 LINKED TEAM: press 🤝 JOIN <FRIEND>'S CLUB in the duo panel to sign
+    for your friend's club. You keep everything: stats, trophies, awards,
+    level, PlayStyles, history. While you're both on that club and on the same
+    day, every LEAGUE match is played TOGETHER: the two games meet up, one runs
+    the match (the one who sent the link), both of you start and control your
+    own player, and the other sees it live with their own calls. Then BOTH
+    careers record the same result, with each of you getting your own stats,
+    rating, XP and growth. If one of you is injured or doesn't show up within
+    25 s, the other plays that match on their own.
   - ⚔️ / 🤝 FRIENDLIES: from the duo panel, CHALLENGE your friend (different
     clubs: your club vs theirs, each of you controls YOUR OWN player on
     opposite sides of the net) or PLAY TOGETHER (same club: both of you on one

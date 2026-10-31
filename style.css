@@ -901,3 +901,4 @@ body.sb-watching #matchView { padding-top: 40px; }
 /* in a match the court gets the space: the big title hides and the court leaves room for the score bug + caller strip */
 body:has(#matchView:not(.hidden)) .cabinet > .title, body:has(#matchView:not(.hidden)) .cabinet > .subtitle { display: none; }
 .stage { width: min(94vw, 600px, max(330px, calc((100vh - 250px) * 0.711))); }
+.duo-gap.linked { background: #e3ffe9; border-color: #2bd46b; color: #0b5a2b; }

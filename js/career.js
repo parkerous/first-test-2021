@@ -369,8 +369,19 @@
     var myLine = lineupFor(club(mineId), true), foeLine = lineupFor(club(foeId), true);
     var coop = VB.Coop && VB.Coop.live() && mate() && !(C.players.mate.injured > 0);
     if (coop) { if (!(C.injured > 0)) forceIn(myLine, you()); forceIn(myLine, C.players.mate); }
-    var myKey = keyOf(myLine, "you"), mateKey = coop ? keyOf(myLine, "mate") : null;
+    // linked team: both of you on this club today → meet up, both start, one game runs the match
+    var lk = /^ROUND/.test(label) ? linkedTeam() : null, lkOk = false;
+    if (lk) {
+      var lw = document.createElement("div"); lw.className = "coop-wait-box"; lw.innerHTML = "<p class='center big'>🔗 LINKED TEAM</p><p class='center'>Meeting up with <b>" + esc(lk.p.name) + "</b> for " + esc(club(mineId).short) + " vs " + esc(club(foeId).short) + "…</p>";
+      document.body.appendChild(lw);
+      lkOk = await VB.Coop.linkReady(lk.day);
+      lw.remove();
+      if (lkOk) { if (!(C.injured > 0)) forceIn(myLine, you()); forceIn(myLine, C.players.friend); }
+      else news("🔗 " + lk.p.name + " wasn't there in time — you play this one without them.", "you");
+    }
+    var myKey = keyOf(myLine, "you"), mateKey = coop ? keyOf(myLine, "mate") : lkOk && lk.host ? keyOf(myLine, "friend") : null;
     var mine = teamDef(mineId, myLine), foe = teamDef(foeId, foeLine);
+    if (!myKey && lkOk && lk.host) VB.Coop.linkSend(lk.day, null);   // you're injured: your friend plays this one on their own
     if (!myKey) {
       var s = VB.Stats.sim(mine, foe);
       addSeason(s.stats);
@@ -394,11 +405,29 @@
       pre = await VB.Media.pre({ who: you().name, team: club(mineId).short, foe: foe.name, label: label, final: /FINAL/.test(label) && !/SEMI/.test(label) });
       await VB.Media.reaction(pre, null, careerTone(pre.tone, true));
     }
-    U.showView("match");
-    $("recordLine").textContent = "SEASON " + C.season + " • " + club().short + " " + C.leagues[club().league].table[mineId].w + "W-" + C.leagues[club().league].table[mineId].l + "L";
-    var res = await VB.Engine.playMatch({ mine: mine, foe: foe, homeSide: homeSide, mode: "role", myRole: myKey, mateRole: mateKey,
-                                          label: L.name + " • " + label + (mateKey ? " • 🤝 CO-OP" : ""), league: L.name });
-    U.showView("hub");
+    var res = null;
+    if (lkOk && !lk.host) {                                           // your friend's game runs it: watch, make your own calls, get the result
+      VB.Coop.linkStart(false);
+      var got = await VB.Coop.linkAwait(lk.day);
+      VB.Coop.linkEnd(false);
+      if (got) res = { score: got.score, won: got.won, coins: 0, stats: { you: got.stats.friend || VB.Stats.newLine(), friend: got.stats.you || VB.Stats.newLine() },
+                       flows: (got.flows || []).map(function (f) { return { id: f.id === "friend" ? "you" : f.id === "you" ? "friend" : f.id }; }) };
+      await new Promise(function (ok) { setTimeout(ok, 1700); });
+      U.showView("hub");
+    }
+    if (!res) {
+      U.showView("match");
+      $("recordLine").textContent = "SEASON " + C.season + " • " + club().short + " " + C.leagues[club().league].table[mineId].w + "W-" + C.leagues[club().league].table[mineId].l + "L";
+      if (lkOk && lk.host) VB.Coop.linkStart(true);
+      res = await VB.Engine.playMatch({ mine: mine, foe: foe, homeSide: homeSide, mode: "role", myRole: myKey, mateRole: mateKey,
+                                        label: L.name + " • " + label + (lkOk ? " • 🔗 LINKED TEAM" : mateKey ? " • 🤝 CO-OP" : ""), league: L.name, noSimChoice: lkOk || undefined });
+      if (lkOk && lk.host) {
+        VB.Coop.linkSend(lk.day, { score: res.score, won: res.won, stats: { you: res.stats.you, friend: res.stats.friend },
+                                   flows: (res.flows || []).filter(function (f) { return f.id === "you" || f.id === "friend"; }).map(function (f) { return { id: f.id }; }) });
+        VB.Coop.linkEnd(true);
+      }
+      U.showView("hub");
+    }
     addSeason(res.stats);
     var line = res.stats.you, rating = VB.Stats.rating(line, you().role, res.won);
     C.recent.push(rating); (C.srat = C.srat || []).push(rating);
@@ -411,6 +440,10 @@
     if (rating >= 8) news(you().name + " stars with " + VB.Stats.pts(line) + " points — " + rating + "/10.", "you");
     var gtxt = Object.keys(gains).filter(function (k) { return k !== "skill"; }).map(function (k) { return "+" + gains[k] + " " + ATTR_TXT[k]; }).join(", ");
     var mateHTML = "";
+    if (lkOk && res.stats.friend && C.players.friend) {
+      var fr2 = C.players.friend, frr = VB.Stats.rating(res.stats.friend, fr2.role, res.won);
+      mateHTML = "<p class='center'>🔗 " + esc(fr2.name) + ": <b class='rating'>" + frr + "</b> / 10 • " + esc(VB.Stats.lineText(res.stats.friend)) + "</p>";
+    }
     if (mateKey && res.stats.mate) {
       var mp = C.players.mate, mr = VB.Stats.rating(res.stats.mate, mp.role, res.won), mg = mateGrow(mp, mr);
       C.mst = C.mst || { sp: 0 }; C.mst.sp++;                          // P2 earns a skill point per co-op match
@@ -463,6 +496,8 @@
   }
 
   async function playRound(r) {
+    var lk0 = linkedTeam();
+    if (lk0 && !lk0.host && lk0.p.day === lk0.day && lk0.p.next && lk0.p.next.r === r) alignRound(r, lk0.p.next);
     var label = "ROUND " + (r + 1) + "/" + lg(myLeague()).rounds.length;
     var ord = leagueOrder();
     for (var k = 0; k < ord.length; k++) {
@@ -558,7 +593,7 @@
       var cl = club(id);
       Object.keys(COMP).forEach(function (fam) {
         while (famCount(cl, fam) > COMP[fam] + 1) {
-          var worst = cl.roster.filter(function (x) { return x !== "you" && P(x).role === fam; }).sort(function (a, b) { return ovr(P(a)) - ovr(P(b)); })[0];
+          var worst = cl.roster.filter(function (x) { return x !== "you" && x !== "friend" && P(x).role === fam; }).sort(function (a, b) { return ovr(P(a)) - ovr(P(b)); })[0];
           if (!worst) break;
           release(worst);
           news("📤 " + cl.short + " release " + P(worst).name + ".", "transfer");
@@ -1019,12 +1054,46 @@
   function mate() { return C && C.players.mate && C.club && club().roster.indexOf("mate") >= 0 ? C.players.mate : null; }
   // ---------- side by side: your friend has their own career; you share days, results and a world ----------
   function sideBySide() { return !!(VB.Coop && VB.Coop.sideBySide()); }
+  // ---------- LINKED TEAM: you and your friend on the same club play your league matches TOGETHER ----------
+  function nextFixture() {
+    var st = CAL[C.stage]; if (!C.club || !st || st[0] !== "R") return null;
+    var L = lg(myLeague()), rd = L.rounds[+st.slice(1) - 1]; if (!rd) return null;
+    var m = rd.find(function (x) { return x[0] === C.club || x[1] === C.club; });
+    return m ? { r: +st.slice(1) - 1, foe: m[0] === C.club ? m[1] : m[0], home: m[0] === C.club } : null;
+  }
+  function linkedTeam() {
+    if (!sideBySide() || C.mode === "coach" || !C.club) return null;
+    var p = VB.Coop.partner(), fr = C.players.friend;
+    if (!p || p.mode === "coach" || p.clubId !== C.club || !fr || fr.club !== C.club) return null;
+    return { host: VB.Coop.hosting(), p: p, day: C.season * 100 + C.stage };
+  }
+  // the joining side lines its round up with the host's fixture (same opponent; the other two clubs swap partners)
+  function alignRound(r, nx) {
+    var L = lg(myLeague()), rd = L.rounds[r]; if (!rd || !nx) return;
+    var mi = rd.findIndex(function (x) { return x[0] === C.club || x[1] === C.club; }), fi = rd.findIndex(function (x) { return x[0] === nx.foe || x[1] === nx.foe; });
+    if (mi < 0 || fi < 0) return;
+    var mOpp = rd[mi][0] === C.club ? rd[mi][1] : rd[mi][0];
+    if (mOpp !== nx.foe) { var fOpp = rd[fi][0] === nx.foe ? rd[fi][1] : rd[fi][0]; rd[fi] = [mOpp, fOpp]; }
+    rd[mi] = nx.home ? [C.club, nx.foe] : [nx.foe, C.club];
+  }
+  async function joinFriendClub() {
+    var p = VB.Coop.partner(); if (!p || !p.clubId || !C.clubs[p.clubId]) return;
+    var cl = club(p.clubId);
+    var ok = await U.modal("🤝 JOIN " + cl.name + "?", "<p>Move to <b>" + esc(cl.name) + "</b> to play alongside <b>" + esc(p.name) + "</b>.</p>" +
+      "<p>You keep EVERYTHING: your stats, trophies, awards, level, PlayStyles and history. From now on, when you're both on the same day, your league matches are played <b>together</b> — one game runs the match, both of you control your own player.</p>",
+      [{ label: "✍️ SIGN FOR " + cl.short, value: true }, { label: "NOT NOW", value: false, cls: "pink" }]);
+    if (!ok) return;
+    join({ club: cl.id, salary: you().salary || (C.contract && C.contract.salary) || salaryFor(you()), years: Math.max(1, you().years || 2), status: "starter" });
+    news("🤝 " + you().name + " joins " + cl.name + " to play alongside " + p.name + " — a linked team!", "you");
+    VB.Coop.sbNews(you().name + " signs for " + cl.short + " — teammates now!");
+    save(); VB.Coop.sbSet(sbState());
+  }
   function sbState() {
     var me = you(), cl = C.club ? club() : null, last = (C.srat || []).slice(-1)[0];
     var pl = { name: me.name, role: me.role, nat: me.nat, age: me.age, height: me.height, vert: me.vert, face: me.face, pot: me.pot, skill: me.skill || null, ps: me.ps || null };
     VB.ATTRS.forEach(function (a) { pl[a] = me[a]; });
     return { name: me.name, role: me.role, ovr: ovr(me), clubId: cl ? cl.id : null, club: cl ? cl.short : "FREE AGENT", kit: cl ? cl.kit : "#888888",
-             league: cl ? lg(cl.league).name : "", season: C.season, day: C.season * 100 + C.stage, stage: CAL_TXT[CAL[C.stage]] || "ROUND " + CAL[C.stage].slice(1), last: last != null ? last : null, mode: C.mode || "player", player: pl };
+             league: cl ? lg(cl.league).name : "", season: C.season, day: C.season * 100 + C.stage, next: nextFixture(), stage: CAL_TXT[CAL[C.stage]] || "ROUND " + CAL[C.stage].slice(1), last: last != null ? last : null, mode: C.mode || "player", player: pl };
   }
   function syncFriend(st, first) {
     if (!st || !st.player || C.mode === "coach") return;
@@ -1116,9 +1185,10 @@
     var log = VB.Coop.sbLog();
     return "<div class='card coop-card duo'><div class='duo-row'>" + mine +
       "<div class='duo-mid'><div class='duo-ic'>🤝</div><div class='duo-lights'><i class='" + (waiting ? "on" : "") + "'></i><i class='" + (p && VB.Coop.partnerReady() ? "on" : "") + "'></i></div><div class='duo-k'>" + (both ? "GO!" : "NEXT DAY") + "</div></div>" +
-      theirs + "</div>" + (gapTxt ? "<div class='duo-gap'>" + gapTxt + "</div>" : "") +
+      theirs + "</div>" + (linkedTeam() ? "<div class='duo-gap linked'>🔗 LINKED TEAM — you're both at " + esc(club().name) + ": your league matches are played TOGETHER (each of you controls your own player).</div>" : "") + (gapTxt ? "<div class='duo-gap'>" + gapTxt + "</div>" : "") +
       (log.length ? "<div class='duo-log'>" + log.map(function (t) { return "<div>🤝 " + esc(t) + "</div>"; }).join("") + "</div>" : "") +
       "<div class='hub-actions'>" + (p && live ? "<button class='btn' data-act='sbWatch'>📺 WATCH " + esc(p.name) + " LIVE</button>" : "") +
+      (p && p.clubId && C.club && p.clubId !== C.club && C.mode !== "coach" && C.clubs[p.clubId] ? "<button class='btn' data-act='sbJoin'>🤝 JOIN " + esc(p.name) + "'S CLUB (" + esc(club(p.clubId).short) + ")</button>" : "") +
       (p && !live && C.club && C.mode !== "coach" ? "<button class='btn' data-act='sbFriendly'>" + (C.players.friend && C.players.friend.club === C.club ? "🤝 PLAY TOGETHER" : "⚔️ CHALLENGE " + esc(p.name)) + "</button>" : "") +
       (p ? "<button class='btn tiny' data-act='sbSync'>🔄 SYNC</button>" : "") +
       (p ? "<button class='btn' data-act='sbChat'>💬 CHAT</button>" : "") +
@@ -1407,6 +1477,7 @@
     if (act === "sbWatch") { VB.Coop.sbWatch(true); return; }
     if (act === "sbChat") { VB.Coop.openChat(); return; }
     if (act === "sbFriendly") { if (!busy) await friendly(); return; }
+    if (act === "sbJoin") { if (!busy) { busy = true; try { await joinFriendClub(); } finally { busy = false; } } return render(); }
     if (act === "sbSync") { VB.Coop.sbResync(); if (C) VB.Coop.sbSet(sbState()); return render(); }
     if (act === "coopLeave") { VB.Coop.leave(); return render(); }
     if (act === "cam") { var ck = Object.keys(VB.CAMS), cur = localStorage.getItem("retroVB.cam") || "classic"; VB.Engine.setCam(ck[(ck.indexOf(cur) + 1) % ck.length]); return render(); }
