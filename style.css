@@ -896,3 +896,5 @@ body.sb-watching #matchView { padding-top: 40px; }
 .team-grid .crest.tiny { width: 24px; }
 .crest.club { float: right; width: 52px; margin: 0 0 4px 8px; filter: drop-shadow(0 2px 0 rgba(0,0,0,0.25)); }
 .sb-kit { width: 26px !important; height: 30px !important; border: 0 !important; box-shadow: none !important; background-color: transparent !important; background-size: contain; background-position: center; background-repeat: no-repeat; }
+/* while a picker / standings / end screen is open, the score bug stops pinning so it never covers the buttons */
+#matchView:has(.overlay:not(.hidden)) .scorebug { position: static; }
