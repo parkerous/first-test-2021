@@ -16,7 +16,14 @@
   function isFrontSlot(k) { return k >= 2 && k <= 4; }
   function slotPoint(side, k) { return P(side, SLOT_X[k], isFrontSlot(k) ? NET + 50 : NET + 212); }
   function setterSpot(side) { return P(side, 292, NET + 40); }      // the setter's home: between P2 and P3
-  function serveFrom(side) { return P(side, XR - 10, CB + 34); }
+  // servers pick a spot along the end line (their favourite zone, a little different every time) instead of one fixed spot
+  var srvSpot = [null, null];
+  function serveFrom(side) { return srvSpot[side] || P(side, XR - 10, CB + 34); }
+  function pickServeSpot(s) {
+    var Pl = s.roster[s.lineup[1]], h = 0; String(Pl.name).split("").forEach(function (c) { h = (h * 31 + c.charCodeAt(0)) % 997; });
+    var zones = [XR - 10, XM, XL + 10], fav = h % 3, z = Math.random() < 0.6 ? fav : Math.floor(Math.random() * 3);
+    srvSpot[s.side] = P(s.side, clamp(zones[z] + rnd(-22, 22), CL + 6, CR - 6), CB + rnd(24, 52));
+  }
   function clampHalf(s, pt) {
     return {
       x: clamp(pt.x, CL + 12, CR - 12),
@@ -29,6 +36,8 @@
   var SKILL_CD = { spike: 4, block: 4, rec: 3, dump: 5, dig: 3, serve: 3 };
   var LIBERO_KITS = ["#ffd21e", "#111111", "#ffffff", "#00b3a4", "#ff7a00", "#7b4bd0"];
   var SHANK_P = 0.07;
+  // BOT SKILL (⚙ settings): how good every computer-controlled player is — opponents AND your AI teammates
+  function bot() { var v = "hard"; try { v = localStorage.getItem("retroVB.bots") || "hard"; } catch (e) {} return v === "normal" ? 0 : v === "elite" ? 2 : 1; }
   var FLOW_BOOST = 8, FLOW_ATTRS = ["srv", "rec", "set", "att", "blk", "def"];
   var GRADE_TXT = ["POOR PASS", "GOOD PASS", "PERFECT PASS"];
   var BLOCK_TXT = ["NO BLOCK", "SINGLE BLOCK", "DOUBLE BLOCK", "TRIPLE BLOCK"];
@@ -534,8 +543,9 @@
   }
   function coverHitter(s, hitter, setterRole, contact) {
     var dir = s.side === 0 ? 1 : -1, spots = [[-55, 85], [55, 85], [-25, 160], [45, 160]], i = 0;
+    if (s.pos.L && hitter !== "L" && setterRole !== "L") moveTo(s, "L", clampHalf(s, { x: contact.x + (contact.x < W / 2 ? 18 : -18), y: contact.y + dir * 62 }));   // the libero crouches right under the hitter
     s.onCourt.forEach(function (r) {
-      if (r === hitter || r === setterRole) return;
+      if (r === hitter || r === setterRole || r === "L") return;
       var sp = spots[i++ % spots.length];
       moveTo(s, r, clampHalf(s, { x: contact.x + sp[0], y: contact.y + dir * sp[1] }));
     });
@@ -1188,7 +1198,7 @@
       var Pl = it.s.roster[it.r], mine = it.s.side === 0, isYou = mine && mode === "role" && (it.r === myRole || it.r === mateRole);
       var nm = Pl.name.length > 11 ? Pl.name.slice(0, 10) + "." : Pl.name;
       var star = Pl.skill ? (Pl.cd ? " ★" + Pl.cd : " ★") : "";
-      var label = (isYou ? (mateRole ? (it.r === mateRole ? "P2 " : "P1 ") : "YOU ") : "") + (Pl.flow ? "FLOW " : "") + (Pl.marked ? "🎯" : "") + nm + star;
+      var label = (isYou ? (cfg && cfg.tag ? cfg.tag + " " : mateRole ? (it.r === mateRole ? "P2 " : "P1 ") : "YOU ") : "") + (Pl.flow ? "FLOW " : "") + (Pl.marked ? "🎯" : "") + nm + star;
       pill(label, it.dx, freeY(label, it.dx, it.dy - 34, LABEL_FONT, -1), LABEL_FONT,
            isYou ? "#13293f" : Pl.flow ? "#d8f7ff" : (Pl.skill && !Pl.cd) ? "#ffd21e" : "#ffffff",
            isYou ? "#ffd21e" : Pl.flow ? "#0b49d6" : "rgba(10,30,60,0.85)");
@@ -1277,7 +1287,7 @@
         g.drawImage(Pl.sprite, f0.x - ww / 2, top, ww, hh);
         if (kind) { var kk = hh / 40; g.save(); g.translate(f0.x, f0.y - up); g.scale(kk, kk); drawArms(kind, pr, 0, -16, Pl.face.skin, a && a.dir); g.restore(); }
       }
-      if (sd.side === 0 || f0.s > 0.75) labels.push({ x: f0.x, y: top - 8, t: (isYou ? "YOU " : "") + (Pl.marked ? "🎯" : "") + Pl.name.slice(0, 10), you: isYou, mine: sd.side === 0 });
+      if (sd.side === 0 || f0.s > 0.75) labels.push({ x: f0.x, y: top - 8, t: (isYou ? (cfg && cfg.tag ? cfg.tag + " " : "YOU ") : "") + (Pl.marked ? "🎯" : "") + Pl.name.slice(0, 10), you: isYou, mine: sd.side === 0 });
     });
     drawFlashes(function (f) { return proj(f.x, f.y, (f.h || 0) * BH); });
     labels.forEach(function (l) { pill(l.t, l.x, l.y, '15px "VT323", monospace', l.you ? "#13293f" : "#ffffff", l.you ? "#ffd21e" : l.mine ? "rgba(14,100,50,0.85)" : "rgba(120,20,60,0.85)"); });
@@ -1576,7 +1586,7 @@
   }
   // attacking near a sideline: pin hitters, who tool the block off the outside hand
   function isPin(st) { return !st.dump && Math.min(Math.abs(st.x - CL), Math.abs(CR - st.x)) < 90; }
-  function autoTiming(attr) { return clamp01(rnd(0.25, 1) * (0.75 + attr / 400)); }
+  function autoTiming(attr) { var k = bot(); return clamp01(rnd(0.25 + k * 0.08, 1) * (0.75 + attr / 400 + k * 0.035)); }
   function aiTarget(defSide, ovr) {
     var best = null, bestScore = -1;
     for (var i = 0; i < 6; i++) {
@@ -1587,6 +1597,13 @@
     return best;
   }
   function serveTarget(rcv, ovr) {
+    var r = Math.random(), ps0 = passersOf(rcv).filter(function (x) { return rcv.pos[x]; });
+    if (r < 0.28 && ps0.length) {                                   // pick on the weakest passer
+      var weak = ps0.slice().sort(function (a, b) { return rcv.roster[a].rec - rcv.roster[b].rec; })[0], wp = rcv.pos[weak];
+      return clampHalf(rcv, { x: wp.x + rnd(-26, 26), y: wp.y + rnd(-20, 20) });
+    }
+    if (r < 0.42) return P(rcv.side, rnd(CL + 30, CR - 30), NET + rnd(40, 95));          // short, in front of the passers
+    if (r < 0.58) return P(rcv.side, Math.random() < 0.5 ? rnd(CL + 14, CL + 60) : rnd(CR - 60, CR - 14), CB - rnd(10, 45));   // deep corners
     var best = null, bs = -1;
     for (var i = 0; i < 5; i++) {
       var c = P(rcv.side, rnd(CL + 25, CR - 25), NET + rnd(110, 255));
@@ -1676,6 +1693,7 @@
     if (Math.random() < 0.05) startWave();                              // now and then the stands start a wave
     buildLineup(me, serving); buildLineup(opp, serving);
     var srvSide = serving === 0 ? me : opp, rcvSide = other(srvSide);
+    pickServeSpot(srvSide);
     setTargets(srvSide, serveFormation(srvSide));
     setTargets(rcvSide, receiveFormation(rcvSide));
     updateHud();
@@ -1764,7 +1782,7 @@
       sp.power = clamp01(sp.power * (0.85 + 0.3 * tossMod));
       sp.errP = Math.max(0.02, sp.errP + (tossMod < 0.35 ? 0.1 : tossMod >= 1 ? -0.02 : 0));
     }
-    if (!(srv === me && iControl(sr))) { sp.power = clamp01(sp.power + sty(srv).serveRisk); sp.errP = Math.max(0.02, sp.errP + sty(srv).serveRisk * 0.6); }
+    if (!(srv === me && iControl(sr))) { sp.power = clamp01(sp.power + sty(srv).serveRisk + bot() * 0.04); sp.errP = Math.max(0.015, sp.errP + sty(srv).serveRisk * 0.6 - bot() * 0.012); }
     sp.errP += Math.max(0, -edge(srv)) * 0.12;                      // weaker sides miss more serves under pressure
     target = clampHalf(rcv, { x: target.x + rnd(-1, 1) * sp.wobble * 90, y: target.y + rnd(-1, 1) * sp.wobble * 60 });
     var jumpFloat = kind === "float" && Math.random() < 0.4 + (Sv.srv - 70) / 100;
@@ -1783,7 +1801,9 @@
       return credit(rcv);
     }
     if (!errKind && Math.random() < 0.04) return await netCordServe(srv, rcv, Sv, sr, contact, target);
-    if (errKind === "long") target = { x: target.x, y: dirR > 0 ? CB + 24 : CT - 24 };
+    if (errKind === "long") target = Math.random() < 0.35
+      ? { x: target.x < W / 2 ? CL - rnd(14, 55) : CR + rnd(14, 55), y: dirR > 0 ? clamp(target.y + rnd(-40, 40), NET + 40, CB - 20) : clamp(target.y + rnd(-40, 40), CT + 20, NET - 40) }       // wide
+      : { x: clamp(target.x + rnd(-50, 50), CL - 30, CR + 30), y: dirR > 0 ? CB + rnd(12, 70) : CT - rnd(12, 70) };              // long
 
     var flightMs = kind === "spin" ? (superServe ? 680 : 780) : 1150;
     var fo = kind === "spin" ? { h0: 1.5, h1: 0, peak: 0.5, skew: 0.3, spin: 22, trail: superServe || sp.power > 0.7 ? "hot" : "fast" }
@@ -1806,12 +1826,12 @@
       fast();
     } else if (rcv === me) timing = autoTiming(RP.rec + ps(RP, "platform") * 6 - floatM * 6);
     await flight;
-    if (errKind === "long") { msg("LONG — OUT!"); feed(srv.side, "...long! Service error."); Sv.st.se++; return credit(rcv); }
+    if (errKind === "long") { var wide = target.y > CT && target.y < CB; msg(wide ? "WIDE — OUT!" : "LONG — OUT!"); feed(srv.side, wide ? "...wide of the sideline! Service error." : "...long! Service error."); Sv.st.se++; return credit(rcv); }
 
     var useRec = ready(RP, "rec") && (rcv !== me || iControl(rcvRole) || Math.random() < 0.7);
     if (useRec) useSkill(rcv, RP);
     var rq = rcv === me ? clamp01(timing * 0.72 + RP.rec / 320 - sp.power * 0.28 + rnd(-0.04, 0.06) + edge(rcv) * 0.4 + mom[rcv.side])
-                        : clamp01(RP.rec / 110 - sp.power * 0.45 + rnd(-0.12, 0.18) + edge(rcv) * 0.8 + mom[rcv.side]);
+                        : clamp01(RP.rec / 110 - sp.power * 0.45 + rnd(-0.12, 0.18) + edge(rcv) * 0.8 + mom[rcv.side] + bot() * 0.04);
     if (useRec) rq = clamp01(rq + 0.35);
     rq = clamp01(rq + ((RP.spd || 70) - 70) / 500);                  // quick feet get behind the ball
     if (superServe && rcv !== me) rq = clamp01(rq - 0.12);
@@ -1819,7 +1839,15 @@
     var grade = shank ? -1 : passGrade(rq);
     RP.st.rc++;
     if (grade < 0) {
-      if (shank) { var how0 = await shankFx(rcv, rcvRole, target); feed(rcv.side, RP.name + " shanks the serve " + how0); }
+      if (shank) {
+        var how0 = await shankFx(rcv, rcvRole, target);
+        if (how0 && how0.saved) {
+          RP.st.re++; feed(rcv.side, RP.name + " shanks the serve " + how0.text, true); msg("SHANK — SAVED!");
+          var ssr = await toSetter(rcv, how0.at, 0, how0.by);
+          return await offense(rcv, 0, ssr);
+        }
+        feed(rcv.side, RP.name + " shanks the serve " + how0);
+      }
       else {
         jump(rcv, rcvRole, 520, -3, "shank");
         var away = { x: target.x + (target.x < W / 2 ? -1 : 1) * rnd(90, 160), y: target.y + dirR * rnd(60, 120) };
@@ -1848,7 +1876,7 @@
   // a shank: the ball cannons off the arms into the stands and the passer goes down
   // shanks come in flavours — returns how it went, for the commentary
   async function shankFx(s, role, at) {
-    var dir = at.x < W / 2 ? -1 : 1, back = s.side === 0 ? 1 : -1, v = (function (r) { return r < 0.38 ? "stands" : r < 0.74 ? "chase" : r < 0.86 ? "face" : r < 0.96 ? "collide" : "roof"; })(Math.random());   // realistic mix
+    var dir = at.x < W / 2 ? -1 : 1, back = s.side === 0 ? 1 : -1, v = (function (r) { return r < 0.3 ? "stands" : r < 0.74 ? "chase" : r < 0.86 ? "face" : r < 0.96 ? "collide" : "roof"; })(Math.random());   // realistic mix
     puff(at, 10);
     if (v === "face") {
       jump(s, role, 1100, -2, "fall", -dir);
@@ -1884,6 +1912,19 @@
       var mates = s.onCourt.filter(function (r) { return r !== role; });
       var ch = nearest(s, l3, mates).pos;
       if (ch) { s.rush[ch] = true; moveTo(s, ch, { x: clamp(l3.x, CL - 30, CR + 30), y: l3.y }); }
+      var saved = false;
+      if (ch) {                                                         // the chase: sometimes they get there
+        var CP = s.roster[ch];
+        if (s === me && iControl(ch) && mode === "role") { slow(); saved = (await timingBar("CHASE IT DOWN — " + CP.name + "!", 720, 0.17 + ((CP.spd || 70) - 70) / 300 + (ch === "L" ? 0.04 : 0), ch)) >= 0.5; fast(); }
+        else saved = Math.random() < clamp(0.24 + ((CP.spd || 70) - 70) / 200 + ((CP.def || 70) - 70) / 300 + (ch === "L" ? 0.12 : 0) + bot() * 0.05, 0.08, 0.6);
+      }
+      if (saved) {
+        var catchPt = { x: clamp(l3.x, CL - 30, CR + 30), y: l3.y };
+        await flyBall(at, catchPt, 820, { peak: 1.6, spin: 30, skew: 0.45 });
+        jump(s, ch, 560, -4, "dive", dir); ring(catchPt, "#3dff7a", 28, 0.4); popup("SAVED!", catchPt, "#3dff7a"); cheer();
+        s.roster[ch].st.dig++;
+        return { saved: true, at: catchPt, by: ch, text: "off the arms — but " + s.roster[ch].name + " SPRINTS AND SAVES IT!" };
+      }
       await flyBall(at, l3, 950, { peak: 1.6, spin: 30, skew: 0.45 });
       if (ch) { jump(s, ch, 650, -2, "dive", dir); popup("SO CLOSE!", l3, "#ffffff"); }
       puff(l3, 14, "#ffd21e");
@@ -2111,17 +2152,17 @@
     else if (n > 0 && atk.onCourt.some(function (r) { return r !== hitter && atk.roster[r].marked; }) && Math.random() < 0.55) { n--; decoy = true; }   // ...so the others get a cleaner look
     var blockers = chooseBlockers(def, st.x, n);
     def.jumpQ = null;
-    var lean = def === me && TAC.lean !== "auto" ? TAC.lean : Math.random() < 0.5 ? "cross" : "line";
+    var lean = def === me && TAC.lean !== "auto" ? TAC.lean : A.lastDir && A.lastDir !== "angle" && Math.random() < bot() * 0.22 ? A.lastDir : Math.random() < 0.5 ? "cross" : "line";   // good blockers read the hitter's habits
     var spacing = Math.max(0, 0.75 - st.tempo) * 24 + rnd(-2, 3) - tight;   // extra gap between hands: fast sets open seams
     var bAx = st.x + (1 - st.tempo) * rnd(-22, 22) * late;          // ...and the block a step late
     placeDefense(def, bAx, blockers, lean, spacing);
     var controlled = iAttack && iControl(hitter);
-    var plan = controlled ? null : aiAttackPlan(atk, def, A, n, st, grade === 2 ? 1 : grade === 1 ? 0.75 : 0.5, contact, blockers);
+    var plan = controlled ? null : aiAttackPlan(atk, def, A, n, st, Math.min(1, (grade === 2 ? 1 : grade === 1 ? 0.75 : 0.5) * (1 + bot() * 0.1)), contact, blockers);
     if (guessed !== null) feed(0, guessed ? "Your middle GUESSED RIGHT — the block was waiting for " + A.name + "!" : "Your block guessed wrong — " + A.name + " has a step on them!", guessed);
     if (!iAttack && n && plan.target && TAC.lean === "auto") {
       var actual = shotDir(st.x, plan.target);
       var myBlk = blockers.reduce(function (a, r) { return a + me.roster[r].blk; }, 0) / n;
-      if (actual !== "angle" && Math.random() < clamp01((0.3 + myBlk / 300) * st.tempo)) { lean = actual; placeDefense(def, bAx, blockers, lean, spacing); }
+      if (actual !== "angle" && Math.random() < clamp01((0.3 + myBlk / 300 + bot() * 0.06) * st.tempo)) { lean = actual; placeDefense(def, bAx, blockers, lean, spacing); }
     }
     feed(atk.side, SN + " sets " + st.say + " for " + A.name + (A.skill ? " ★" : "") + "...");
     if (A.marked) feed(def.side, "🎯 " + def.team.name + " were waiting for " + A.name + " — the block is up early!");
@@ -2206,7 +2247,7 @@
     var bx = n ? blockers.reduce(function (a, r) { return a + def.tgt[r].x; }, 0) / n : st.x;
     if (type === "tip") target = tipClamp(target);
     if (type === "wipe") target = { x: st.x < W / 2 ? CL - 28 : CR + 28, y: NET + dirD * rnd(80, 220) };
-    var dir = shotDir(st.x, target);
+    var dir = shotDir(st.x, target); A.lastDir = dir;
     var readRight = n && type === "spike" && dir !== "angle" && lean === dir;
     var readWrong = n && type === "spike" && dir !== "angle" && lean !== dir;
     var BtouchRole = n ? (def.superBlocker || blockers[irnd(0, n - 1)]) : null;
@@ -2230,7 +2271,7 @@
     }
 
     // 1) attack error
-    var errP = (plan.jump != null ? (plan.jump < 0.35 ? 0.07 : plan.jump >= 1 ? -0.02 : 0) : 0) + 0.05 + (1 - setQ) * 0.08 + st.tempo * 0.02 - A.att / 1200 + (type === "wipe" ? 0.05 : 0) - (type === "tip" ? 0.03 : 0) +
+    var errP = (plan.jump != null ? (plan.jump < 0.35 ? 0.07 : plan.jump >= 1 ? -0.02 : 0) : 0) + 0.05 + (1 - setQ) * 0.08 + st.tempo * 0.02 - A.att / 1200 + (type === "wipe" ? 0.05 : 0) - (type === "tip" ? 0.03 : 0) - (atk === me && iControl(hitter) ? 0 : bot() * 0.01) +
                (type !== "tip" && target && Math.abs(target.x - st.x) > 150 && Math.abs(target.y - NET) < 110 ? 0.05 : 0);   // sharp angles miss more
     if (Math.random() < errP) {
       A.st.ae++; heat(atk, hitter, -1);
@@ -2311,6 +2352,17 @@
         blockers.forEach(function (r) { jump(def, r, 300, 8, "press"); });
         ring(blockPt, "#ff6fb0", 40, 0.4); puff(blockPt, 10, "#ffd1e6");
         var land = { x: bx + rnd(-25, 25), y: NET + dirA * rnd(25, 70) };
+        var cov = await coverBlock(atk, hitter, land);
+        if (cov) {                                                       // dug off the floor: the rally lives
+          await flyBall(blockPt, land, 300, { h0: 0.6, h1: 0.12, trail: "hot" });
+          jump(atk, cov, 520, -5, "dive", land.x < atk.pos[cov].x ? -1 : 1);
+          ring(land, "#3dff7a", 30, 0.4); popup(cov === "L" ? "LIBERO COVER!" : "COVERED!", land, "#3dff7a"); cheer();
+          atk.roster[cov].st.dig++;
+          msg("STUFFED — BUT " + atk.roster[cov].name + " COVERS IT!");
+          feed(atk.side, "🛡️ " + who + " stuffs it — but " + atk.roster[cov].name + (cov === "L" ? " (libero)" : "") + " digs the block off the floor! Play on!", true);
+          var csr = await toSetter(atk, land, 0, cov);
+          return await offense(atk, 0, csr);
+        }
         await flyBall(blockPt, land, 260, { h0: 0.6, h1: 0, trail: "hot" });
         puff(land, 12, "#ffd21e"); ring(land, "#ffd21e", 24, 0.35);
         if (Math.random() < 0.35) jump(atk, hitter, 900, -2, "fall", -1);           // the hitter lands on their seat
@@ -2351,13 +2403,13 @@
       }
       if (outcome === "rebound") {
         var coverPt = clampHalf(atk, { x: bx + rnd(-50, 50), y: NET + dirA * rnd(80, 140) });
-        var coverer = nearest(atk, coverPt, atk.onCourt.filter(function (x) { return x !== hitter; })).pos;
+        var coverer = atk.pos.L && hitter !== "L" && dist(atk.pos.L, coverPt) < 140 ? "L" : nearest(atk, coverPt, atk.onCourt.filter(function (x) { return x !== hitter; })).pos;
         moveTo(atk, coverer, coverPt); atk.rush[coverer] = true;
         msg("BLOCKED BACK — COVER!");
         feed(def.side, who + " blocks it back...");
         await flyBall(blockPt, coverPt, 520, { h0: 0.6, h1: 0.1, peak: 0.9 });
         jump(atk, coverer, 500, -5, "dig");
-        if (Math.random() < 0.25) {
+        if (Math.random() < (coverer === "L" ? 0.1 : 0.22) - bot() * 0.03) {
           A.st.bk++; Btouch.st.blk++;
           feed(atk.side, "...nobody covers. Block point!", true); cheer();
           return credit(def, BtouchRole);
@@ -2465,6 +2517,11 @@
     }
     if (Math.random() < SHANK_P * techShank(D)) {
       var how = await shankFx(def, digRole, to);
+      if (how && how.saved) {
+        feed(def.side, D.name + " shanks the dig " + how.text, true); msg("SHANK — SAVED!"); heat(atk, o.hitterRole, -0.5);
+        var dsr = await toSetter(def, how.at, 0, how.by);
+        return await offense(def, 0, dsr);
+      }
       o.A.st.k++; assist(atk, o.setterRole, o.hitterRole);
       msg("SHANKED!"); feed(def.side, D.name + " shanks it " + how);
       return credit(atk, o.hitterRole);
@@ -2488,6 +2545,21 @@
   }
 
   // no way to attack: send an easy ball over; the other side gets a perfect pass
+  // a stuff block comes straight down: can the cover (the libero first) get a hand under it?
+  async function coverBlock(atk, hitter, land) {
+    var cands = atk.onCourt.filter(function (r) { return r !== hitter && atk.pos[r]; });
+    if (!cands.length) return null;
+    var who = atk.pos.L && hitter !== "L" && dist(atk.pos.L, land) < 120 ? "L" : nearest(atk, land, cands).pos;
+    if (!who) return null;
+    var Pl = atk.roster[who], d = dist(atk.pos[who], land);
+    moveTo(atk, who, land); atk.rush[who] = true;
+    if (atk === me && iControl(who) && mode === "role") {             // YOU are the cover: react!
+      slow(); var q = await timingBar("COVER THE BLOCK — " + Pl.name + "!", 760, 0.2 + (Pl.def - 70) / 300 + (who === "L" ? 0.04 : 0), who); fast();
+      return q >= 0.5 ? who : null;
+    }
+    var p = (who === "L" ? 0.3 : 0.13) + ((Pl.def || 70) - 70) / 250 + ((Pl.spd || 70) - 70) / 400 - clamp01((d - 40) / 160) * 0.12 + bot() * 0.03 + ps(Pl, "acrobat") * 0.04;
+    return Math.random() < clamp(p, 0.04, 0.5) ? who : null;
+  }
   async function freeBall(s, from) {
     var o2 = other(s), dirO = o2.side === 0 ? 1 : -1;
     feed(s.side, "No attack possible — free ball over.");
@@ -2610,7 +2682,9 @@
     return { score: [s.a, s.b], sets: s.sets, won: won, stats: s.stats, flows: [], coins: coins, simmed: true };
   }
 
+  var matchLive = false;
   async function playMatch(c) {
+    matchLive = false;
     try { var ck = localStorage.getItem("retroVB.cam"); if (ck && VB.CAMS[ck]) CAM = ck; } catch (e) {}
     camUI();
     try { Object.assign(TAC, JSON.parse(localStorage.getItem("retroVB.tactics") || "{}")); } catch (e) {}
@@ -2637,6 +2711,7 @@
     curFloor = pickFloor(c);
     buildArena(home, away, c.league || "VNL", curFloor);
     spectating = false;
+    matchLive = true;
     if (VB.Engine.onStart) VB.Engine.onStart();                       // co-op: tell the guest a match is starting
     flowLog = []; flames = []; ball.visible = false;
     U.clearFeed();
@@ -2692,6 +2767,7 @@
       $("endScreen").classList.remove("hidden");
       $("contBtn").onclick = function () { $("endScreen").classList.add("hidden"); res(); };
     });
+    matchLive = false;
     return { score: finalScore, sets: setLog.slice(), won: won, stats: stats, flows: flowLog.slice(), coins: coins };
   }
 
@@ -2809,6 +2885,6 @@
   function stopSpectate() { spectating = false; bg = null; ball.visible = false; aimPreview = null; }
 
   VB.Engine = { runTiming: runTiming, setCam: setCam,
-    stream: function (on) { evq = on ? [] : null; }, snapshot: snapshot, matchInit: matchInit, spectate: spectate, applySnap: applySnap, stopSpectate: stopSpectate,
+    stream: function (on) { evq = on ? [] : null; }, live: function () { return matchLive && !spectating; }, snapshot: snapshot, matchInit: matchInit, spectate: spectate, applySnap: applySnap, stopSpectate: stopSpectate,
     aimLocal: function (half) { return aimClick(half); }, setCamMove: setCamMove, camMove: function () { return CAM_MOVE; }, heatMap: function () { var o = {}; [me, opp].forEach(function (sd) { if (sd) Object.keys(sd.roster).forEach(function (r) { o[sd.side + r] = [+(sd.roster[r].hot || 0).toFixed(2), !!sd.roster[r].marked]; }); }); return o; }, init: init, playMatch: playMatch, spriteURL: spriteURL, makeSprite: makeSprite, kitPattern: kitPattern };
 })(window.VB);

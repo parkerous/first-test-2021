@@ -457,13 +457,16 @@
   function sbGuestStart(m) {
     document.body.classList.remove("coop-guest");
     setStatus("🟢 CONNECTED — side by side with " + (m.host || "your friend"));
-    sbPush(true);
+    sbConnected();                                                    // live score + match streaming work both ways
     U.modal("🧑‍🤝‍🧑 SIDE BY SIDE", "<p>You're linked with <b>" + esc(m.host || "your friend") + "</b>. Each of you plays <b>your own career</b> on your own device.</p>" +
       "<p>Pick (or create) your career. A new day starts when you're <b>both</b> ready; you'll see each other's results live, and your friend's player shows up in your world.</p>",
       [{ label: "TO MY CAREER ▸", value: 1 }]).then(function () { $("hub").onclick = null; VB.Career.start().then(function () { location.href = location.pathname; }); });
   }
-  function sbConnected() { sb.theirReady = false; sbPush(true); if (sb.hook && sb.hook.onPartner) sb.hook.onPartner(); tickerOn(); }
-  function sbLost() { sb.partner = null; sb.theirReady = false; tickerShow(""); if (sb.hook && sb.hook.onPartner) sb.hook.onPartner(); if (sb.myReady) sbCheck(); }
+  function sbConnected() {
+    sb.theirReady = false; sbPush(true); if (sb.hook && sb.hook.onPartner) sb.hook.onPartner(); tickerOn();
+    VB.Engine.onStart = function () { if (mode === "sb" && sbStream.want) { sbStreamStop(false); setTimeout(sbStreamStart, 60); } };   // my match starts: stream it if my friend is watching
+  }
+  function sbLost() { sb.partner = null; sb.theirReady = false; sb.score = ""; tickerShow(""); sbStreamStop(false); sbWatchClose(); if (sb.hook && sb.hook.onPartner) sb.hook.onPartner(); if (sb.myReady) sbCheck(); }
   function sbPush(force) {
     if (!sb.me || !connected) return;
     var j = JSON.stringify(sb.me);
@@ -479,30 +482,83 @@
       sbCheck(); return;
     }
     if (m.t === "sb-ready") { sb.theirReady = m.on; if (sb.hook && sb.hook.onPartner) sb.hook.onPartner(); sbCheck(); return; }
-    if (m.t === "sb-news") { if (sb.hook && sb.hook.onNews) sb.hook.onNews(m.txt); return; }
-    if (m.t === "sb-score") { sb.score = m.txt; tickerShow(m.txt); return; }
+    if (m.t === "sb-news") { sbLog(m.txt); if (sb.hook && sb.hook.onNews) sb.hook.onNews(m.txt); return; }
+    if (m.t === "sb-score") { var was = !!sb.score; sb.score = m.txt; tickerShow(m.txt); if (was !== !!m.txt && sb.hook && sb.hook.onPartner) sb.hook.onPartner(); return; }
+    // watching each other's matches
+    if (m.t === "sb-watch") { sbStream.want = !!m.on; if (m.on) sbStreamStart(); else sbStreamStop(false); return; }
+    if (m.t === "sb-mstart") { if (sb.watchWant) sbWatchOpen(m.init, m.who); return; }
+    if (m.t === "sb-snap") { if (sb.watching) { VB.Engine.applySnap(m.s); $("recordLine").textContent = m.rec || ""; U.msg(m.msg || ""); } return; }
+    if (m.t === "sb-feed") { if (sb.watching) { var f = $("feed"), d = document.createElement("div"); d.innerHTML = m.html; if (d.firstChild) f.appendChild(d.firstChild); while (f.children.length > 60) f.removeChild(f.firstChild); f.scrollTop = f.scrollHeight; } return; }
+    if (m.t === "sb-mend") { if (sb.watching) { var bt = $("sbWatchT"); if (bt) bt.textContent = "🏁 " + (sb.partner ? sb.partner.name : "YOUR FRIEND") + "'S MATCH IS OVER"; setTimeout(sbWatchClose, 1800); } return; }
   }
   function sbCheck() {
     if (!sb.myReady) return;
     if (connected && sb.partner && !sb.theirReady) return;
     sb.myReady = false; sb.theirReady = false;
+    if (sb.watchWant) sbWatch(false);                                 // both ready: back to your own day
     if (sb.hook && sb.hook.onGo) setTimeout(sb.hook.onGo, 30);
   }
   function sbReady() {
     sb.myReady = true; send({ t: "sb-ready", on: true });
     sbCheck();
   }
+  // ---- streaming my match to my friend (only while they ask to watch) ----
+  var sbStream = { want: false, on: false, t: 0, mo: null };
+  function sbStreamStart() {
+    if (sbStream.on || !connected || mode !== "sb" || sb.watching) return;
+    if ($("matchView").classList.contains("hidden") || !VB.Engine.live()) return;      // not playing yet: onStart will kick it off
+    sbStream.on = true; VB.Engine.stream(true);
+    send({ t: "sb-mstart", init: VB.Engine.matchInit(), who: sb.me ? sb.me.name : "FRIEND" });
+    sbStream.mo = new MutationObserver(function (ms) { ms.forEach(function (x) { x.addedNodes.forEach(function (n) { if (n.nodeType === 1) send({ t: "sb-feed", html: n.outerHTML }); }); }); });
+    sbStream.mo.observe($("feed"), { childList: true });
+    sbStream.t = setInterval(function () {
+      if ($("matchView").classList.contains("hidden") || !connected || !VB.Engine.live()) return sbStreamStop(true);
+      send({ t: "sb-snap", s: VB.Engine.snapshot(), msg: $("msg").textContent, rec: $("recordLine").textContent });
+    }, 66);
+  }
+  function sbStreamStop(ended) {
+    if (!sbStream.on) return;
+    sbStream.on = false; clearInterval(sbStream.t); if (sbStream.mo) sbStream.mo.disconnect(); sbStream.mo = null;
+    VB.Engine.stream(false); if (ended) send({ t: "sb-mend" });
+  }
+  // ---- watching my friend's match while I wait ----
+  function sbWatch(on) {
+    sb.watchWant = !!on; send({ t: "sb-watch", on: !!on });
+    if (!on) sbWatchClose();
+  }
+  function sbWatchOpen(init, who) {
+    if (!$("matchView").classList.contains("hidden") && !sb.watching) return;     // I'm in my own match
+    sb.watching = true; document.body.classList.add("sb-watching");
+    U.showView("match"); $("feed").innerHTML = "";
+    VB.Engine.spectate(Object.assign({}, init, { tag: "🤝" }));
+    var bar = $("sbWatchBar");
+    if (!bar) { bar = document.createElement("div"); bar.id = "sbWatchBar"; bar.className = "sb-watch-bar"; document.body.appendChild(bar); }
+    bar.innerHTML = "<span class='live-dot'></span><span id='sbWatchT'>📺 WATCHING " + esc(who || "YOUR FRIEND") + " LIVE</span>" +
+      "<span class='muted' id='sbWatchR'>" + (sb.myReady ? "✅ you're ready — the next day starts when they finish" : "") + "</span><button class='btn tiny' id='sbWatchBack'>◀ BACK TO MY CAREER</button>";
+    $("sbWatchBack").onclick = function () { sbWatch(false); };
+  }
+  function sbWatchClose() {
+    if (!sb.watching) return;
+    sb.watching = false; document.body.classList.remove("sb-watching");
+    VB.Engine.stopSpectate();
+    var bar = $("sbWatchBar"); if (bar) bar.remove();
+    U.showView("hub");
+    if (sb.hook && sb.hook.onPartner) sb.hook.onPartner();
+  }
+  // a short shared log of what's happening to both of you
+  function sbLog(txt) { sb.log = (sb.log || []).concat([txt]).slice(-4); }
   // live score of your friend's match (and yours, sent to them)
   var tickEl = null, tickT = 0;
   function tickerShow(t) {
     if (!tickEl) { tickEl = document.createElement("div"); tickEl.className = "coop-ticker hidden"; document.body.appendChild(tickEl); }
-    tickEl.textContent = t ? "🤝 " + t : ""; tickEl.classList.toggle("hidden", !t);
+    tickEl.textContent = t ? "🤝 " + t : ""; tickEl.classList.toggle("hidden", !t || !!sb.watching);
+    var dl = $("duoLive"); if (dl) dl.textContent = t ? "🔴 LIVE — " + t.replace(/^.*? — /, "") : "";
   }
   function tickerOn() {
     clearInterval(tickT);
     tickT = setInterval(function () {
       if (!connected || mode !== "sb") return;
-      var inMatch = !$("matchView").classList.contains("hidden"), txt = "";
+      var inMatch = !$("matchView").classList.contains("hidden") && !sb.watching, txt = "";
       if (inMatch) txt = (sb.me ? sb.me.name + " — " : "") + $("hudMe").textContent + " " + $("sMe").textContent + " : " + $("sOpp").textContent + " " + $("hudOpp").textContent;
       if (txt !== sb.lastTick) { sb.lastTick = txt; send({ t: "sb-score", txt: txt }); }
     }, 900);
@@ -516,7 +572,9 @@
     sbHook: function (h) { sb.hook = h; },
     sbSet: function (st) { sb.me = st; sbPush(false); },
     sbReady: sbReady, sbWaiting: function () { return sb.myReady; },
-    sbNews: function (txt) { send({ t: "sb-news", txt: txt }); },
+    sbNews: function (txt) { sbLog(txt); send({ t: "sb-news", txt: txt }); },
+    sbWatch: sbWatch, sbWatching: function () { return !!sb.watching; }, partnerLive: function () { return connected ? sb.score : ""; },
+    sbLog: function () { return sb.log || []; }, openChat: function () { chatUI(); if (!chat.open) chat.el.querySelector("[data-c=toggle]").click(); },
     partner: function () { return connected ? sb.partner : null; }, partnerReady: function () { return sb.theirReady; },
     connected: function () { return connected; },
     live: function () { return role === "host" && connected; },

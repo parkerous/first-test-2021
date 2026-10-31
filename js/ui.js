@@ -25,7 +25,8 @@
     esc: esc,
 
     msg: function (t) {
-      var m = $("msg"); m.textContent = t; m.classList.remove("flash"); void m.offsetWidth; m.classList.add("flash");
+      var m = $("msg"); if (m.textContent === t) return;
+      m.textContent = t; m.classList.remove("flash"); void m.offsetWidth; m.classList.add("flash");
       var d = $("dockMsg"); if (d) d.textContent = t;
     },
     feed: function (side, text, hot) {

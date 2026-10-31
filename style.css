@@ -864,3 +864,28 @@ details.controls[open] summary { margin-bottom: 6px; }
 .btn.callcard.marked { border-color: var(--hot); box-shadow: 0 4px 0 #a3321c, 0 0 0 3px #ff5a3644; }
 .cc-tag.mk { background: var(--hot); }
 .cc-tag.mk.decoy { background: #7a3ad8; }
+
+/* ---------- side by side: the duo panel and watching your friend live ---------- */
+.coop-card.duo { display: block; padding: 10px 12px; background: linear-gradient(120deg, #eafff1, #ffffff 45%, #fff0f7); }
+.duo-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: stretch; }
+.duo-p { display: flex; gap: 10px; align-items: center; background: #fff; border: 3px solid var(--blue-l); border-radius: 12px; padding: 8px; min-width: 0; }
+.duo-p.me { border-color: #2bd46b; } .duo-p.them { border-color: #ff6fb0; flex-direction: row-reverse; text-align: right; } .duo-p.off { opacity: 0.7; }
+.duo-p .pname { font-size: 11px; }
+.duo-face { width: 48px; height: 64px; image-rendering: pixelated; flex: none; background: linear-gradient(#e6f0ff, #c9dcf7); border-radius: 8px; }
+.duo-face.empty { display: flex; align-items: center; justify-content: center; font-family: var(--pixel); color: var(--blue-l); }
+.duo-k { font-family: var(--pixel); font-size: 7px; color: var(--muted); letter-spacing: 1px; }
+.duo-chip { display: inline-block; margin-top: 4px; font-family: var(--pixel); font-size: 7px; padding: 4px 6px; border-radius: 6px; background: #e6eefc; color: var(--blue-d); }
+.duo-chip.ok { background: #2bd46b; color: #fff; } .duo-chip.live { background: #ff3b3b; color: #fff; animation: contBlink 1s steps(2) infinite; }
+.duo-live { font-family: var(--text); font-size: 16px; color: #c0392b; min-height: 16px; }
+.duo-mid { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.duo-ic { font-size: 26px; }
+.duo-lights { display: flex; gap: 6px; } .duo-lights i { width: 14px; height: 14px; border-radius: 50%; background: #d6deea; border: 2px solid #9fb0c8; }
+.duo-lights i.on { background: #2bd46b; border-color: #0b7a3b; box-shadow: 0 0 8px #2bd46b; }
+.duo-log { margin-top: 8px; font-family: var(--text); font-size: 16px; color: var(--ink); background: #f4f8ff; border-radius: 8px; padding: 4px 8px; }
+@media (max-width: 640px) { .duo-row { grid-template-columns: 1fr; } .duo-mid { flex-direction: row; } .duo-p.them { flex-direction: row; text-align: left; } }
+.sb-watch-bar { position: fixed; left: 50%; top: 8px; transform: translateX(-50%); z-index: 90; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center;
+  background: var(--navy, #071a44); color: #fff; font-family: var(--pixel); font-size: 9px; padding: 8px 12px; border-radius: 12px; box-shadow: 0 0 0 3px #ff3b3b, 0 8px 24px #0008; max-width: 94vw; }
+.sb-watch-bar .muted { font-family: var(--text); font-size: 15px; color: #9cc4ea; }
+.live-dot { width: 10px; height: 10px; border-radius: 50%; background: #ff3b3b; box-shadow: 0 0 8px #ff3b3b; animation: contBlink 1s steps(2) infinite; }
+body.sb-watching #backBtn, body.sb-watching #dock, body.sb-watching .side-btns, body.sb-watching #endScreen .btn { display: none !important; }
+body.sb-watching #matchView { padding-top: 40px; }

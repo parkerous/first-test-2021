@@ -53,6 +53,7 @@
       row("🎥 CAMERA", "<button class='btn tiny' data-act='cam'>" + VB.CAMS[opt("retroVB.cam", "classic")] + " ▸</button>") +
       row("🎬 MOVING CAMERA", seg("retroVB.camMove", opt("retroVB.camMove", "on"), [["on", "ON"], ["off", "FIXED"]])) +
       row("🟫 COURT FLOOR", "<button class='btn tiny' data-act='floor'>" + VB.FLOORS[opt("retroVB.floor", "auto")] + " ▸</button>") +
+      row("🤖 BOT SKILL", seg("retroVB.bots", opt("retroVB.bots", "hard"), [["normal", "NORMAL"], ["hard", "HARD"], ["elite", "ELITE"]])) +
       row("⏱ MATCH PACE", seg("retroVB.pace", pace, [["fast", "FAST"], ["normal", "NORMAL"], ["tv", "TV"]])) +
       row("🔊 SOUND", seg("retroVB.sound", snd ? "on" : "off", [["on", "ON"], ["off", "OFF"]]) +
         " <input type='range' min='0' max='1' step='0.1' value='" + (VB.Sfx ? VB.Sfx.vol() : 0.6) + "' id='volIn' aria-label='Volume'/>") +

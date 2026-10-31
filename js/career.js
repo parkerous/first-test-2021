@@ -989,7 +989,11 @@
   async function advance() {
     if (busy) return;
     // side by side: a new day only when you're both ready
-    if (sideBySide() && VB.Coop.partner() && !sbGo) { VB.Coop.sbReady(); render(); return; }
+    if (sideBySide() && VB.Coop.partner() && !sbGo) {
+      VB.Coop.sbReady();
+      if (VB.Coop.sbWaiting() && VB.Coop.partnerLive()) { VB.Coop.sbWatch(true); return; }   // they're mid-match: watch it while you wait
+      render(); return;
+    }
     sbGo = false;
     busy = true;
     try {
@@ -1044,14 +1048,27 @@
       onNews: function (txt) { if (C) { news("🤝 " + txt, "you"); if (!busy) render(); } }
     });
   }
+  // the duo panel: you and your friend side by side — who's ready, who's playing (watch it live), what's new, chat
   function sbCard() {
-    var p = VB.Coop.partner(), waiting = VB.Coop.sbWaiting();
-    return "<div class='card coop-card'><div><div class='pname'>🧑‍🤝‍🧑 SIDE BY SIDE</div>" +
-      (p ? "<div><b>" + esc(p.name) + "</b> • " + VB.FAMILY_NAMES[p.role] + " • OVR " + p.ovr + " • " + esc(p.club) + (p.league ? " (" + esc(p.league) + ")" : "") + "</div>" +
-           "<div class='muted'>SEASON " + p.season + " • " + esc(p.stage) + (p.last != null ? " • LAST RATING " + p.last : "") + "</div>" +
-           "<div>" + (VB.Coop.partnerReady() ? "✅ " + esc(p.name) + " IS READY" : "⏳ " + esc(p.name) + " is still playing") + (waiting ? " • ✅ YOU'RE READY" : "") + "</div>"
-         : "<div>" + esc(VB.Coop.status()) + "</div><div class='muted'>Playing solo until your friend is back — days advance freely.</div>") +
-      "<div class='hub-actions'><button class='btn tiny' data-act='coopInvite'>🔗 LINK</button><button class='btn tiny pink' data-act='coopLeave'>LEAVE CO-OP</button></div></div></div>";
+    var p = VB.Coop.partner(), waiting = VB.Coop.sbWaiting(), me = you(), cl = C.club ? club() : null, live = VB.Coop.partnerLive();
+    function face(f, kit) { try { return "<img class='duo-face' src='" + VB.Engine.spriteURL(f, kit || "#888888") + "' alt=''/>"; } catch (e) { return ""; } }
+    var mine = "<div class='duo-p me'>" + face(me.face, cl ? cl.kit : null) + "<div><div class='duo-k'>YOU</div><div class='pname'>" + esc(me.name) + "</div>" +
+      "<div class='muted'>" + VB.FAMILY_NAMES[me.role] + " • OVR " + ovr(me) + "</div><div class='muted'>" + esc(cl ? cl.short : "FREE AGENT") + " • S" + C.season + "</div>" +
+      "<span class='duo-chip " + (waiting ? "ok" : "") + "'>" + (waiting ? "✅ READY" : "📋 PLANNING THE DAY") + "</span></div></div>";
+    var theirs = p ? "<div class='duo-p them'>" + face(p.player && p.player.face, p.kit) + "<div><div class='duo-k'>FRIEND</div><div class='pname'>" + esc(p.name) + "</div>" +
+      "<div class='muted'>" + VB.FAMILY_NAMES[p.role] + " • OVR " + p.ovr + (p.last != null ? " • LAST " + p.last : "") + "</div><div class='muted'>" + esc(p.club) + " • S" + p.season + " • " + esc(p.stage) + "</div>" +
+      "<span class='duo-chip " + (VB.Coop.partnerReady() ? "ok" : live ? "live" : "") + "'>" + (VB.Coop.partnerReady() ? "✅ READY" : live ? "🔴 PLAYING" : "📋 IN THE HUB") + "</span>" +
+      "<div class='duo-live' id='duoLive'>" + (live ? "🔴 LIVE — " + esc(live.replace(/^.*? — /, "")) : "") + "</div></div></div>"
+      : "<div class='duo-p them off'><div class='duo-face empty'>?</div><div><div class='duo-k'>FRIEND</div><div>" + esc(VB.Coop.status()) + "</div><div class='muted'>Playing solo until they're back — days advance freely.</div></div></div>";
+    var both = waiting && p && VB.Coop.partnerReady();
+    var log = VB.Coop.sbLog();
+    return "<div class='card coop-card duo'><div class='duo-row'>" + mine +
+      "<div class='duo-mid'><div class='duo-ic'>🤝</div><div class='duo-lights'><i class='" + (waiting ? "on" : "") + "'></i><i class='" + (p && VB.Coop.partnerReady() ? "on" : "") + "'></i></div><div class='duo-k'>" + (both ? "GO!" : "NEXT DAY") + "</div></div>" +
+      theirs + "</div>" +
+      (log.length ? "<div class='duo-log'>" + log.map(function (t) { return "<div>🤝 " + esc(t) + "</div>"; }).join("") + "</div>" : "") +
+      "<div class='hub-actions'>" + (p && live ? "<button class='btn' data-act='sbWatch'>📺 WATCH " + esc(p.name) + " LIVE</button>" : "") +
+      (p ? "<button class='btn' data-act='sbChat'>💬 CHAT</button>" : "") +
+      "<button class='btn tiny' data-act='coopInvite'>🔗 LINK</button><button class='btn tiny pink' data-act='coopLeave'>LEAVE CO-OP</button></div></div>";
   }
   function coopCard() {
     if (sideBySide()) return sbCard();
@@ -1333,6 +1350,8 @@
     }
     if (act === "coop") { busy = true; try { await startCoop(); } finally { busy = false; } return render(); }
     if (act === "coopInvite") { await VB.Coop.invite(); return render(); }
+    if (act === "sbWatch") { VB.Coop.sbWatch(true); return; }
+    if (act === "sbChat") { VB.Coop.openChat(); return; }
     if (act === "coopLeave") { VB.Coop.leave(); return render(); }
     if (act === "cam") { var ck = Object.keys(VB.CAMS), cur = localStorage.getItem("retroVB.cam") || "classic"; VB.Engine.setCam(ck[(ck.indexOf(cur) + 1) % ck.length]); return render(); }
     if (act === "menu" || act === "exit") { if (C) save(); C = null; $("hub").onclick = null; var r = exitCareer; exitCareer = null; return r && r(); }

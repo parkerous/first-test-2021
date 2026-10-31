@@ -12,6 +12,15 @@ through a link (or a 6-letter code) while you're both online:
   ticker during matches), and your friend's player appears in your world on
   their club — maybe even as your teammate. If one of you leaves, the other
   plays on solo; the link works again later.
+  - The DUO PANEL at the top of your hub shows you and your friend side by
+    side: portraits, club, OVR, season, a status chip (📋 IN THE HUB /
+    🔴 PLAYING / ✅ READY), two NEXT DAY lights, a live score when they're
+    mid-match, the latest news from both of you, and 💬 CHAT.
+  - 📺 WATCH LIVE: when you're ready and your friend is still playing, their
+    match opens on your screen automatically, drawn by your own game from their
+    live state (court, score, commentary). ◀ BACK TO MY CAREER leaves any time;
+    when their match ends you're back in your hub, and the next day starts as
+    soon as they press ready.
 - 🤝 TOGETHER — your friend joins your save as a teammate (below).
 - In co-op matches the setter runs the offence automatically (no set menus),
   if your friend drops out mid-match their player is simply AI-controlled,
@@ -340,6 +349,24 @@ court or the M key mutes; volume is in ⚙ SETTINGS.
   stuffed or dug all cool you down. A new set starts clean.
 - It works both ways: your team marks the opponent's hot hitter, and smart
   opposing setters start spreading the ball away from a marked star.
+
+## Rallies that stay alive
+- SHANKS can be chased down: when a pass flies off the arms toward the side,
+  the nearest teammate sprints after it. Fast players and liberos get there
+  more often (if it's YOUR player in a role match, a quick CHASE IT DOWN timing
+  bar decides it). A save keeps the rally going with a scrappy high ball.
+- LIBERO COVER: when your hitter swings, the libero crouches right under them.
+  A stuff block can be dug off the floor ("🛡️ ... digs the block off the
+  floor! Play on!"), most often by the libero; blocks that bounce back are
+  covered more reliably when the libero is there.
+- SERVES: every server picks a spot along the end line (their favourite zone,
+  a bit different each time). The computer mixes up targets: the weakest
+  passer, short serves, deep corners, the gaps. Missed serves land long or wide
+  in different places.
+- 🤖 BOT SKILL (⚙ SETTINGS: NORMAL / HARD / ELITE, default HARD) makes every
+  computer-controlled player better, opponents and your AI teammates alike:
+  cleaner passes and digs, fewer attack and serve errors, harder serves,
+  smarter shots, and blockers that read a hitter's habits.
 
 ## Aiming, timing and the block
 - While aiming a spike you see the path, the blockers' hands at the net and a
