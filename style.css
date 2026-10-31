@@ -898,3 +898,6 @@ body.sb-watching #matchView { padding-top: 40px; }
 .sb-kit { width: 26px !important; height: 30px !important; border: 0 !important; box-shadow: none !important; background-color: transparent !important; background-size: contain; background-position: center; background-repeat: no-repeat; }
 /* while a picker / standings / end screen is open, the score bug stops pinning so it never covers the buttons */
 #matchView:has(.overlay:not(.hidden)) .scorebug { position: static; }
+/* in a match the court gets the space: the big title hides and the court leaves room for the score bug + caller strip */
+body:has(#matchView:not(.hidden)) .cabinet > .title, body:has(#matchView:not(.hidden)) .cabinet > .subtitle { display: none; }
+.stage { width: min(94vw, 600px, max(330px, calc((100vh - 250px) * 0.711))); }
