@@ -1968,13 +1968,21 @@
       if (seen[o.hitter] || picks.length >= 4) return;
       seen[o.hitter] = 1; picks.push(o === rec ? rec : simpleFor(o.hitter));
     });
-    var btns = picks.map(function (o) { return { label: (o === rec ? "👍 " : "") + nice(o), value: o.id }; });
+    var btns = picks.map(function (o) { return callCard(atk, o, (o === rec ? "👍 " : "") + nice(o)); });
     var d = opts.find(function (o) { return o.dump; });
     if (d) btns.push({ label: "★ " + skillLabel(atk.roster.S) + (atk.roster.S.cd ? " (" + atk.roster.S.cd + ")" : ""), value: d.id, disabled: d.disabled });
     btns.push({ label: "MORE CALLS ▸", value: "__more" });
     return askB(role || "S", btns);
   }
 
+  // a set call as a rich card: the hitter's face, the tempo, and where along the net the set goes
+  function callCard(s, o, label) {
+    var HP = s.roster[o.hitter], url = null;
+    try { url = HP.spriteURL || (HP.spriteURL = HP.sprite.toDataURL()); } catch (e) {}
+    var spot = clamp01(((s.side === 0 ? o.x : W - o.x) - CL) / (CR - CL));
+    return { label: label, value: o.id, disabled: o.disabled, face: url, tempo: o.tempo, spot: spot, back: !!o.pipe,
+             sub: (o.combo ? "COMBO • " : o.pipe ? "BACK ROW • " : "") + HP.name + (HP.skill === "spike" ? " ★" : "") + " • " + (FRIENDLY[VB.FAMILY[o.hitter]] || "").toLowerCase() };
+  }
   async function offense(atk, grade, setterRole) {
     setterRole = setterRole || "S";
     var def = other(atk), SN = atk.roster[setterRole].name, emergency = !isSetter(atk, setterRole);
@@ -1990,7 +1998,7 @@
         choice = await askB(setterRole, opts.map(function (o) {
           if (o.dump) return { label: "★ " + skillLabel(me.roster.S) + (me.roster.S.cd ? " (" + me.roster.S.cd + ")" : ""), value: o.id, disabled: o.disabled };
           var HP = me.roster[o.hitter];
-          return { label: o.label + " · " + HP.name + (HP.skill === "spike" ? " ★" : ""), value: o.id, disabled: o.disabled };
+          return callCard(me, o, o.label + " · " + HP.name + (HP.skill === "spike" ? " ★" : ""));
         }));
       }
       st = opts.find(function (o) { return o.id === choice; });
@@ -2009,7 +2017,7 @@
         else feed(0, SN + " goes elsewhere...");
       } else if (mine.length && TAC.call === "ask") {
         msg("CALL FOR THE BALL? (" + GRADE_TXT[grade] + ")");
-        var call = await askB(caller, mine.map(function (o) { return { label: "CALL " + o.label, value: o.id }; })
+        var call = await askB(caller, mine.map(function (o) { var cc = callCard(me, o, "CALL " + o.label); cc.sub = o.say; return cc; })
           .concat([{ label: "LET " + SN + " DECIDE", value: "auto" }]));
         if (call !== "auto") {
           var want = mine.find(function (o) { return o.id === call; });
@@ -2462,9 +2470,27 @@
   }
 
   // ================== MATCH SHELL ==================
+  var hudLast = [-1, -1];
   function updateHud() {
     $("sMe").textContent = score[0]; $("sOpp").textContent = score[1];
     var sets = setNeed > 1;
+    // the score bug: kit chips, who serves, sets, a little bump when a score changes, the momentum bar
+    if ($("scorebug")) {
+      ["sMe", "sOpp"].forEach(function (id, i) { if (hudLast[i] >= 0 && score[i] !== hudLast[i]) { var e = $(id); e.classList.remove("bump"); void e.offsetWidth; e.classList.add("bump"); } hudLast[i] = score[i]; });
+      if (me && opp) {
+        $("kitMe").style.background = me.team.kit; $("kitMe").style.borderColor = me.team.kit2 || "#fff";
+        $("kitOpp").style.background = opp.team.kit; $("kitOpp").style.borderColor = opp.team.kit2 || "#fff";
+      }
+      $("srvMe").classList.toggle("on", serving === 0); $("srvOpp").classList.toggle("on", serving === 1);
+      $("setsMe").textContent = setsWon[0]; $("setsOpp").textContent = setsWon[1];
+      $("setNo").textContent = sets ? "SET " + (setsWon[0] + setsWon[1] + 1) : "VS";
+      $("scorebug").classList.toggle("bo1", !sets);
+      var sp = (cfg && cfg.setsTo) || 15, mp = Math.max(score[0], score[1]) >= sp - 1 && Math.abs(score[0] - score[1]) >= 1;
+      $("scorebug").classList.toggle("hot", mp);
+      var m = run && run.n >= 2 ? run : null, k = m ? Math.min(1, m.n / 6) : 0;
+      $("momMe").style.width = (m && m.side === 0 ? k * 50 : 0) + "%"; $("momOpp").style.width = (m && m.side === 1 ? k * 50 : 0) + "%";
+      $("momTxt").textContent = m ? (m.n >= 5 ? "🔥 " : "") + m.n + "-0 RUN" : "";
+    }
     $("serveMe").textContent = (serving === 0 ? "● SERVING — " : "") + (me ? "ROT " + (me.rot + 1) : "") + (sets ? " • SETS " + setsWon[0] : "");
     $("serveOpp").textContent = (sets ? "SETS " + setsWon[1] + " • " : "") + (opp ? "ROT " + (opp.rot + 1) : "") + (serving === 1 ? " — SERVING ●" : "");
   }

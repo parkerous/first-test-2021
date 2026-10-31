@@ -312,6 +312,21 @@ court or the M key mutes; volume is in ⚙ SETTINGS.
 - Home arenas in the home team's colours with a crowd, boards and jumbotron.
 - Rosters, heights and clubs are an arcade homage, not official data.
 
+## Match screen
+- A TV-style SCORE BUG stays pinned at the top: kit colours, a bouncing 🏐 on
+  the serving team, big scores that pop when they change, sets won and the set
+  number, and a red glow at set/match point. Under it, a MOMENTUM bar fills
+  during scoring runs ("4-0 RUN").
+- The CALLER STRIP says what's happening and what you need to do.
+- Decisions are CALL CARDS: an icon, a title and a short line. Set calls show
+  the hitter's face, a tempo bar (QUICK / FAST / HIGH) and a mini net with
+  where the set goes (orange dot = back row). The setter's pick is marked, ★
+  skills glow gold, and keys 1–9 pick a card.
+- The timing bar sits in a dark panel with a glowing PERFECT zone. The
+  commentary feed is colour-coded by team, and HOW TO PLAY folds away.
+- Dialogs have a header band and a soft pop-in; on phones the cards dock at the
+  bottom in two columns.
+
 ## Aiming, timing and the block
 - While aiming a spike you see the path, the blockers' hands at the net and a
   label: CLEAR, SEAM, TOOL ZONE / BLOCK EDGE or INTO THE BLOCK. The ball goes

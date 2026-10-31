@@ -21,16 +21,22 @@
     <div id="matchView" class="hidden">
       <div class="topbar"><button class="btn pink back-btn" id="backBtn">⟵ MENU</button><button class="btn cam-top" id="camTop" title="Switch camera (C)">🎥 CLASSIC</button><button class="btn cam-top snd-top" id="moveTop" title="Moving camera on/off (V)">🎬 MOVING</button><button class="btn cam-top snd-top" id="sndTop" title="Sound on/off (M)">🔊</button></div>
       <div class="stageline" id="stageLine">—</div>
-      <div class="hud">
-        <div class="team" id="hudMe" style="color:var(--green)">—</div>
-        <div class="score"><span id="sMe">0</span> : <span id="sOpp">0</span></div>
-        <div class="team" id="hudOpp" style="color:var(--pink)">—</div>
+      <!-- TV-style score bug -->
+      <div class="scorebug" id="scorebug">
+        <div class="sb-team me"><i class="sb-kit" id="kitMe"></i><span class="team" id="hudMe">—</span><b class="sb-srv" id="srvMe">🏐</b></div>
+        <div class="sb-mid">
+          <span class="sb-score" id="sMe">0</span>
+          <span class="sb-set"><em id="setsMe">0</em><small id="setNo">SET 1</small><em id="setsOpp">0</em></span>
+          <span class="sb-score" id="sOpp">0</span>
+        </div>
+        <div class="sb-team opp"><b class="sb-srv" id="srvOpp">🏐</b><span class="team" id="hudOpp">—</span><i class="sb-kit" id="kitOpp"></i></div>
       </div>
-      <div class="hud sub">
+      <div class="sb-sub">
         <div id="serveMe"></div>
         <div id="recordLine"></div>
         <div id="serveOpp"></div>
       </div>
+      <div class="sb-mom" id="sbMom"><i id="momMe"></i><span id="momTxt"></span><i id="momOpp"></i></div>
       <div class="msgline" id="msg"></div>
 
       <div class="stage-wrap">
@@ -69,6 +75,7 @@
             <button class="btn" id="camBtn">🎥 CAM</button>
           </div>
           <div class="dock" id="dock">
+            <div class="dock-head"><span class="dock-k">YOUR MOVE</span><span class="dock-msg" id="dockMsg"></span></div>
               <div class="timing hidden" id="timing">
                 <div class="label" id="timingLabel">RECEIVE!</div>
                 <div class="track">
@@ -76,18 +83,20 @@
                   <div class="zoneP" id="zoneP"></div>
                   <div class="marker" id="marker"></div>
                 </div>
+                <div class="timing-hint">⏎ SPACE / TAP — stop in the <b>green</b>, <b class="pf">bright green</b> = PERFECT</div>
               </div>
             <div class="action-bar" id="actions"></div>
           </div>
           <div class="feed" id="feed"></div>
-          <div class="controls">
+          <details class="controls"><summary>❓ HOW TO PLAY</summary>
             The ball slows down while you decide.<br/>
             Serve: float (knuckles, no spin) or topspin (jump serve), then click to aim.<br/>
             Receive &amp; dig: stop the marker in the green.<br/>
             Set calls: 1 / 31 / SLIDE (middle), 4 / GO (outside), 5 / RED (opposite), PIPE / BIC / D (back row).<br/>
             Then SPIKE, TIP or WIPE — pins tool the outside hand; read the block, find the seam!<br/>
-            Taller hitters with big verticals win duels at the net. ★ skills recharge after a few points.
-          </div>
+            Taller hitters with big verticals win duels at the net. ★ skills recharge after a few points.<br/>
+            Keys: 1–9 pick a call • SPACE timing • C camera • V moving cam • M sound.
+          </details>
         </div>
       </div>
     </div>

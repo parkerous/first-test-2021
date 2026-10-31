@@ -3,6 +3,17 @@
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
 
+  // turn a plain button label into a call card: icon + title + sub line
+  var ICONS = [[/^★/, "✨"], [/FLOAT/, "🪶"], [/TOPSPIN|JUMP/, "🌀"], [/^SPIKE$/, "💥"], [/^TIP$/, "🤏"], [/WIPE/, "🧹"], [/LEAN CROSS/, "↗️"], [/LEAN LINE/, "⬆️"],
+               [/NORMAL BLOCK/, "🧱"], [/MORE CALLS/, "📋"], [/DECIDE/, "🤝"], [/^CALL /, "📣"], [/BACK ROW/, "🔙"], [/MIDDLE|QUICK|31|SLIDE/, "⚡"], [/OUTSIDE|4 HIGH|GO/, "🔥"],
+               [/OPPOSITE|RIGHT|5 BACK|RED/, "🎯"], [/PLAY|CONTINUE|YES/, "▶️"]];
+  function card(o) {
+    var L = String(o.label), pick = /^👍/.test(L); L = L.replace(/^👍\s*/, "");
+    var title = o.title || L.replace(/^★\s*/, ""), sub = o.sub || "", m = L.match(/^(.*?)\s*(?:→|·)\s*(.*)$/);
+    if (!o.title && m) { title = m[1]; sub = sub || m[2]; }
+    var icon = o.icon; if (!icon) { var f = ICONS.find(function (x) { return x[0].test(L); }); icon = f ? f[1] : "🏐"; }
+    return { title: title, sub: sub, icon: icon, star: /^★/.test(L), pick: pick || !!o.pick };
+  }
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -13,9 +24,10 @@
     $: $,
     esc: esc,
 
-    msg: function (t) { $("msg").textContent = t; },
-
-    // side: 0 = your team, 1 = opponent, -1 = neutral
+    msg: function (t) {
+      var m = $("msg"); m.textContent = t; m.classList.remove("flash"); void m.offsetWidth; m.classList.add("flash");
+      var d = $("dockMsg"); if (d) d.textContent = t;
+    },
     feed: function (side, text, hot) {
       var box = $("feed"), div = document.createElement("div");
       div.className = "line " + (side === 0 ? "me" : side === 1 ? "op" : "") + (hot ? " hot" : "");
@@ -26,15 +38,33 @@
     },
     clearFeed: function () { $("feed").innerHTML = ""; },
 
+    // the "call" cards: icon, title, a short line, optional hitter face / tempo / set spot; keys 1-9 pick
     buttons: function (list) {
       return new Promise(function (res) {
         var bar = $("actions"); bar.innerHTML = "";
-        list.forEach(function (o) {
-          var b = document.createElement("button");
-          b.className = "btn"; b.textContent = o.label; b.disabled = !!o.disabled;
-          b.addEventListener("click", function () { bar.innerHTML = ""; res(o.value); });
-          bar.appendChild(b);
+        bar.classList.toggle("many", list.length > 4);
+        var btns = [];
+        function done(v) { document.removeEventListener("keydown", key); bar.innerHTML = ""; res(v); }
+        list.forEach(function (o, i) {
+          var c = card(o), b = document.createElement("button");
+          b.className = "btn callcard" + (c.star ? " star" : "") + (c.pick ? " pick" : "") + (o.cls ? " " + o.cls : "");
+          b.disabled = !!o.disabled; b.title = o.label;
+          b.innerHTML = (i < 9 ? "<kbd>" + (i + 1) + "</kbd>" : "") +
+            (o.face ? "<img class='cc-face' src='" + o.face + "' alt=''/>" : "<span class='cc-ic'>" + c.icon + "</span>") +
+            "<span class='cc-txt'><span class='cc-t'>" + esc(c.title) + "</span>" + (c.sub ? "<span class='cc-s'>" + esc(c.sub) + "</span>" : "") +
+            (o.tempo != null ? "<span class='cc-tempo'><i style='width:" + Math.round(Math.max(0.12, 1 - Math.min(1, o.tempo)) * 100) + "%'></i><em>" + (o.tempo < 0.5 ? "QUICK" : o.tempo < 0.8 ? "FAST" : "HIGH") + "</em></span>" : "") + "</span>" +
+            (o.spot != null ? "<span class='cc-net'><i style='left:" + Math.round(o.spot * 100) + "%'" + (o.back ? " class='back'" : "") + "></i></span>" : "") +
+            (c.pick ? "<span class='cc-tag'>SETTER'S PICK</span>" : "");
+          b.addEventListener("click", function () { done(o.value); });
+          bar.appendChild(b); btns.push({ b: b, o: o });
         });
+        function key(e) {
+          if (/INPUT|TEXTAREA/.test((e.target || {}).tagName || "")) return;
+          var n = parseInt(e.key, 10); if (!(n >= 1 && n <= btns.length)) return;
+          var it = btns[n - 1]; if (it.b.disabled || !it.b.isConnected) return;
+          e.preventDefault(); done(it.o.value);
+        }
+        document.addEventListener("keydown", key);
       });
     },
 
