@@ -887,7 +887,7 @@ details.controls[open] summary { margin-bottom: 6px; }
   background: var(--navy, #071a44); color: #fff; font-family: var(--pixel); font-size: 9px; padding: 8px 12px; border-radius: 12px; box-shadow: 0 0 0 3px #ff3b3b, 0 8px 24px #0008; max-width: 94vw; }
 .sb-watch-bar .muted { font-family: var(--text); font-size: 15px; color: #9cc4ea; }
 .live-dot { width: 10px; height: 10px; border-radius: 50%; background: #ff3b3b; box-shadow: 0 0 8px #ff3b3b; animation: contBlink 1s steps(2) infinite; }
-body.sb-watching #backBtn, body.sb-watching #dock, body.sb-watching .side-btns, body.sb-watching #endScreen .btn { display: none !important; }
+body.sb-watching #backBtn, body.sb-watching:not(.sb-linked) #dock, body.sb-watching .side-btns, body.sb-watching #endScreen .btn { display: none !important; }
 body.sb-watching #matchView { padding-top: 40px; }
 .duo-gap { margin-top: 8px; text-align: center; font-family: var(--pixel); font-size: 8px; color: var(--blue-d); background: #fff6c9; border: 2px dashed var(--yellow-d); border-radius: 8px; padding: 6px; }
 /* original team crests */

@@ -24,6 +24,14 @@ through a link (or a 6-letter code) while you're both online:
     ("⏸ WAITING — X IS CATCHING UP…"), and the one BEHIND advances freely
     without waiting until you're level; then it's lockstep again. The duo panel
     shows how many days apart you are.
+  - ⚔️ / 🤝 FRIENDLIES: from the duo panel, CHALLENGE your friend (different
+    clubs: your club vs theirs, each of you controls YOUR OWN player on
+    opposite sides of the net) or PLAY TOGETHER (same club: both of you on one
+    team vs a strong club from your league). One game runs the match; the
+    other sees it live and gets their own serve / receive / spike / dig / cover
+    calls. Both careers record the result from their own side (XP + news).
+  - 🔄 SYNC re-sends both players' details if your friend's player isn't
+    showing up (or is out of date) in your world.
   - 📺 WATCH LIVE: when you're ready and your friend is still playing, their
     match opens on your screen automatically, drawn by your own game from their
     live state (court, score, commentary). ◀ BACK TO MY CAREER leaves any time;

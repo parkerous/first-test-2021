@@ -75,12 +75,28 @@
   var bg = null, crowdFrames = [], fans = [], arenaTheme = null;
   var lastFrame = 0;
 
-  function iControl(role) { return mode === "full" || role === myRole || (!!mateRole && role === mateRole && VB.Coop && VB.Coop.live()); }   // P2 left? their player plays on as AI
-  function isMate(role) { return !!mateRole && role === mateRole && VB.Coop && VB.Coop.live(); }
+  function linkLive() { return !!(VB.Coop && (VB.Coop.matchLink ? VB.Coop.matchLink() : VB.Coop.live())); }
+  function iControl(role) { return mode === "full" || role === myRole || (!!mateRole && role === mateRole && linkLive()); }   // P2 left? their player plays on as AI
+  function isMate(role) { return !!mateRole && role === mateRole && linkLive(); }
+  // a friend on the OTHER team (a head-to-head friendly): their player's decisions go over the link too
+  var foeRole = null;
+  function foeHuman(role) { return !!foeRole && role === foeRole && linkLive(); }
+  function remoteFor(role, s) { return s === opp ? foeHuman(role) : isMate(role); }
+  function human(s, role) { return s === me ? iControl(role) : foeHuman(role); }
+  // the name-tag prefix for a human-controlled player (from this screen's point of view)
+  function humanTag(side, r) {
+    if (mode !== "role") return "";
+    if (side === 0 && (r === myRole || r === mateRole)) {
+      if (spectating && cfg && cfg.tag) return r === mateRole ? "YOU " : cfg.tag + " ";
+      return mateRole ? (r === mateRole ? "P2 " : "P1 ") : "YOU ";
+    }
+    if (side === 1 && foeRole && r === foeRole) return spectating ? "YOU " : (cfg && cfg.foeName ? "⚔️ " : "P2 ");
+    return "";
+  }
   function humans() { return [myRole, mateRole].filter(Boolean); }
   // every decision goes to whoever controls that player: you, here — or P2, over the co-op link
-  function askB(role, list) {
-    if (!isMate(role)) return U.buttons(list);
+  function askB(role, list, s) {
+    if (!remoteFor(role, s || me)) return U.buttons(list);
     var def = (list.find(function (o) { return !o.disabled; }) || list[0]).value;
     $("actions").innerHTML = "<div class='coop-wait'>⏳ P2 IS DECIDING…</div>";
     return VB.Coop.ask("buttons", { list: list, msg: $("msg").textContent }, def).then(function (v) { $("actions").innerHTML = ""; return v; });
@@ -1181,7 +1197,7 @@
       var sway = moving ? 0 : Math.sin(gt * 1.6 + Pl.ph * 2) * 1.6;
       var x = p.x + sway, y = p.y - bob - lift;
       it.dx = x; it.dy = y; it.fx = p.x + sway;
-      var mine = s.side === 0, isYou = mine && mode === "role" && (it.r === myRole || it.r === mateRole);
+      var mine = s.side === 0, isYou = !!humanTag(s.side, it.r);
       if (lift > 0) { g.fillStyle = "rgba(0,20,60,0.3)"; g.beginPath(); g.ellipse(x, p.y + 17, 10, 4, 0, 0, Math.PI * 2); g.fill(); }
       g.strokeStyle = isYou ? "#ffd21e" : mine ? "#0e9e45" : "#e0348a";
       g.lineWidth = isYou ? 3.5 : 2;
@@ -1227,10 +1243,10 @@
       return y;
     }
     list.slice().reverse().forEach(function (it) {
-      var Pl = it.s.roster[it.r], mine = it.s.side === 0, isYou = mine && mode === "role" && (it.r === myRole || it.r === mateRole);
+      var Pl = it.s.roster[it.r], mine = it.s.side === 0, isYou = !!humanTag(it.s.side, it.r);
       var nm = Pl.name.length > 11 ? Pl.name.slice(0, 10) + "." : Pl.name;
       var star = Pl.skill ? (Pl.cd ? " ★" + Pl.cd : " ★") : "";
-      var label = (isYou ? (cfg && cfg.tag ? cfg.tag + " " : mateRole ? (it.r === mateRole ? "P2 " : "P1 ") : "YOU ") : "") + (Pl.flow ? "FLOW " : "") + (Pl.marked ? "🎯" : "") + nm + star;
+      var label = humanTag(it.s.side, it.r) + (Pl.flow ? "FLOW " : "") + (Pl.marked ? "🎯" : "") + nm + star;
       pill(label, it.dx, freeY(label, it.dx, it.dy - 34, LABEL_FONT, -1), LABEL_FONT,
            isYou ? "#13293f" : Pl.flow ? "#d8f7ff" : (Pl.skill && !Pl.cd) ? "#ffd21e" : "#ffffff",
            isYou ? "#ffd21e" : Pl.flow ? "#0b49d6" : "rgba(10,30,60,0.85)");
@@ -1304,7 +1320,7 @@
       var t = sd.tgt[it.r], moving = t && dist(p, t) > 4, bob = moving ? Math.abs(Math.sin(gt * 14 + Pl.ph)) * 2 : 0;
       var hsc = clamp((Pl.height || 195) / 195, 0.8, 1.12), f0 = proj(p.x, p.y, 0), hh = SPR_H * hsc * f0.s, ww = hh * 0.75;
       var up = Math.max(0, lift) * LIFT * f0.s + bob * f0.s;
-      var isYou = sd.side === 0 && mode === "role" && (it.r === myRole || it.r === mateRole);
+      var isYou = !!humanTag(sd.side, it.r);
       // the "model": soft contact shadow, team-coloured rim light, slightly larger sprite
       g.fillStyle = "rgba(0,10,30," + (0.35 - Math.min(0.2, up / 300)) + ")";
       g.beginPath(); g.ellipse(f0.x, f0.y, ww * 0.42, ww * 0.14, 0, 0, Math.PI * 2); g.fill();
@@ -1319,7 +1335,7 @@
         g.drawImage(Pl.sprite, f0.x - ww / 2, top, ww, hh);
         if (kind) { var kk = hh / 40; g.save(); g.translate(f0.x, f0.y - up); g.scale(kk, kk); drawArms(kind, pr, 0, -16, Pl.face.skin, a && a.dir); g.restore(); }
       }
-      if (sd.side === 0 || f0.s > 0.75) labels.push({ x: f0.x, y: top - 8, t: (isYou ? (cfg && cfg.tag ? cfg.tag + " " : "YOU ") : "") + (Pl.marked ? "🎯" : "") + Pl.name.slice(0, 10), you: isYou, mine: sd.side === 0 });
+      if (sd.side === 0 || f0.s > 0.75) labels.push({ x: f0.x, y: top - 8, t: humanTag(sd.side, it.r) + (Pl.marked ? "🎯" : "") + Pl.name.slice(0, 10), you: isYou, mine: sd.side === 0 });
     });
     drawFlashes(function (f) { return proj(f.x, f.y, (f.h || 0) * BH); });
     labels.forEach(function (l) { pill(l.t, l.x, l.y, '15px "VT323", monospace', l.you ? "#13293f" : "#ffffff", l.you ? "#ffd21e" : l.mine ? "rgba(14,100,50,0.85)" : "rgba(120,20,60,0.85)"); });
@@ -1414,8 +1430,8 @@
     y = half === "top" ? clamp(y, CT + 10, NET - 16) : clamp(y, NET + 16, CB - 10);
     return { x: x, y: y };
   }
-  function aimClick(half, role) {
-    if (isMate(role)) {
+  function aimClick(half, role, s) {
+    if (remoteFor(role, s || me)) {
       var fb = { x: rnd(CL + 40, CR - 40), y: half === "top" ? rnd(CT + 40, NET - 60) : rnd(NET + 60, CB - 40) };
       $("actions").innerHTML = "<div class='coop-wait'>🎯 P2 IS AIMING…</div>";
       return VB.Coop.ask("aim", { half: half, msg: $("msg").textContent }, null).then(function (a) {
@@ -1451,12 +1467,12 @@
     timingPop.t = setTimeout(function () { el.classList.add("hidden"); }, 750);
   }
   // goodW: width of the green zone (0..1 of the bar) — shrinks against fast balls and better opponents
-  function timingBar(label, speedMs, goodW, role) {
+  function timingBar(label, speedMs, goodW, role, s) {
     goodW = clamp(goodW || 0.28, 0.12, 0.42);
     var pace = speedMs < 850 ? "  ⚡⚡ VERY FAST" : speedMs < 1100 ? "  ⚡ FAST" : speedMs > 1500 ? "  🐢 SLOW" : "";
     var spec = { label: label + "  [" + (goodW >= 0.32 ? "EASY" : goodW >= 0.24 ? "NORMAL" : goodW >= 0.17 ? "HARD" : "BRUTAL") + "]" + pace,
                  speedMs: speedMs * 1.8, goodW: goodW, perfW: goodW * 0.26, center: rnd(0.15 + goodW / 2, 0.85 - goodW / 2) };   // a calm, readable marker; GOOD is easy, PERFECT is not
-    if (isMate(role)) {
+    if (remoteFor(role, s || me)) {
       $("actions").innerHTML = "<div class='coop-wait'>⏱️ P2: " + U.esc(label) + "</div>";
       return VB.Coop.ask("timing", spec, 0.4).then(function (q) { $("actions").innerHTML = ""; timingPop(q); return q; });
     }
@@ -1787,15 +1803,15 @@
 
   async function serve(srv) {
     var rcv = other(srv), sr = srv.lineup[1], Sv = srv.roster[sr], kind, target, tossMod = null;
-    if (srv === me && iControl(sr)) {
+    if (human(srv, sr)) {
       msg(Sv.name + " TO SERVE — PICK THE SERVE");
       var o = [{ label: "FLOAT SERVE", value: "float" }, { label: "TOPSPIN SERVE", value: "spin" }];
       if (Sv.skill === "serve") o.push({ label: "★ " + skillLabel(Sv) + (Sv.cd ? " (" + Sv.cd + ")" : ""), value: "super", disabled: !ready(Sv, "serve") });
-      kind = await askB(sr, o);
+      kind = await askB(sr, o, srv);
       msg("CLICK WHERE TO SERVE");
-      target = await aimClick("top", sr);
+      target = await aimClick(srv === me ? "top" : "bottom", sr, srv);
       if (mode === "role") {
-        var tossQ = await timingBar("TOSS & SERVE — " + Sv.name + "!", 1000, 0.24 + (Sv.srv - 70) / 300, sr);
+        var tossQ = await timingBar("TOSS & SERVE — " + Sv.name + "!", 1000, 0.24 + (Sv.srv - 70) / 300, sr, srv);
         tossMod = tossQ;
       }
     } else {
@@ -1814,7 +1830,7 @@
       sp.power = clamp01(sp.power * (0.85 + 0.3 * tossMod));
       sp.errP = Math.max(0.02, sp.errP + (tossMod < 0.35 ? 0.1 : tossMod >= 1 ? -0.02 : 0));
     }
-    if (!(srv === me && iControl(sr))) { sp.power = clamp01(sp.power + sty(srv).serveRisk + bot() * 0.04); sp.errP = Math.max(0.015, sp.errP + sty(srv).serveRisk * 0.6 - bot() * 0.012); }
+    if (!human(srv, sr)) { sp.power = clamp01(sp.power + sty(srv).serveRisk + bot() * 0.04); sp.errP = Math.max(0.015, sp.errP + sty(srv).serveRisk * 0.6 - bot() * 0.012); }
     sp.errP += Math.max(0, -edge(srv)) * 0.12;                      // weaker sides miss more serves under pressure
     target = clampHalf(rcv, { x: target.x + rnd(-1, 1) * sp.wobble * 90, y: target.y + rnd(-1, 1) * sp.wobble * 60 });
     var jumpFloat = kind === "float" && Math.random() < 0.4 + (Sv.srv - 70) / 100;
@@ -1850,11 +1866,11 @@
       setTimeout(function () { if (rcv.pos[rcvRole]) moveTo(rcv, rcvRole, { x: target.x + rnd(-16, 16), y: target.y + rnd(-6, 6) }); }, flightMs * f);
       setTimeout(function () { if (rcv.pos[rcvRole]) moveTo(rcv, rcvRole, target); }, flightMs * 0.8);
     });
-    if (!errKind && rcv === me && iControl(rcvRole)) {
+    if (!errKind && human(rcv, rcvRole)) {
       await sleep(150); slow();
       timing = await timingBar("RECEIVE — " + RP.name + " vs " + Sv.name + " (SRV " + Sv.srv + ")!",
         duelSpeed(Sv.srv + (kind === "spin" ? sp.power * 12 : 0), RP.rec, superServe || Sv.flow),
-        0.28 + (RP.rec - Sv.srv) / 250 - sp.power * 0.08 - (superServe ? 0.07 : 0) - (kind === "float" ? 0.02 + floatM * 0.03 : 0) + ps(RP, "platform") * 0.035 + clutchAdj(RP), rcvRole);
+        0.28 + (RP.rec - Sv.srv) / 250 - sp.power * 0.08 - (superServe ? 0.07 : 0) - (kind === "float" ? 0.02 + floatM * 0.03 : 0) + ps(RP, "platform") * 0.035 + clutchAdj(RP), rcvRole, rcv);
       fast();
     } else if (rcv === me) timing = autoTiming(RP.rec + ps(RP, "platform") * 6 - floatM * 6);
     await flight;
@@ -1862,7 +1878,7 @@
 
     var useRec = ready(RP, "rec") && (rcv !== me || iControl(rcvRole) || Math.random() < 0.7);
     if (useRec) useSkill(rcv, RP);
-    var rq = rcv === me ? clamp01(timing * 0.72 + RP.rec / 320 - sp.power * 0.28 + rnd(-0.04, 0.06) + edge(rcv) * 0.4 + mom[rcv.side])
+    var rq = timing != null ? clamp01(timing * 0.72 + RP.rec / 320 - sp.power * 0.28 + rnd(-0.04, 0.06) + edge(rcv) * 0.4 + mom[rcv.side])
                         : clamp01(RP.rec / 110 - sp.power * 0.45 + rnd(-0.12, 0.18) + edge(rcv) * 0.8 + mom[rcv.side] + bot() * 0.04);
     if (useRec) rq = clamp01(rq + 0.35);
     rq = clamp01(rq + ((RP.spd || 70) - 70) / 500);                  // quick feet get behind the ball
@@ -1947,7 +1963,7 @@
       var saved = false;
       if (ch) {                                                         // the chase: sometimes they get there
         var CP = s.roster[ch];
-        if (s === me && iControl(ch) && mode === "role") { slow(); saved = (await timingBar("CHASE IT DOWN — " + CP.name + "!", 720, 0.17 + ((CP.spd || 70) - 70) / 300 + (ch === "L" ? 0.04 : 0), ch)) >= 0.5; fast(); }
+        if (human(s, ch) && mode === "role") { slow(); saved = (await timingBar("CHASE IT DOWN — " + CP.name + "!", 720, 0.17 + ((CP.spd || 70) - 70) / 300 + (ch === "L" ? 0.04 : 0), ch, s)) >= 0.5; fast(); }
         else saved = Math.random() < clamp(0.24 + ((CP.spd || 70) - 70) / 200 + ((CP.def || 70) - 70) / 300 + (ch === "L" ? 0.12 : 0) + bot() * 0.05, 0.08, 0.6);
       }
       if (saved) {
@@ -2188,10 +2204,10 @@
     var spacing = Math.max(0, 0.75 - st.tempo) * 24 + rnd(-2, 3) - tight;   // extra gap between hands: fast sets open seams
     var bAx = st.x + (1 - st.tempo) * rnd(-22, 22) * late;          // ...and the block a step late
     placeDefense(def, bAx, blockers, lean, spacing);
-    var controlled = iAttack && iControl(hitter);
+    var controlled = human(atk, hitter);
     var plan = controlled ? null : aiAttackPlan(atk, def, A, n, st, Math.min(1, (grade === 2 ? 1 : grade === 1 ? 0.75 : 0.5) * (1 + bot() * 0.1)), contact, blockers);
     if (guessed !== null) feed(0, guessed ? "Your middle GUESSED RIGHT — the block was waiting for " + A.name + "!" : "Your block guessed wrong — " + A.name + " has a step on them!", guessed);
-    if (!iAttack && n && plan.target && TAC.lean === "auto") {
+    if (!iAttack && n && plan && plan.target && TAC.lean === "auto") {
       var actual = shotDir(st.x, plan.target);
       var myBlk = blockers.reduce(function (a, r) { return a + me.roster[r].blk; }, 0) / n;
       if (actual !== "angle" && Math.random() < clamp01((0.3 + myBlk / 300 + bot() * 0.06) * st.tempo)) { lean = actual; placeDefense(def, bAx, blockers, lean, spacing); }
@@ -2212,17 +2228,17 @@
       if (A.skill === "spike") ch.push({ label: "★ " + skillLabel(A) + (A.cd ? " (" + A.cd + ")" : ""), value: "super", disabled: !ready(A, "spike") });
       ch.push({ label: "SPIKE", value: "spike" }, { label: "TIP", value: "tip" });
       if (n > 0) ch.push({ label: "WIPE OFF BLOCK", value: "wipe" });
-      var type = await askB(hitter, ch), tgt = null, jumpQ = null;
+      var type = await askB(hitter, ch, atk), tgt = null, jumpQ = null;
       if (mode === "role") {
         fast();
-        jumpQ = await timingBar("APPROACH — JUMP, " + A.name + "!", 900, 0.22 + (A.att - 70) / 300 + (A.vert - 85) / 400, hitter);
+        jumpQ = await timingBar("APPROACH — JUMP, " + A.name + "!", 900, 0.22 + (A.att - 70) / 300 + (A.vert - 85) / 400, hitter, atk);
         slow();
       }
       if (type !== "wipe") {
         msg(type === "tip" ? "CLICK WHERE TO TIP IT" :
             "AIM: GREEN = CLEAR • YELLOW = TOOL/EDGE • RED = INTO THE BLOCK" + (st.tempo >= 0.8 && n ? " (SLOW SET — THE BLOCK CAN STILL ADJUST)" : ""));
         aimCtx = type === "tip" || !n ? null : { from: contact, def: def, blockers: blockers };
-        tgt = await aimClick("top", hitter);
+        tgt = await aimClick(atk === me ? "top" : "bottom", hitter, atk);
         aimCtx = null;
       }
       fast();
@@ -2303,7 +2319,7 @@
     }
 
     // 1) attack error
-    var errP = (plan.jump != null ? (plan.jump < 0.35 ? 0.07 : plan.jump >= 1 ? -0.02 : 0) : 0) + 0.05 + (1 - setQ) * 0.08 + st.tempo * 0.02 - A.att / 1200 + (type === "wipe" ? 0.05 : 0) - (type === "tip" ? 0.03 : 0) - (atk === me && iControl(hitter) ? 0 : bot() * 0.01) +
+    var errP = (plan.jump != null ? (plan.jump < 0.35 ? 0.07 : plan.jump >= 1 ? -0.02 : 0) : 0) + 0.05 + (1 - setQ) * 0.08 + st.tempo * 0.02 - A.att / 1200 + (type === "wipe" ? 0.05 : 0) - (type === "tip" ? 0.03 : 0) - (human(atk, hitter) ? 0 : bot() * 0.01) +
                (type !== "tip" && target && Math.abs(target.x - st.x) > 150 && Math.abs(target.y - NET) < 110 ? 0.05 : 0);   // sharp angles miss more
     if (Math.random() < errP) {
       A.st.ae++; heat(atk, hitter, -1);
@@ -2476,7 +2492,7 @@
     var cand = def.onCourt.filter(function (r) { return excl.indexOf(r) < 0 || o.soft; });
     var gap = gapScore(def, to);
     var digRole = nearest(def, to, cand).pos, D = def.roster[digRole];
-    var controlled = def === me && iControl(digRole);
+    var controlled = human(def, digRole);
     var startDist = dist(def.pos[digRole], to), diveDir = Math.sign(to.x - def.pos[digRole].x) || 1;
     var noTouch = !o.soft && o.type === "spike" && !controlled && gap > 0.5 && Math.random() < 0.4;
     var diving = !noTouch && !o.soft && startDist > 70 + ((D.spd || 70) - 70) * 1.2;          // quick defenders reach it on their feet
@@ -2585,8 +2601,8 @@
     if (!who) return null;
     var Pl = atk.roster[who], d = dist(atk.pos[who], land);
     moveTo(atk, who, land); atk.rush[who] = true;
-    if (atk === me && iControl(who) && mode === "role") {             // YOU are the cover: react!
-      slow(); var q = await timingBar("COVER THE BLOCK — " + Pl.name + "!", 760, 0.2 + (Pl.def - 70) / 300 + (who === "L" ? 0.04 : 0), who); fast();
+    if (human(atk, who) && mode === "role") {                         // YOU are the cover: react!
+      slow(); var q = await timingBar("COVER THE BLOCK — " + Pl.name + "!", 760, 0.2 + (Pl.def - 70) / 300 + (who === "L" ? 0.04 : 0), who, atk); fast();
       return q >= 0.5 ? who : null;
     }
     var p = (who === "L" ? 0.2 : 0.08) + ((Pl.def || 70) - 70) / 250 + ((Pl.spd || 70) - 70) / 400 - clamp01((d - 40) / 160) * 0.12 + bot() * 0.03 + ps(Pl, "acrobat") * 0.04;
@@ -2731,7 +2747,7 @@
       }
     }
     cfg = c;
-    mode = c.mode || "full"; myRole = c.myRole || null; mateRole = c.mateRole || null;
+    mode = c.mode || "full"; myRole = c.myRole || null; mateRole = c.mateRole || null; foeRole = c.foeRole || null;
     var mineKit = c.mine.kit, foeKit = kitClash(c.mine.kit, c.foe.kit) ? (c.foe.kit2 && !kitClash(c.mine.kit, c.foe.kit2) ? c.foe.kit2 : "#f5f5f5") : c.foe.kit;
     var myLib = pickLiberoKit(mineKit, [foeKit]), oppLib = pickLiberoKit(foeKit, [mineKit, myLib]);
     c.mine.ovr = VB.Stats.teamOvr(c.mine); c.foe.ovr = VB.Stats.teamOvr(c.foe);
@@ -2850,7 +2866,7 @@
   function r1(v) { return Math.round(v * 10) / 10; }
   function matchInit() {
     var c = cfg;
-    return { mine: c.mine, foe: c.foe, homeSide: c.homeSide, league: c.league, floor: curFloor, label: c.label, myRole: myRole, mateRole: mateRole,
+    return { mine: c.mine, foe: c.foe, homeSide: c.homeSide, league: c.league, floor: curFloor, label: c.label, myRole: myRole, mateRole: mateRole, foeRole: foeRole,
              setsTo: c.setsTo, bestOf: c.bestOf, stage: $("stageLine").textContent,
              nums: [me, opp].map(function (sd) { var o = {}; ROLES.forEach(function (r) { o[r] = sd.roster[r].num; }); return o; }) };
   }
@@ -2866,7 +2882,7 @@
   function spectate(c) {
     try { var ck = localStorage.getItem("retroVB.cam"); if (ck && VB.CAMS[ck]) CAM = ck; } catch (e) {}
     camUI();
-    cfg = c; mode = "role"; myRole = c.myRole; mateRole = c.mateRole; spectating = true;
+    cfg = c; mode = "role"; myRole = c.myRole; mateRole = c.mateRole; foeRole = c.foeRole || null; spectating = true;
     var mineKit = c.mine.kit, foeKit = kitClash(c.mine.kit, c.foe.kit) ? (c.foe.kit2 && !kitClash(c.mine.kit, c.foe.kit2) ? c.foe.kit2 : "#f5f5f5") : c.foe.kit;
     var myLib = pickLiberoKit(mineKit, [foeKit]), oppLib = pickLiberoKit(foeKit, [mineKit, myLib]);
     me = makeSide(c.mine, 0, mineKit, myLib, c.nums && c.nums[0]); opp = makeSide(c.foe, 1, foeKit, oppLib, c.nums && c.nums[1]);

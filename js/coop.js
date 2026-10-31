@@ -120,6 +120,11 @@
   function onMsg(m) {
     if (!m || !m.t) return;
     lastRx = Date.now(); if (m.t === "__hb") return;
+    if (mode === "sb") {                                              // a linked friendly: either of you can be the one running the match
+      if (m.t === "ask") { answer(m); return; }
+      if (m.t === "ans") { var pa = pend[m.id]; if (pa) { clearTimeout(pa.to); delete pend[m.id]; pa.res(m.v); } return; }
+      if (m.t === "cancel") { if (gState.pendingAsk === m.id) clearAsk(); return; }
+    }
     if (m.t === "chat") { chatAdd(m.who || "FRIEND", String(m.txt || "").slice(0, 120)); return; }
     if (m.t.indexOf("sb-") === 0) return sbMsg(m);
     if (role === "host") return hostMsg(m);
@@ -520,7 +525,20 @@
     // watching each other's matches
     if (m.t === "sb-watch") { sbStream.want = !!m.on; if (m.on) sbStreamStart(); else sbStreamStop(false); return; }
     if (m.t === "sb-mstart") { if (sb.watchWant) sbWatchOpen(m.init, m.who); return; }
-    if (m.t === "sb-snap") { if (sb.watching) { VB.Engine.applySnap(m.s); $("recordLine").textContent = m.rec || ""; U.msg(m.msg || ""); } return; }
+    if (m.t === "sb-snap") { if (sb.watching) { VB.Engine.applySnap(m.s); $("recordLine").textContent = m.rec || ""; if (!gState.pendingAsk) U.msg(m.msg || ""); } return; }
+    // friendlies between the two of you: ⚔️ head-to-head, or 🤝 together on the same club
+    if (m.t === "sb-fr") {
+      var h = sb.hook && sb.hook.onInvite;
+      if (!h || sb.watching || !$("matchView").classList.contains("hidden")) { send({ t: "sb-fr-ans", yes: false, why: "busy" }); return; }
+      Promise.resolve(h(m.kind, m.from)).then(function (yes) {
+        send({ t: "sb-fr-ans", yes: !!yes });
+        if (yes) { sb.linked = true; document.body.classList.add("sb-linked"); sbWatch(true); }
+      });
+      return;
+    }
+    if (m.t === "sb-fr-ans") { if (sb.frWait) { var fw = sb.frWait; sb.frWait = null; fw(!!m.yes); } return; }
+    if (m.t === "sb-fr-done") { sb.linked = false; document.body.classList.remove("sb-linked"); setTimeout(function () { sbWatch(false); }, 1900); if (sb.hook && sb.hook.onFriendlyDone) sb.hook.onFriendlyDone(m.res); return; }
+    if (m.t === "sb-resync") { sb.sent = ""; sbPush(true); return; }
     if (m.t === "sb-feed") { if (sb.watching) { var f = $("feed"), d = document.createElement("div"); d.innerHTML = m.html; if (d.firstChild) f.appendChild(d.firstChild); while (f.children.length > 60) f.removeChild(f.firstChild); f.scrollTop = f.scrollHeight; } return; }
     if (m.t === "sb-mend") { if (sb.watching) { var bt = $("sbWatchT"); if (bt) bt.textContent = "🏁 " + (sb.partner ? sb.partner.name : "YOUR FRIEND") + "'S MATCH IS OVER"; setTimeout(sbWatchClose, 1800); } return; }
   }
@@ -569,13 +587,25 @@
     VB.Engine.spectate(Object.assign({}, init, { tag: "🤝" }));
     var bar = $("sbWatchBar");
     if (!bar) { bar = document.createElement("div"); bar.id = "sbWatchBar"; bar.className = "sb-watch-bar"; document.body.appendChild(bar); }
-    bar.innerHTML = "<span class='live-dot'></span><span id='sbWatchT'>📺 WATCHING " + esc(who || "YOUR FRIEND") + " LIVE</span>" +
+    bar.innerHTML = "<span class='live-dot'></span><span id='sbWatchT'>" + (sb.linked ? (init.foeRole ? "⚔️ LIVE FRIENDLY vs " : "🤝 LIVE FRIENDLY with ") + esc(who || "YOUR FRIEND") + " — you play YOUR player" : "📺 WATCHING " + esc(who || "YOUR FRIEND") + " LIVE") + "</span>" +
       "<span class='muted' id='sbWatchR'>" + (sb.myReady ? "✅ you're ready — the next day starts when they finish" : "") + "</span><button class='btn tiny' id='sbWatchBack'>◀ BACK TO MY CAREER</button>";
     $("sbWatchBack").onclick = function () { sbWatch(false); };
   }
+  // invite your friend to a friendly; resolves true if they accept
+  function sbInvite(kind) {
+    if (!connected) return Promise.resolve(false);
+    return new Promise(function (res) {
+      var to = setTimeout(function () { if (sb.frWait) { sb.frWait = null; res(false); } }, 30000);
+      sb.frWait = function (yes) { clearTimeout(to); if (yes) { sb.linked = true; sbStream.want = true; } res(yes); };
+      send({ t: "sb-fr", kind: kind, from: sb.me ? sb.me.name : "YOUR FRIEND" });
+    });
+  }
+  function sbFriendlyDone(res) {
+    sb.linked = false; sbStream.want = false; send({ t: "sb-fr-done", res: res });
+  }
   function sbWatchClose() {
     if (!sb.watching) return;
-    sb.watching = false; document.body.classList.remove("sb-watching");
+    sb.watching = false; document.body.classList.remove("sb-watching", "sb-linked"); clearAsk();
     VB.Engine.stopSpectate();
     var bar = $("sbWatchBar"); if (bar) bar.remove();
     U.showView("hub");
@@ -609,7 +639,8 @@
     sbSet: function (st) { sb.me = st; sbPush(false); },
     sbReady: sbReady, sbWaiting: function () { return sb.myReady; }, sbGap: sbGap,
     sbNews: function (txt) { sbLog(txt); send({ t: "sb-news", txt: txt }); },
-    sbWatch: sbWatch, sbWatching: function () { return !!sb.watching; }, partnerLive: function () { return connected ? sb.score : ""; },
+    sbWatch: sbWatch, sbInvite: sbInvite, sbFriendlyDone: sbFriendlyDone, sbResync: function () { sb.sent = ""; sbPush(true); send({ t: "sb-resync" }); },
+    matchLink: function () { return connected && (mode === "sb" ? !!sb.linked : role === "host"); }, sbWatching: function () { return !!sb.watching; }, partnerLive: function () { return connected ? sb.score : ""; },
     sbLog: function () { return sb.log || []; }, openChat: function () { chatUI(); if (!chat.open) chat.el.querySelector("[data-c=toggle]").click(); },
     partner: function () { return connected ? sb.partner : null; }, partnerReady: function () { return sb.theirReady; },
     connected: function () { return connected; },

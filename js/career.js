@@ -1045,8 +1045,58 @@
       onGo: function () { if (C) { sbGo = true; advance(); } },
       onPartner: function () { if (C && !busy && !$("hub").classList.contains("hidden")) render(); },
       onFriend: function (st, first) { if (C) syncFriend(st, first); },
-      onNews: function (txt) { if (C) { news("🤝 " + txt, "you"); if (!busy) render(); } }
+      onNews: function (txt) { if (C) { news("🤝 " + txt, "you"); if (!busy) render(); } },
+      onInvite: async function (kind, from) {                          // your friend wants a friendly
+        if (!C || busy || C.mode === "coach") return false;
+        return await U.modal(kind === "vs" ? "⚔️ CHALLENGE!" : "🤝 PLAY TOGETHER?",
+          "<p class='center big'>" + esc(from) + (kind === "vs" ? " challenges you to a head-to-head friendly!" : " wants to play a friendly with you, on the same team!") + "</p>" +
+          "<p class='center'>" + (kind === "vs" ? "Their club vs yours — you control YOUR player on the other side of the net." : "You both play for your club — you control YOUR player, they control theirs.") +
+          " Their game runs the match; you see it live and make your own calls.</p>",
+          [{ label: "✅ LET'S PLAY", value: true }, { label: "NOT NOW", value: false, cls: "pink" }]);
+      },
+      onFriendlyDone: function (res) { if (C) { friendlyNews(res, false); save(); if (!busy) setTimeout(render, 2000); } }
     });
+  }
+  // ---------- friendlies with your friend: ⚔️ head-to-head (different clubs) or 🤝 together (same club) ----------
+  function friendlyNews(res, mine) {
+    var iWon = res.kind === "vs" ? (mine ? res.won : !res.won) : res.won;
+    var txt = res.kind === "vs" ? "⚔️ Friendly: " + res.a + " (" + res.aClub + ") vs " + res.b + " (" + res.bClub + ") — " + res.score[0] + "-" + res.score[1] + (iWon ? " — YOU WIN the bragging rights!" : " — they take the bragging rights.")
+                                : "🤝 Friendly together for " + res.aClub + ": " + res.score[0] + "-" + res.score[1] + " vs " + res.foe + (res.won ? " — WIN!" : " — loss.");
+    news(txt, "you"); gainXP(iWon ? 25 : 12);
+  }
+  async function friendly() {
+    var p = VB.Coop.partner(), fr = C.players.friend;
+    if (!p || !C.club) return;
+    if (!fr || !fr.club) { VB.Coop.sbResync(); await U.modal("🔄 SYNCING", "<p>Your friend's player isn't in your world yet (they need a club). Synced again — try once they've signed for a club.</p>"); return; }
+    var same = fr.club === C.club, kind = same ? "together" : "vs";
+    busy = true;
+    try {
+      var waitBox = U.modal("⏳ WAITING FOR " + p.name, "<p class='center'>Asking <b>" + esc(p.name) + "</b> for a " + (same ? "🤝 friendly together" : "⚔️ head-to-head friendly") + "…</p>", [{ label: "CANCEL", value: "cancel" }]);
+      var ok = await Promise.race([VB.Coop.sbInvite(kind), waitBox]);
+      if (ok !== "cancel") $("modal").classList.add("hidden");
+      if (ok !== true) { if (ok !== "cancel") await U.modal("NO GAME", "<p>" + esc(p.name) + " can't play right now — maybe later!</p>"); return; }
+      var myLine = lineupFor(club(C.club), false), foeId, foeLine, mateKey = null, foeKey = null;
+      forceIn(myLine, you());
+      if (same) {
+        forceIn(myLine, fr); mateKey = keyOf(myLine, "friend");
+        var others = C.leagues[club().league] ? Object.keys(C.leagues[club().league].table).filter(function (id) { return id !== C.club; }) : [];
+        foeId = others.sort(function (a, b) { return club(b).prestige - club(a).prestige; })[Math.floor(Math.random() * Math.min(3, others.length))];
+        foeLine = lineupFor(club(foeId), false);
+      } else {
+        foeId = fr.club; foeLine = lineupFor(club(foeId), false);
+        forceIn(foeLine, fr); foeKey = keyOf(foeLine, "friend");
+      }
+      var mine = teamDef(C.club, myLine), foe = teamDef(foeId, foeLine);
+      U.showView("match");
+      $("recordLine").textContent = "FRIENDLY • " + you().name + (same ? " 🤝 " : " ⚔️ ") + fr.name;
+      var res = await VB.Engine.playMatch({ mine: mine, foe: foe, homeSide: 0, mode: "role", myRole: keyOf(myLine, "you"), mateRole: mateKey, foeRole: foeKey, foeName: same ? null : fr.name,
+                                            label: "FRIENDLY • " + (same ? "🤝 WITH " : "⚔️ VS ") + fr.name, league: lg(club().league).name, noSimChoice: true });
+      U.showView("hub");
+      var out = { kind: kind, score: res.score, won: res.won, a: you().name, aClub: club().short, b: fr.name, bClub: club(fr.club).short, foe: foe.name };
+      VB.Coop.sbFriendlyDone(out);
+      friendlyNews(out, true); save();
+      await U.modal(res.won ? "🏆 FRIENDLY WON" : "FRIENDLY", "<p class='center big'>" + esc(mine.name + " " + res.score[0] + " : " + res.score[1] + " " + foe.name) + "</p>");
+    } finally { busy = false; U.showView("hub"); render(); }
   }
   // the duo panel: you and your friend side by side — who's ready, who's playing (watch it live), what's new, chat
   function sbCard() {
@@ -1069,6 +1119,8 @@
       theirs + "</div>" + (gapTxt ? "<div class='duo-gap'>" + gapTxt + "</div>" : "") +
       (log.length ? "<div class='duo-log'>" + log.map(function (t) { return "<div>🤝 " + esc(t) + "</div>"; }).join("") + "</div>" : "") +
       "<div class='hub-actions'>" + (p && live ? "<button class='btn' data-act='sbWatch'>📺 WATCH " + esc(p.name) + " LIVE</button>" : "") +
+      (p && !live && C.club && C.mode !== "coach" ? "<button class='btn' data-act='sbFriendly'>" + (C.players.friend && C.players.friend.club === C.club ? "🤝 PLAY TOGETHER" : "⚔️ CHALLENGE " + esc(p.name)) + "</button>" : "") +
+      (p ? "<button class='btn tiny' data-act='sbSync'>🔄 SYNC</button>" : "") +
       (p ? "<button class='btn' data-act='sbChat'>💬 CHAT</button>" : "") +
       "<button class='btn tiny' data-act='coopInvite'>🔗 LINK</button><button class='btn tiny pink' data-act='coopLeave'>LEAVE CO-OP</button></div></div>";
   }
@@ -1354,6 +1406,8 @@
     if (act === "coopInvite") { await VB.Coop.invite(); return render(); }
     if (act === "sbWatch") { VB.Coop.sbWatch(true); return; }
     if (act === "sbChat") { VB.Coop.openChat(); return; }
+    if (act === "sbFriendly") { if (!busy) await friendly(); return; }
+    if (act === "sbSync") { VB.Coop.sbResync(); if (C) VB.Coop.sbSet(sbState()); return render(); }
     if (act === "coopLeave") { VB.Coop.leave(); return render(); }
     if (act === "cam") { var ck = Object.keys(VB.CAMS), cur = localStorage.getItem("retroVB.cam") || "classic"; VB.Engine.setCam(ck[(ck.indexOf(cur) + 1) % ck.length]); return render(); }
     if (act === "menu" || act === "exit") { if (C) save(); C = null; $("hub").onclick = null; var r = exitCareer; exitCareer = null; return r && r(); }
