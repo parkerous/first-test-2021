@@ -743,7 +743,7 @@
         f[2] = sc2[0]; f[3] = sc2[1];
         L.final = f; L.champion = winner(f);
         news("🏆 " + club(L.champion).name + " are " + L.name + " CHAMPIONS (season " + C.season + ")!", "result");
-        if (L.champion === C.club) { C.trophies.push(C.season + " " + L.name + " CHAMPION (" + club().short + ")"); }
+        if (L.champion === C.club) { addTrophy(C.season + " " + L.name + " CHAMPION (" + club().short + ")"); }
       }
     }
   }
@@ -772,7 +772,7 @@
     }
     var champ = cur[0];
     news("🌍 " + club(champ).name + " win the CLUB WORLD CUP!", "result");
-    if (champ === C.club) (C.mode === "coach" ? (C.coachTrophies = C.coachTrophies || []) : C.trophies).push(C.season + " CLUB WORLD CUP (" + club().short + ")");
+    if (champ === C.club) { if (C.mode === "coach") (C.coachTrophies = C.coachTrophies || []).push(C.season + " CLUB WORLD CUP (" + club().short + ")"); else addTrophy(C.season + " CLUB WORLD CUP (" + club().short + ")"); }
     await U.modal("🌍 CLUB WORLD CUP — " + club(champ).short, "<ul class='newslist'>" + lines.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul>" +
       (champ === C.club ? "<p class='center big'>🏆 WORLD CHAMPIONS!</p>" : ""));
   }
@@ -791,6 +791,12 @@
     }
     var starter = ovr(me) >= bar - 1;
     line[weakest] = me;
+    // one career: a P2 from the same country who's good enough is called up too — and plays with you
+    var mt = C.players.mate, mateN = null;
+    if (mt && VB.Coop && VB.Coop.live() && mt.nat === me.nat && !(mt.injured > 0)) {
+      var mslots = VB.ROLES.filter(function (r) { return VB.FAMILY[r] === mt.role && r !== weakest; }).sort(function (a, b) { return ovr(line[a]) - ovr(line[b]); });
+      if (mslots.length && ovr(mt) >= ovr(line[mslots[0]]) - 6) { line[mslots[0]] = mt; mateN = mslots[0]; news("📞🔗 " + mt.name + " is called up too — you'll play the VNL together!", "you"); }
+    }
     var mine = { id: nt.id, name: nt.name, short: nt.name, flag: nt.flag, kit: nt.kit, kit2: nt.kit2, ovr: nt.ovr, play: VB.PLAY_OF[nt.id], lineup: line };
     await U.modal("📞 NATIONAL TEAM CALL-UP!", "<p>" + esc(nt.flag + " " + nt.name) + " call you up for the VNL" + (starter ? " — as a STARTER." : " as a squad player.") + "</p>");
     news("📞 Called up by " + nt.name + " for the VNL" + (starter ? " — starting!" : "."), "you");
@@ -801,7 +807,7 @@
       if (starter) {
         U.showView("match");
         $("recordLine").textContent = "VNL • " + nt.name;
-        var res = await VB.Engine.playMatch({ mine: mine, foe: foe, homeSide: Math.random() < 0.5 ? 0 : 1, mode: "role", myRole: weakest, label: "VNL • " + label, league: "VNL", floor: "vnl", bestOf: bo || 1 });
+        var res = await VB.Engine.playMatch({ mine: mine, foe: foe, homeSide: Math.random() < 0.5 ? 0 : 1, mode: "role", myRole: weakest, mateRole: mateN, label: "VNL • " + label + (mateN ? " • 🔗 TOGETHER" : ""), league: "VNL", floor: "vnl", bestOf: bo || 1 });
         U.showView("hub");
         won = res.won; sc = res.score;
         var rating = VB.Stats.rating(res.stats.you || VB.Stats.newLine(), me.role, won);
@@ -821,6 +827,7 @@
     } else log.push("Out in the pool stage.");
     if (title) { C.trophies.push(C.season + " VNL CHAMPION (" + nt.name + ")"); news("🏆🌍 VNL CHAMPIONS with " + nt.name + "!", "you"); C.interest += 0.15; }
     C.caps = (C.caps || 0) + (starter ? 5 : 3);
+    if (mateN) { mt.caps = (mt.caps || 0) + 5; if (title) (mt.trophies = mt.trophies || []).push(C.season + " VNL CHAMPION (" + nt.name + ")"); }
     await U.modal(title ? "🏆 VNL CHAMPIONS!" : "VNL — " + nt.name, "<ul class='newslist'>" + log.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul><p class='center'>NATIONAL TEAM CAPS: " + C.caps + "</p>");
   }
 
@@ -851,7 +858,7 @@
       Object.keys(C.sstats).forEach(function (pid) { var p = P(pid); if (p && p.club && club(p.club).league === id) { agg[pid] = C.sstats[pid]; info[pid] = infoFor(pid); } });
       var bonus = {}; if (L.champion) bonus[L.champion] = 12;
       var list = VB.Stats.awards(agg, info, bonus);
-      list.forEach(function (a) { if (a.id === "you") { C.awardsWon.push(C.season + " " + L.name + " " + a.title); news("🏅 " + you().name + " wins " + a.title + " (" + L.name + ")!", "you"); } });
+      list.forEach(function (a) { if (a.id === "mate" && C.players.mate) (C.players.mate.awards = C.players.mate.awards || []).push(C.season + " " + L.name + " " + a.title); if (a.id === "you") { C.awardsWon.push(C.season + " " + L.name + " " + a.title); news("🏅 " + you().name + " wins " + a.title + " (" + L.name + ")!", "you"); } });
       if (id === myLeague()) show = { L: L, list: list };
       if (id !== myLeague()) { html += "<h3 class='mini'>" + L.flag + " " + L.name + " — CHAMPION: " + esc(L.champion ? club(L.champion).name : "—") + "</h3>"; return; }
       html += "<h3 class='mini'>" + L.flag + " " + L.name + " — CHAMPION: " + esc(L.champion ? club(L.champion).name : "—") + "</h3>" + VB.Stats.awardsHTML(list);
@@ -1054,8 +1061,41 @@
   function mate() { return C && C.players.mate && C.club && club().roster.indexOf("mate") >= 0 ? C.players.mate : null; }
   // ---------- side by side: your friend has their own career; you share days, results and a world ----------
   function sideBySide() { return !!(VB.Coop && VB.Coop.sideBySide()); }
+  // a club trophy belongs to P2 as well when they're on the club
+  function addTrophy(t) { C.trophies.push(t); var m = C.players.mate; if (m && m.club === C.club) (m.trophies = m.trophies || []).push(t); }
+  // ---------- ONE CAREER: your friend's real player (attributes, PlayStyles, trophies, awards) moves into YOUR career ----------
+  function exportMe() {
+    var me = JSON.parse(JSON.stringify(you()));
+    return { slot: C.slot, player: me, trophies: (C.trophies || []).slice(), awards: (C.awardsWon || []).slice(), caps: C.caps || 0, seasons: (C.history || []).length, club: C.club ? club().short : "" };
+  }
+  async function mergeCareers() {
+    var p = VB.Coop.partner(); if (!p) return;
+    if (!C.club) { await U.modal("ONE CAREER", "<p>Sign for a club first — your friend's player joins your club.</p>"); return; }
+    var ok = await U.modal("🔗 PLAY AS ONE CAREER?", "<p>Your career becomes the shared world. <b>" + esc(p.name) + "</b>'s player — with their attributes, PlayStyles, trophies and awards — joins <b>" + esc(club().name) + "</b> as your teammate.</p>" +
+      "<p>From then on EVERY match is played together: league, playoffs, Club World Cup, and the VNL when you're from the same country. Their own save stays on their device and keeps getting their new growth and trophies.</p>",
+      [{ label: "🔗 ASK " + p.name, value: true }, { label: "NOT NOW", value: false, cls: "pink" }]);
+    if (!ok) return;
+    var waitBox = U.modal("⏳ WAITING FOR " + p.name, "<p class='center'>Asking <b>" + esc(p.name) + "</b> to move into your career…</p>", [{ label: "CANCEL", value: "cancel" }]);
+    var imp = await Promise.race([VB.Coop.mergeInvite(), waitBox]);
+    if (imp !== "cancel") $("modal").classList.add("hidden");
+    if (!imp || imp === "cancel") { if (imp !== "cancel") await U.modal("NOT NOW", "<p>" + esc(p.name) + " didn't join this time.</p>"); return; }
+    importMate(imp);
+    startCoop(true);
+  }
+  function importMate(imp) {
+    // their friend copy in this world is replaced by the real thing, now P2 ("mate")
+    if (C.players.friend) { Object.keys(C.clubs).forEach(function (id) { var rr = C.clubs[id].roster, i = rr.indexOf("friend"); if (i >= 0) rr.splice(i, 1); }); var fi = C.free.indexOf("friend"); if (fi >= 0) C.free.splice(fi, 1); delete C.players.friend; }
+    Object.keys(C.clubs).forEach(function (id) { var rr = C.clubs[id].roster, i = rr.indexOf("mate"); if (i >= 0) rr.splice(i, 1); });
+    var m = imp.player; m.id = "mate"; m.club = C.club; m.salary = m.salary || salaryFor(m); m.years = 3; m.injured = 0;
+    m.trophies = (imp.trophies || []).slice(); m.awards = (imp.awards || []).slice(); m.caps = imp.caps || 0;
+    VB.fillAttrs(m);
+    C.players.mate = m; club().roster.push("mate");
+    C.mst = C.mst || { sp: 0 };
+    news("🔗 ONE CAREER: " + m.name + " (" + VB.FAMILY_NAMES[m.role] + ", OVR " + ovr(m) + ", " + m.trophies.length + " trophies) joins " + club().name + " — every match together from now on!", "you");
+    save();
+  }
   // ---------- LINKED TEAM: you and your friend on the same club play your league matches TOGETHER ----------
-  function nextFixture() {
+  function linkFixture() {
     var st = CAL[C.stage]; if (!C.club || !st || st[0] !== "R") return null;
     var L = lg(myLeague()), rd = L.rounds[+st.slice(1) - 1]; if (!rd) return null;
     var m = rd.find(function (x) { return x[0] === C.club || x[1] === C.club; });
@@ -1093,7 +1133,7 @@
     var pl = { name: me.name, role: me.role, nat: me.nat, age: me.age, height: me.height, vert: me.vert, face: me.face, pot: me.pot, skill: me.skill || null, ps: me.ps || null };
     VB.ATTRS.forEach(function (a) { pl[a] = me[a]; });
     return { name: me.name, role: me.role, ovr: ovr(me), clubId: cl ? cl.id : null, club: cl ? cl.short : "FREE AGENT", kit: cl ? cl.kit : "#888888",
-             league: cl ? lg(cl.league).name : "", season: C.season, day: C.season * 100 + C.stage, next: nextFixture(), stage: CAL_TXT[CAL[C.stage]] || "ROUND " + CAL[C.stage].slice(1), last: last != null ? last : null, mode: C.mode || "player", player: pl };
+             league: cl ? lg(cl.league).name : "", season: C.season, day: C.season * 100 + C.stage, next: linkFixture(), stage: CAL_TXT[CAL[C.stage]] || "ROUND " + CAL[C.stage].slice(1), last: last != null ? last : null, mode: C.mode || "player", player: pl };
   }
   function syncFriend(st, first) {
     if (!st || !st.player || C.mode === "coach") return;
@@ -1122,6 +1162,15 @@
           "<p class='center'>" + (kind === "vs" ? "Their club vs yours — you control YOUR player on the other side of the net." : "You both play for your club — you control YOUR player, they control theirs.") +
           " Their game runs the match; you see it live and make your own calls.</p>",
           [{ label: "✅ LET'S PLAY", value: true }, { label: "NOT NOW", value: false, cls: "pink" }]);
+      },
+      onMerge: async function (from) {
+        if (!C || busy || C.mode === "coach") return null;
+        var ok = await U.modal("🔗 PLAY AS ONE CAREER?", "<p class='center big'>" + esc(from) + " wants to play ONE career together.</p>" +
+          "<p>Your player — " + esc(you().name) + ", OVR " + ovr(you()) + ", " + (C.trophies || []).length + " trophies, " + (C.awardsWon || []).length + " awards — moves into <b>" + esc(from) + "'s career</b> as their teammate. Every match is played together, you make your own calls.</p>" +
+          "<p class='muted'>Your own save stays on this device (slot " + C.slot + ") and keeps getting your player's new growth, trophies and awards.</p>",
+          [{ label: "🔗 MOVE IN", value: true }, { label: "NOT NOW", value: false, cls: "pink" }]);
+        if (!ok) return null;
+        save(); var ex = exportMe(); C = null; return ex;
       },
       onFriendlyDone: function (res) { if (C) { friendlyNews(res, false); save(); if (!busy) setTimeout(render, 2000); } }
     });
@@ -1191,6 +1240,7 @@
       (p && p.clubId && C.club && p.clubId !== C.club && C.mode !== "coach" && C.clubs[p.clubId] ? "<button class='btn' data-act='sbJoin'>🤝 JOIN " + esc(p.name) + "'S CLUB (" + esc(club(p.clubId).short) + ")</button>" : "") +
       (p && !live && C.club && C.mode !== "coach" ? "<button class='btn' data-act='sbFriendly'>" + (C.players.friend && C.players.friend.club === C.club ? "🤝 PLAY TOGETHER" : "⚔️ CHALLENGE " + esc(p.name)) + "</button>" : "") +
       (p ? "<button class='btn tiny' data-act='sbSync'>🔄 SYNC</button>" : "") +
+      (p && VB.Coop.hosting() && C.club && C.mode !== "coach" ? "<button class='btn' data-act='sbMerge'>🔗 PLAY AS ONE CAREER (MINE)</button>" : p ? "<span class='muted small'>🔗 One career: " + esc(p.name) + " can merge you into theirs.</span>" : "") +
       (p ? "<button class='btn' data-act='sbChat'>💬 CHAT</button>" : "") +
       "<button class='btn tiny' data-act='coopInvite'>🔗 LINK</button><button class='btn tiny pink' data-act='coopLeave'>LEAVE CO-OP</button></div></div>";
   }
@@ -1204,9 +1254,9 @@
       "<div>" + esc(hosting ? VB.Coop.status() : "Not hosting — press 🤝 CO-OP to invite your friend again.") + "</div>" +
       (m && !(VB.Coop && VB.Coop.live()) ? "<div class='muted'>While P2 is offline, " + esc(m.name) + " plays as an AI teammate.</div>" : "") + "</div></div>";
   }
-  async function startCoop() {
+  async function startCoop(merged) {
     if (!C.club) { await U.modal("CO-OP", "<p>Sign for a club first — your friend's player joins your club.</p>"); return; }
-    VB.Coop.startHost({
+    var o = {
       hostName: function () { return C ? you().name : "HOST"; },
       info: function () {
         return C && C.club ? { club: club().short, kit: club().kit, single: SINGLE.indexOf(you().role) >= 0 ? [you().role] : [], mate: C.players.mate ? C.players.mate.name : null } : {};
@@ -1217,7 +1267,9 @@
       mate: function () { return C && C.players.mate; }, mst: function () { return (C.mst = C.mst || { sp: 0 }); },
       day: function () { return C.season + "-" + C.stage; }, news: function (t) { news(t, "you"); },
       save: function () { save(); }, render: function () { if (C && !busy) render(); }
-    });
+    };
+    if (merged) { VB.Coop.mergeHost(o); return render(); }
+    VB.Coop.startHost(o);
     await VB.Coop.invite();
   }
   function busyHub() { return !$("hub").classList.contains("hidden") && !busy; }
@@ -1477,6 +1529,7 @@
     if (act === "sbWatch") { VB.Coop.sbWatch(true); return; }
     if (act === "sbChat") { VB.Coop.openChat(); return; }
     if (act === "sbFriendly") { if (!busy) await friendly(); return; }
+    if (act === "sbMerge") { if (!busy) { busy = true; try { await mergeCareers(); } finally { busy = false; } } return render(); }
     if (act === "sbJoin") { if (!busy) { busy = true; try { await joinFriendClub(); } finally { busy = false; } } return render(); }
     if (act === "sbSync") { VB.Coop.sbResync(); if (C) VB.Coop.sbSet(sbState()); return render(); }
     if (act === "coopLeave") { VB.Coop.leave(); return render(); }

@@ -24,6 +24,16 @@ through a link (or a 6-letter code) while you're both online:
     ("⏸ WAITING — X IS CATCHING UP…"), and the one BEHIND advances freely
     without waiting until you're level; then it's lockstep again. The duo panel
     shows how many days apart you are.
+  - 🔗 PLAY AS ONE CAREER (recommended for playing together): the one who
+    sent the link presses 🔗 PLAY AS ONE CAREER (MINE) in the duo panel; the
+    friend accepts. The host's career becomes the shared world and the friend's
+    REAL player moves in as P2 on the host's club, with their attributes,
+    PlayStyles, skill, trophies and awards. From then on EVERY match is played
+    together: league, playoffs, Club World Cup, and the VNL when you're from the
+    same country (and P2 is good enough to be called up). Each of you makes
+    your own calls. The friend's own save stays on their device and keeps
+    receiving their player's new attributes, PlayStyles, trophies, awards and
+    caps. Club trophies won together count for both of you.
   - 🔗 LINKED TEAM: press 🤝 JOIN <FRIEND>'S CLUB in the duo panel to sign
     for your friend's club. You keep everything: stats, trophies, awards,
     level, PlayStyles, history. While you're both on that club and on the same

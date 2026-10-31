@@ -206,7 +206,8 @@
     var p = opts.mate && opts.mate(); if (!p) return null;
     var st = opts.mst();
     return { name: p.name, role: p.role, ovr: VB.ovr(p), attrs: VB.ATTRS.map(function (a) { return [a, p[a]]; }), ps: p.ps || {}, sp: st.sp || 0,
-             trained: st.day === opts.day(), psList: VB.psFor(p.role), skill: p.skill ? (p.skillName || VB.SKILL_TXT[p.skill]) : null };
+             trained: st.day === opts.day(), psList: VB.psFor(p.role), skill: p.skill ? (p.skillName || VB.SKILL_TXT[p.skill]) : null,
+             trophies: p.trophies || [], awards: p.awards || [], caps: p.caps || 0 };
   }
   function spCost(v) { return v < 74 ? 1 : v < 82 ? 2 : 3; }
   function p2Act(m) {
@@ -396,9 +397,9 @@
       gState.joined = true; mirrorShell(); return;
     }
     if (!gState.joined) return;
-    if (m.t === "p2") { gState.p2 = m.sheet; if (!gState.away) drawP2(); return; }
+    if (m.t === "p2") { gState.p2 = m.sheet; writeBack(m.sheet); if (!gState.away) drawP2(); return; }
     if (m.t === "hub") {
-      gState.lastHub = m.html; if (m.p2) gState.p2 = m.p2;
+      gState.lastHub = m.html; if (m.p2) { gState.p2 = m.p2; writeBack(m.p2); }
       if (gState.away) return;                                          // you're in your gacha: catch up when you're back
       mirrorShell(); var mir = $("coopMirror"); if (mir) mir.innerHTML = m.html; drawP2(); return;
     }
@@ -565,6 +566,19 @@
     if (m.t === "sb-fr-ans") { if (sb.frWait) { var fw = sb.frWait; sb.frWait = null; fw(!!m.yes); } return; }
     if (m.t === "sb-fr-done") { sb.linked = false; document.body.classList.remove("sb-linked"); setTimeout(function () { sbWatch(false); }, 1900); if (sb.hook && sb.hook.onFriendlyDone) sb.hook.onFriendlyDone(m.res); return; }
     if (m.t === "sb-resync") { sb.sent = ""; sbPush(true); return; }
+    // ONE CAREER: the link host's career becomes the shared world; the friend's player moves in as P2
+    if (m.t === "sb-merge") {
+      var hm = sb.hook && sb.hook.onMerge;
+      if (!hm) { send({ t: "sb-merge-ans", yes: false }); return; }
+      Promise.resolve(hm(m.from)).then(function (imp) {
+        if (!imp) { send({ t: "sb-merge-ans", yes: false }); return; }
+        try { localStorage.setItem("retroVB.merge", JSON.stringify({ slot: imp.slot, host: m.from, at: Date.now() })); } catch (e) {}
+        send({ t: "sb-merge-ans", yes: true, imp: imp });
+        becomeGuest(m.from);
+      });
+      return;
+    }
+    if (m.t === "sb-merge-ans") { if (sb.mergeWait) { var mw = sb.mergeWait; sb.mergeWait = null; mw(m.yes ? m.imp : null); } return; }
     // LINKED TEAM: same club, same day → one league match, both of you in it
     if (m.t === "sb-link-ready") { if (sb.linkWait && sb.linkWait.day === m.day) sb.linkWait.done(true); else sb.peerLinkDay = m.day; return; }
     if (m.t === "sb-link-res") { if (sb.resWait && sb.resWait.day === m.day) sb.resWait.done(m.res); else sb.peerRes = { day: m.day, res: m.res }; return; }
@@ -632,6 +646,49 @@
   function sbFriendlyDone(res) {
     sb.linked = false; sbStream.want = false; send({ t: "sb-fr-done", res: res });
   }
+  // host: ask the friend to move into your career
+  function mergeInvite() {
+    if (!connected || role !== "host") return Promise.resolve(null);
+    return new Promise(function (res) {
+      var to = setTimeout(function () { if (sb.mergeWait) { sb.mergeWait = null; res(null); } }, 60000);
+      sb.mergeWait = function (imp) { clearTimeout(to); res(imp); };
+      send({ t: "sb-merge", from: sb.me ? sb.me.name : "YOUR FRIEND" });
+    });
+  }
+  // host: switch the link to "together" on your career (the friend is already connected)
+  function mergeHost(o) {
+    sbWatchClose(); sbStreamStop(false);
+    mode = "shared"; opts = o || {};
+    startMirror();
+    send({ t: "joined", ok: true, msg: "Merged" });
+    pushHub(true);
+  }
+  // friend: from now on you play inside the host's career as P2
+  function becomeGuest(hostName) {
+    sbWatchClose(); sbStreamStop(false);
+    mode = "shared"; gState.joined = false;
+    document.body.classList.add("coop-guest");
+    U.showView("hub"); $("hub").onclick = guestClick;
+    setStatus("🔗 ONE CAREER — you play in " + (hostName || "your friend") + "'s career");
+    guestShell("<h2 class='hub-h'>🔗 MOVING IN…</h2><p class='center'>Your player is joining " + esc(hostName || "your friend") + "'s career. One moment…</p>");
+  }
+  // friend: keep your own save up to date with what your player earns in the shared career
+  function writeBack(sh) {
+    var mg = null; try { mg = JSON.parse(localStorage.getItem("retroVB.merge") || "null"); } catch (e) {}
+    if (!mg || !sh) return;
+    var key = "vnlCareer.slot" + mg.slot, c = null;
+    try { c = JSON.parse(localStorage.getItem(key) || "null"); } catch (e) {}
+    if (!c || !c.players || !c.players.you) return;
+    var y = c.players.you;
+    (sh.attrs || []).forEach(function (av) { if (av[1] > (y[av[0]] || 0)) y[av[0]] = av[1]; });
+    if (sh.ps) y.ps = sh.ps;
+    c.trophies = c.trophies || []; c.awardsWon = c.awardsWon || [];
+    (sh.trophies || []).forEach(function (t) { if (c.trophies.indexOf(t) < 0) c.trophies.push(t); });
+    (sh.awards || []).forEach(function (t) { if (c.awardsWon.indexOf(t) < 0) c.awardsWon.push(t); });
+    if (sh.caps > (c.caps || 0)) c.caps = sh.caps;
+    c.saved = Date.now();
+    try { localStorage.setItem(key, JSON.stringify(c)); } catch (e) {}
+  }
   function sbWatchClose() {
     if (!sb.watching) return;
     sb.watching = false; document.body.classList.remove("sb-watching", "sb-linked"); clearAsk();
@@ -668,7 +725,7 @@
     sbSet: function (st) { sb.me = st; sbPush(false); },
     sbReady: sbReady, sbWaiting: function () { return sb.myReady; }, sbGap: sbGap,
     sbNews: function (txt) { sbLog(txt); send({ t: "sb-news", txt: txt }); },
-    sbWatch: sbWatch, sbInvite: sbInvite, linkReady: linkReady, linkStart: linkStart, linkEnd: linkEnd, linkSend: linkSend, linkAwait: linkAwait, sbFriendlyDone: sbFriendlyDone, sbResync: function () { sb.sent = ""; sbPush(true); send({ t: "sb-resync" }); },
+    sbWatch: sbWatch, sbInvite: sbInvite, mergeInvite: mergeInvite, mergeHost: mergeHost, linkReady: linkReady, linkStart: linkStart, linkEnd: linkEnd, linkSend: linkSend, linkAwait: linkAwait, sbFriendlyDone: sbFriendlyDone, sbResync: function () { sb.sent = ""; sbPush(true); send({ t: "sb-resync" }); },
     matchLink: function () { return connected && (mode === "sb" ? !!sb.linked : role === "host"); }, sbWatching: function () { return !!sb.watching; }, partnerLive: function () { return connected ? sb.score : ""; },
     sbLog: function () { return sb.log || []; }, openChat: function () { chatUI(); if (!chat.open) chat.el.querySelector("[data-c=toggle]").click(); },
     partner: function () { return connected ? sb.partner : null; }, partnerReady: function () { return sb.theirReady; },
