@@ -399,7 +399,7 @@ court or the M key mutes; volume is in ⚙ SETTINGS.
   a bit different each time). The computer mixes up targets: the weakest
   passer, short serves, deep corners, the gaps. Missed serves land long or wide
   in different places.
-- 🤖 BOT SKILL (⚙ SETTINGS: NORMAL / HARD / ELITE, default HARD) makes every
+- 🤖 BOT SKILL (⚙ SETTINGS: NORMAL / HARD / ELITE, default HARD — a notch tougher than before, and HARD/ELITE also tighten your timing windows a little) makes every
   computer-controlled player better, opponents and your AI teammates alike:
   cleaner passes and digs, fewer attack and serve errors, harder serves,
   smarter shots, and blockers that read a hitter's habits.

@@ -37,7 +37,7 @@
   var LIBERO_KITS = ["#ffd21e", "#111111", "#ffffff", "#00b3a4", "#ff7a00", "#7b4bd0"];
   var SHANK_P = 0.07;
   // BOT SKILL (⚙ settings): how good every computer-controlled player is — opponents AND your AI teammates
-  function bot() { var v = "hard"; try { v = localStorage.getItem("retroVB.bots") || "hard"; } catch (e) {} return v === "normal" ? 0 : v === "elite" ? 2 : 1; }
+  function bot() { var v = "hard"; try { v = localStorage.getItem("retroVB.bots") || "hard"; } catch (e) {} return v === "normal" ? 0 : v === "elite" ? 2.5 : 1.5; }   // HARD (the default) sits a bit above the old setting
   var FLOW_BOOST = 8, FLOW_ATTRS = ["srv", "rec", "set", "att", "blk", "def"];
   var GRADE_TXT = ["POOR PASS", "GOOD PASS", "PERFECT PASS"];
   var BLOCK_TXT = ["NO BLOCK", "SINGLE BLOCK", "DOUBLE BLOCK", "TRIPLE BLOCK"];
@@ -1468,7 +1468,7 @@
   }
   // goodW: width of the green zone (0..1 of the bar) — shrinks against fast balls and better opponents
   function timingBar(label, speedMs, goodW, role, s) {
-    goodW = clamp(goodW || 0.28, 0.12, 0.42);
+    goodW = clamp((goodW || 0.28) * [1, 0.92, 0.85][Math.min(2, Math.round(bot() / 1.25))], 0.11, 0.42);   // harder settings tighten your timing a little too
     var pace = speedMs < 850 ? "  ⚡⚡ VERY FAST" : speedMs < 1100 ? "  ⚡ FAST" : speedMs > 1500 ? "  🐢 SLOW" : "";
     var spec = { label: label + "  [" + (goodW >= 0.32 ? "EASY" : goodW >= 0.24 ? "NORMAL" : goodW >= 0.17 ? "HARD" : "BRUTAL") + "]" + pace,
                  speedMs: speedMs * 1.8, goodW: goodW, perfW: goodW * 0.26, center: rnd(0.15 + goodW / 2, 0.85 - goodW / 2) };   // a calm, readable marker; GOOD is easy, PERFECT is not
