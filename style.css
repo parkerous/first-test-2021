@@ -860,3 +860,7 @@ details.controls[open] summary { margin-bottom: 6px; }
   .sb-team { padding: 6px 8px; gap: 6px; }
 }
 @media (max-width: 520px) { .sb-team .team { max-width: 110px; } .sb-kit { display: none; } .sb-mid { padding: 4px 8px; gap: 6px; } .msgline { font-size: 9px; } .cc-net, .cc-tag { display: none; } .cc-t { font-size: 8px; } }
+/* marked hitters */
+.btn.callcard.marked { border-color: var(--hot); box-shadow: 0 4px 0 #a3321c, 0 0 0 3px #ff5a3644; }
+.cc-tag.mk { background: var(--hot); }
+.cc-tag.mk.decoy { background: #7a3ad8; }

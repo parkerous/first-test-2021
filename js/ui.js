@@ -54,7 +54,7 @@
             "<span class='cc-txt'><span class='cc-t'>" + esc(c.title) + "</span>" + (c.sub ? "<span class='cc-s'>" + esc(c.sub) + "</span>" : "") +
             (o.tempo != null ? "<span class='cc-tempo'><i style='width:" + Math.round(Math.max(0.12, 1 - Math.min(1, o.tempo)) * 100) + "%'></i><em>" + (o.tempo < 0.5 ? "QUICK" : o.tempo < 0.8 ? "FAST" : "HIGH") + "</em></span>" : "") + "</span>" +
             (o.spot != null ? "<span class='cc-net'><i style='left:" + Math.round(o.spot * 100) + "%'" + (o.back ? " class='back'" : "") + "></i></span>" : "") +
-            (c.pick ? "<span class='cc-tag'>SETTER'S PICK</span>" : "");
+            (o.mark ? "<span class='cc-tag mk" + (/DECOY/.test(o.mark) ? " decoy" : "") + "'>" + esc(o.mark) + "</span>" : c.pick ? "<span class='cc-tag'>SETTER'S PICK</span>" : "");
           b.addEventListener("click", function () { done(o.value); });
           bar.appendChild(b); btns.push({ b: b, o: o });
         });

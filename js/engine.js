@@ -100,7 +100,31 @@
   // ---- drama: class gaps, momentum runs, timeouts, set/match point, comebacks, epic rallies, challenges ----
   var pow = [80, 80], mom = [0, 0], run = { side: -1, n: 0 }, tos = [2, 2], trail = [0, 0], comeback = [false, false], rallyDigs = 0, drama = null;
   function edge(s) { return (pow[s.side] - pow[1 - s.side]) / 100; }        // the better team simply wins more of the duels
-  function resetDrama() { mom = [0, 0]; run = { side: -1, n: 0 }; tos = [2, 2]; trail = [0, 0]; comeback = [false, false]; rallyDigs = 0; }
+  function resetDrama() {
+    mom = [0, 0]; run = { side: -1, n: 0 }; tos = [2, 2]; trail = [0, 0]; comeback = [false, false]; rallyDigs = 0;
+    markQ = []; [me, opp].forEach(function (sd) { if (sd) Object.keys(sd.roster).forEach(function (r) { sd.roster[r].hot = 0; sd.roster[r].marked = false; }); });   // a new set: clean slate
+  }
+  // ---- MARKED: score a few in quick succession and the other team marks you ----
+  // every point you score heats you up (+1); a teammate's point cools you a little (-0.15), the other team's point more (-0.3); errors / stuffs / digs of your swing cool you more.
+  // At 2.6 heat the defence marks you (bigger, earlier block, back row set up for you); below 1 they ease off.
+  // Setting someone ELSE while a teammate is marked can pull the block away (the decoy).
+  var markQ = [], MARK_ON = 2.6, MARK_OFF = 1;
+  function heat(s, role, d) {
+    var Pl = s && s.roster[role]; if (!Pl) return;
+    Pl.hot = Math.max(0, (Pl.hot || 0) + d);
+    if (!Pl.marked && Pl.hot >= MARK_ON) { Pl.marked = true; markQ.push({ s: s, role: role, on: true }); }
+    else if (Pl.marked && Pl.hot < MARK_OFF) { Pl.marked = false; markQ.push({ s: s, role: role, on: false }); }
+  }
+  function announceMarks() {
+    markQ.splice(0).forEach(function (m) {
+      var Pl = m.s.roster[m.role], foe = other(m.s), you = m.s === me && mode === "role" && (m.role === myRole || m.role === mateRole);
+      if (m.on) {
+        banner(you ? "YOU'RE MARKED!" : "🎯 MARKED: " + Pl.name, foe.team.name + " commit the block to " + Pl.name + " — spread the ball!", "#ff5a36", 1.5);
+        feed(foe.side, "🎯 " + foe.team.name + (m.s === me ? "'s coach: \"Mark " : " — your coach: \"Mark ") + Pl.name + "! Front the block, cover the line!\"", true);
+      } else feed(foe.side, foe.team.name + " ease off " + Pl.name + " — the mark is gone.");
+    });
+    updateHud();
+  }
   function banner(text, sub, col, secs) { emit({ k: "ban", a: [text, sub, col, secs] }); drama = { text: text, sub: sub || "", col: col || "#ffd21e", at: performance.now(), dur: (secs || 1.6) * 1000 }; }
   function drawDrama(now) {
     if (!drama) return;
@@ -120,7 +144,7 @@
   var TIMEOUT_TALK = ["Breathe. One point at a time.", "Serve tough and trust the block!", "They're reading our sets — mix it up!",
                       "Talk to each other out there!", "Forget the score. Win the next rally.", "Their hitter loves the line — take it away!"];
   function teamOf(i) { return i === 0 ? me : opp; }
-  function preRally() { camServe = true;
+  function preRally() { camServe = true; announceMarks();
     rallyDigs = 0;
     var to = (cfg && cfg.setsTo) || 15, hi = Math.max(score[0], score[1]), lead = score[0] > score[1] ? 0 : score[1] > score[0] ? 1 : -1;
     if (lead >= 0 && score[lead] >= to - 1) {
@@ -350,6 +374,8 @@
   }
   function credit(s, role) {
     lastScorer = role ? { s: s, role: role } : null;            // errors give the point with no scorer
+    [me, opp].forEach(function (sd) { if (sd) Object.keys(sd.roster).forEach(function (r) { if (!(sd === s && r === role)) heat(sd, r, sd === s ? -0.15 : -0.3); }); });
+    if (role) heat(s, role, 1);
     return pointTo(s);
   }
   function setFlow(s, role, on) {
@@ -1162,7 +1188,7 @@
       var Pl = it.s.roster[it.r], mine = it.s.side === 0, isYou = mine && mode === "role" && (it.r === myRole || it.r === mateRole);
       var nm = Pl.name.length > 11 ? Pl.name.slice(0, 10) + "." : Pl.name;
       var star = Pl.skill ? (Pl.cd ? " ★" + Pl.cd : " ★") : "";
-      var label = (isYou ? (mateRole ? (it.r === mateRole ? "P2 " : "P1 ") : "YOU ") : "") + (Pl.flow ? "FLOW " : "") + nm + star;
+      var label = (isYou ? (mateRole ? (it.r === mateRole ? "P2 " : "P1 ") : "YOU ") : "") + (Pl.flow ? "FLOW " : "") + (Pl.marked ? "🎯" : "") + nm + star;
       pill(label, it.dx, freeY(label, it.dx, it.dy - 34, LABEL_FONT, -1), LABEL_FONT,
            isYou ? "#13293f" : Pl.flow ? "#d8f7ff" : (Pl.skill && !Pl.cd) ? "#ffd21e" : "#ffffff",
            isYou ? "#ffd21e" : Pl.flow ? "#0b49d6" : "rgba(10,30,60,0.85)");
@@ -1251,7 +1277,7 @@
         g.drawImage(Pl.sprite, f0.x - ww / 2, top, ww, hh);
         if (kind) { var kk = hh / 40; g.save(); g.translate(f0.x, f0.y - up); g.scale(kk, kk); drawArms(kind, pr, 0, -16, Pl.face.skin, a && a.dir); g.restore(); }
       }
-      if (sd.side === 0 || f0.s > 0.75) labels.push({ x: f0.x, y: top - 8, t: (isYou ? "YOU " : "") + Pl.name.slice(0, 10), you: isYou, mine: sd.side === 0 });
+      if (sd.side === 0 || f0.s > 0.75) labels.push({ x: f0.x, y: top - 8, t: (isYou ? "YOU " : "") + (Pl.marked ? "🎯" : "") + Pl.name.slice(0, 10), you: isYou, mine: sd.side === 0 });
     });
     drawFlashes(function (f) { return proj(f.x, f.y, (f.h || 0) * BH); });
     labels.forEach(function (l) { pill(l.t, l.x, l.y, '15px "VT323", monospace', l.you ? "#13293f" : "#ffffff", l.you ? "#ffd21e" : l.mine ? "rgba(14,100,50,0.85)" : "rgba(120,20,60,0.85)"); });
@@ -1595,6 +1621,7 @@
       if (o.pipe) x *= 0.6 * ys.pipe;
       if (o.tempo < 0.7) x *= ys.tempo;
       if (VB.FAMILY[o.hitter] === "MB") x *= ys.middle;
+      if (P0.marked) x *= 0.55;                                      // a smart setter spreads the ball away from a marked hitter
       if (o.hitter === bestAtt) x *= ys.ace;
       if (P0.skill === "spike" || P0.flow) x *= 1.6;
       x *= 0.6 + P0.att / 160;
@@ -1981,6 +2008,7 @@
     try { url = HP.spriteURL || (HP.spriteURL = HP.sprite.toDataURL()); } catch (e) {}
     var spot = clamp01(((s.side === 0 ? o.x : W - o.x) - CL) / (CR - CL));
     return { label: label, value: o.id, disabled: o.disabled, face: url, tempo: o.tempo, spot: spot, back: !!o.pipe,
+             cls: HP.marked ? "marked" : null, mark: HP.marked ? "🎯 MARKED" : s.onCourt.some(function (r) { return r !== o.hitter && s.roster[r].marked; }) ? "🎭 DECOY" : null,
              sub: (o.combo ? "COMBO • " : o.pipe ? "BACK ROW • " : "") + HP.name + (HP.skill === "spike" ? " ★" : "") + " • " + (FRIENDLY[VB.FAMILY[o.hitter]] || "").toLowerCase() };
   }
   async function offense(atk, grade, setterRole) {
@@ -2078,6 +2106,9 @@
       n = guessed ? Math.min(3, Math.max(n, 2) + (Math.random() < 0.4 ? 1 : 0)) : Math.max(0, n - 1);
       late = guessed ? 0 : 2; tight = guessed ? 8 : -4;
     }
+    var decoy = false;
+    if (A.marked) { n = Math.min(3, Math.max(n + 1, st.tempo < 0.3 ? 1 : 2)); late = Math.min(late, 0.5); tight += 5; }       // they were waiting for you
+    else if (n > 0 && atk.onCourt.some(function (r) { return r !== hitter && atk.roster[r].marked; }) && Math.random() < 0.55) { n--; decoy = true; }   // ...so the others get a cleaner look
     var blockers = chooseBlockers(def, st.x, n);
     def.jumpQ = null;
     var lean = def === me && TAC.lean !== "auto" ? TAC.lean : Math.random() < 0.5 ? "cross" : "line";
@@ -2093,6 +2124,8 @@
       if (actual !== "angle" && Math.random() < clamp01((0.3 + myBlk / 300) * st.tempo)) { lean = actual; placeDefense(def, bAx, blockers, lean, spacing); }
     }
     feed(atk.side, SN + " sets " + st.say + " for " + A.name + (A.skill ? " ★" : "") + "...");
+    if (A.marked) feed(def.side, "🎯 " + def.team.name + " were waiting for " + A.name + " — the block is up early!");
+    if (decoy) feed(atk.side, "🎭 The block cheats toward the marked hitter — " + A.name + " gets a cleaner look!", true);
     if (n === 0 && st.tempo < 0.6) feed(def.side, "...the middle is late — nobody up to block!");
     jump(atk, setterRole, 420, 2, "set");
     var setFlight = flyBall(setFrom, contact, 380 + st.tempo * 420, { h0: 1.1, h1: 1.4, peak: st.peak });
@@ -2101,7 +2134,7 @@
     var superBlock = false;
     if (controlled) {
       slow();
-      msg(st.label + " TO " + A.name + " — " + blockInfo + "!");
+      msg(st.label + " TO " + A.name + " — " + blockInfo + (A.marked ? " — 🎯 YOU'RE MARKED" : decoy ? " — 🎭 DECOY WORKED" : "") + "!");
       var ch = [];
       if (A.skill === "spike") ch.push({ label: "★ " + skillLabel(A) + (A.cd ? " (" + A.cd + ")" : ""), value: "super", disabled: !ready(A, "spike") });
       ch.push({ label: "SPIKE", value: "spike" }, { label: "TIP", value: "tip" });
@@ -2200,7 +2233,7 @@
     var errP = (plan.jump != null ? (plan.jump < 0.35 ? 0.07 : plan.jump >= 1 ? -0.02 : 0) : 0) + 0.05 + (1 - setQ) * 0.08 + st.tempo * 0.02 - A.att / 1200 + (type === "wipe" ? 0.05 : 0) - (type === "tip" ? 0.03 : 0) +
                (type !== "tip" && target && Math.abs(target.x - st.x) > 150 && Math.abs(target.y - NET) < 110 ? 0.05 : 0);   // sharp angles miss more
     if (Math.random() < errP) {
-      A.st.ae++;
+      A.st.ae++; heat(atk, hitter, -1);
       if (pin && dir === "line" && Math.random() < 0.35) {
         var ant = { x: st.x < W / 2 ? CL : CR, y: NET };
         await flyBall(contact, ant, 200, { h0: 1.4, h1: 1.2 });
@@ -2274,6 +2307,7 @@
       var who = Btouch.name + (superBlock ? " ★" : "");
       if (outcome !== "stuff" && outcome !== "tool") blockers.forEach(function (r) { jump(def, r, 260, 3, "block"); });   // hands flinch on the touch
       if (outcome === "stuff") {
+        heat(atk, hitter, -1);
         blockers.forEach(function (r) { jump(def, r, 300, 8, "press"); });
         ring(blockPt, "#ff6fb0", 40, 0.4); puff(blockPt, 10, "#ffd1e6");
         var land = { x: bx + rnd(-25, 25), y: NET + dirA * rnd(25, 70) };
@@ -2415,6 +2449,7 @@
                          (o.readWrong ? 0.08 * o.st.tempo : 0) + (o.seam ? 0.08 : 0) + (diving ? 0.08 : 0));
     if (superDig) killP -= 0.35;
     killP -= sty(def).defense;
+    if (o.A.marked) killP -= 0.08;                                 // the back row is set up for the marked hitter
     killP += edge(atk) * 0.9 + mom[atk.side];                     // class and momentum
     killP -= ((D.spd || 70) - 70) / 400 * clamp01(startDist / 120); // speed covers ground
     if (controlled) killP *= (1.45 - timing * 0.9);
@@ -2441,7 +2476,7 @@
       msg("NO CONTROL!"); feed(def.side, D.name + " gets a hand on it but can't control it.");
       return credit(atk, o.hitterRole);
     }
-    D.st.dig++; rallyDigs++;
+    D.st.dig++; rallyDigs++; heat(atk, o.hitterRole, -0.5);
     var digTxt = diving ? pick(["DOLPHIN DIVE SAVE", "PANCAKE SAVE", "FULL-STRETCH DIVE"]) + " by " + D.name + "!" :
                  D.name + " digs " + (o.soft ? "the touch" : o.type === "tip" ? "the tip" : shotName(o.st.x, to)) + "!";
     if (diving) msg(digTxt.split(" by")[0] + "!");
@@ -2491,8 +2526,10 @@
       $("momMe").style.width = (m && m.side === 0 ? k * 50 : 0) + "%"; $("momOpp").style.width = (m && m.side === 1 ? k * 50 : 0) + "%";
       $("momTxt").textContent = m ? (m.n >= 5 ? "🔥 " : "") + m.n + "-0 RUN" : "";
     }
-    $("serveMe").textContent = (serving === 0 ? "● SERVING — " : "") + (me ? "ROT " + (me.rot + 1) : "") + (sets ? " • SETS " + setsWon[0] : "");
-    $("serveOpp").textContent = (sets ? "SETS " + setsWon[1] + " • " : "") + (opp ? "ROT " + (opp.rot + 1) : "") + (serving === 1 ? " — SERVING ●" : "");
+    function marks(sd) { return sd ? Object.keys(sd.roster).filter(function (r) { return sd.roster[r].marked; }).map(function (r) { return "🎯" + sd.roster[r].name; }).join(" ") : ""; }
+    var mm = marks(me), mo = marks(opp);
+    $("serveMe").textContent = (serving === 0 ? "● SERVING — " : "") + (me ? "ROT " + (me.rot + 1) : "") + (sets ? " • SETS " + setsWon[0] : "") + (mm ? " • " + mm + " MARKED" : "");
+    $("serveOpp").textContent = (mo ? mo + " MARKED • " : "") + (sets ? "SETS " + setsWon[1] + " • " : "") + (opp ? "ROT " + (opp.rot + 1) : "") + (serving === 1 ? " — SERVING ●" : "");
   }
 
   function rosterTable(s) {
@@ -2773,5 +2810,5 @@
 
   VB.Engine = { runTiming: runTiming, setCam: setCam,
     stream: function (on) { evq = on ? [] : null; }, snapshot: snapshot, matchInit: matchInit, spectate: spectate, applySnap: applySnap, stopSpectate: stopSpectate,
-    aimLocal: function (half) { return aimClick(half); }, setCamMove: setCamMove, camMove: function () { return CAM_MOVE; }, init: init, playMatch: playMatch, spriteURL: spriteURL, makeSprite: makeSprite, kitPattern: kitPattern };
+    aimLocal: function (half) { return aimClick(half); }, setCamMove: setCamMove, camMove: function () { return CAM_MOVE; }, heatMap: function () { var o = {}; [me, opp].forEach(function (sd) { if (sd) Object.keys(sd.roster).forEach(function (r) { o[sd.side + r] = [+(sd.roster[r].hot || 0).toFixed(2), !!sd.roster[r].marked]; }); }); return o; }, init: init, playMatch: playMatch, spriteURL: spriteURL, makeSprite: makeSprite, kitPattern: kitPattern };
 })(window.VB);

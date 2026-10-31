@@ -327,6 +327,20 @@ court or the M key mutes; volume is in ⚙ SETTINGS.
 - Dialogs have a header band and a soft pop-in; on phones the cards dock at the
   bottom in two columns.
 
+## 🎯 Getting marked
+- Score a few in quick succession and the other team MARKS you: a banner and
+  their coach's call ("Mark AZUMANE! Front the block, cover the line!").
+- A marked hitter faces a bigger block that's up early and tighter, and back-row
+  diggers set up for them, so kills get harder. Their name shows 🎯 on court and
+  in the score bar, and their call card turns red with a MARKED tag.
+- The counter is to spread the ball. The other call cards show 🎭 DECOY: setting
+  someone else can pull the block toward the marked hitter and give the new
+  hitter a cleaner look.
+- The mark wears off when you stop scoring: their points, your errors, getting
+  stuffed or dug all cool you down. A new set starts clean.
+- It works both ways: your team marks the opponent's hot hitter, and smart
+  opposing setters start spreading the ball away from a marked star.
+
 ## Aiming, timing and the block
 - While aiming a spike you see the path, the blockers' hands at the net and a
   label: CLEAR, SEAM, TOOL ZONE / BLOCK EDGE or INTO THE BLOCK. The ball goes
