@@ -404,9 +404,15 @@
       Object.keys(s.roster).forEach(function (r) { if (s.roster[r].cd > 0) s.roster[r].cd--; });
     });
   }
-  var inRally = false;
+  var inRally = false, rcvSide = null;          // rcvSide: the team waiting on the serve (they get low before it comes)
+  function stanceOf(sd, r, p) {                   // "net" = front row with hands up, "rcv" = passers low before the serve
+    if (!inRally && !rcvSide) return "";
+    if (Math.abs(p.y - NET) < 75) return "net";
+    if (!inRally && sd === rcvSide && r !== "S") return "rcv";
+    return "";
+  }
   function credit(s, role) {
-    inRally = false;
+    inRally = false; rcvSide = null;
     lastScorer = role ? { s: s, role: role } : null;            // errors give the point with no scorer
     [me, opp].forEach(function (sd) { if (sd) Object.keys(sd.roster).forEach(function (r) { if (!(sd === s && r === role)) heat(sd, r, sd === s ? -0.15 : -0.3); }); });
     if (role) heat(s, role, 1);
@@ -1063,34 +1069,41 @@
     return { x: (a.x + b.x) / 2 - dy / L * bend, y: (a.y + b.y) / 2 + dx / L * bend };
   }
   // the pose a player is aiming for this frame (all in units of their height, relative to the shoulders)
-  function targetPose(Pl, kind, pr, dir, moving) {
-    var ph = gt * 13 + (Pl.ph || 0), d = dir || 1, T = { c: 0, stance: 1, fwd: 0, tilt: 0, L: [-0.2, 0.3], R: [0.2, 0.3], bL: -0.03, bR: 0.03 };
-    if (kind === "ready") { T.c = 0.58; T.stance = 1.55; T.fwd = 0.06; }
-    else if (kind === "pass" || kind === "sidepass") { T.c = 0.5 + 0.2 * Math.sin(Math.min(1, pr) * Math.PI); T.stance = 1.45; T.fwd = 0.05; }
-    else if (kind === "dig") { T.c = 0.85; T.stance = 1.6; T.fwd = 0.08; }
-    else if (kind === "approach") { T.c = 0.35 + 0.3 * pr; T.fwd = 0.06; }
+  function targetPose(Pl, kind, pr, dir, moving, atNet) {
+    var ph = gt * 13 + (Pl.ph || 0), d = dir || 1;
+    // default: STANDING — upright, arms hanging close by the sides
+    var T = { c: 0.08, stance: 1, fwd: 0, tilt: 0, L: [-0.19, 0.4], R: [0.19, 0.4], bL: 0.01, bR: -0.01 };
+    var idle = !kind && !moving;
+    if (kind === "ready") {                                             // serve receive: LOW, wide, chest over the knees, hands out front
+      T.c = 0.78; T.stance = 1.75; T.fwd = 0.1; T.L = [-0.12, 0.44]; T.R = [0.12, 0.44]; T.bL = 0.05; T.bR = -0.05;
+    } else if (idle && atNet === "net") {                               // front row at the net: knees soft, hands up at the forehead, ready to block
+      T.c = 0.3; T.stance = 1.25; T.L = [-0.2, -0.1]; T.R = [0.2, -0.1]; T.bL = -0.05; T.bR = 0.05;
+    } else if (idle && atNet === "rcv") {                               // waiting on the serve: LOW, weight forward, arms loose out in front
+      T.c = 0.72; T.stance = 1.7; T.fwd = 0.09; T.L = [-0.15, 0.36]; T.R = [0.15, 0.36]; T.bL = 0.05; T.bR = -0.05;
+    } else if (idle && inRally) {                                       // back row in a rally: low, hands out in front
+      T.c = 0.6; T.stance = 1.55; T.fwd = 0.08; T.L = [-0.13, 0.4]; T.R = [0.13, 0.4]; T.bL = 0.05; T.bR = -0.05;
+    }
+    if (kind === "pass" || kind === "sidepass") { T.c = 0.62 + 0.15 * Math.sin(Math.min(1, pr) * Math.PI); T.stance = 1.6; T.fwd = 0.08; }
+    else if (kind === "dig") { T.c = 0.9; T.stance = 1.75; T.fwd = 0.1; }
+    else if (kind === "approach") { T.c = 0.35 + 0.35 * pr; T.fwd = 0.06; }
     else if (kind === "shank") T.c = 0.3;
-    else if (!moving && !kind && inRally) { T.c = 0.42; T.stance = 1.35; T.fwd = 0.05; }
-    else if (!moving && !kind) T.c = 0.05 + 0.02 * Math.sin(gt * 2.5 + (Pl.ph || 0));
-    if (kind === "block" || kind === "press") { T.L = [-0.08, -0.42]; T.R = [0.08, -0.42]; T.bL = T.bR = 0; }
+    if (kind === "block" || kind === "press") { T.L = [-0.08, -0.44]; T.R = [0.08, -0.44]; T.bL = T.bR = 0; T.c = 0.1; }
     else if (kind === "spike" || kind === "serve" || kind === "wipe") {
-      if (pr < 0.45) { T.L = [-0.03, -0.38]; T.R = [0.22, -0.2]; T.bR = 0.06; T.tilt = 0.04; }
-      else if (pr < 0.65) { T.L = [-0.1, 0.02]; T.R = kind === "wipe" ? [0.26 * d, -0.3] : [0.06, -0.46]; T.bR = 0; T.tilt = -0.05; }
-      else { T.L = [-0.1, 0.2]; T.R = [-0.12, 0.26]; T.tilt = -0.02; }
+      if (pr < 0.45) { T.L = [-0.03, -0.4]; T.R = [0.22, -0.22]; T.bR = 0.06; T.tilt = 0.04; }
+      else if (pr < 0.65) { T.L = [-0.1, 0.02]; T.R = kind === "wipe" ? [0.26 * d, -0.3] : [0.06, -0.47]; T.bR = 0; T.tilt = -0.05; }
+      else { T.L = [-0.1, 0.22]; T.R = [-0.12, 0.28]; T.tilt = -0.02; }
     }
     else if (kind === "set") { T.L = [-0.045, -0.3]; T.R = [0.045, -0.3]; T.bL = 0.08; T.bR = -0.08; }
-    else if (kind === "pass" || kind === "dig") { var py = kind === "dig" ? 0.36 : 0.3; T.L = [-0.015, py]; T.R = [0.015, py]; T.bL = T.bR = 0; }
-    else if (kind === "sidepass") { T.L = [d * 0.22 - 0.015, 0.26]; T.R = [d * 0.22 + 0.015, 0.24]; T.bL = T.bR = 0; T.tilt = 0.03 * d; }
-    else if (kind === "ready" || (!kind && !moving && inRally)) { T.L = [-0.17, 0.3]; T.R = [0.17, 0.3]; T.bL = 0.07; T.bR = -0.07; }
-    else if (kind === "approach") { T.L = [-0.24, 0.2]; T.R = [0.1, 0.26]; }
+    else if (kind === "pass" || kind === "dig") { var py = kind === "dig" ? 0.42 : 0.36; T.L = [-0.015, py]; T.R = [0.015, py]; T.bL = T.bR = 0; }
+    else if (kind === "sidepass") { T.L = [d * 0.22 - 0.015, 0.3]; T.R = [d * 0.22 + 0.015, 0.28]; T.bL = T.bR = 0; T.tilt = 0.03 * d; }
+    else if (kind === "approach") { T.L = [-0.24, 0.24]; T.R = [0.12, 0.3]; }
     else if (kind === "cheer") { var wv = Math.sin(pr * 20) * 0.03; T.L = [-0.18, -0.36 + wv]; T.R = [0.18, -0.36 - wv]; }
     else if (kind === "shank") { T.L = [-0.26, 0.02]; T.R = [0.16, -0.22]; }
-    else if (moving) { var aw = Math.sin(ph); T.L = [-0.2 - aw * 0.06, 0.22]; T.R = [0.2 + aw * 0.06, 0.22]; T.bL = -0.06; T.bR = 0.06; T.tilt = aw * 0.012; }
-    else if (!kind && !inRally && (Pl.num || 0) % 3 === 0) { T.L = [-0.16, 0.24]; T.R = [0.16, 0.24]; T.bL = -0.11; T.bR = 0.11; }   // hands on hips
+    else if (moving) { var aw = Math.sin(ph); T.L = [-0.19 - aw * 0.05, 0.3]; T.R = [0.19 + aw * 0.05, 0.3]; T.bL = 0.03; T.bR = -0.03; T.tilt = aw * 0.012; T.c = Math.max(T.c, 0.2); }
     return T;
   }
   // x, yFeet: where the feet are (lift already applied); H: standing height in px
-  function drawBody(x, yFeet, H, Pl, kind, pr, dir, moving, mvx) {
+  function drawBody(x, yFeet, H, Pl, kind, pr, dir, moving, mvx, atNet) {
     var skin = (Pl.face && Pl.face.skin) || "#e0b48a", k1 = Pl.kitC || "#1e63ff", k2 = Pl.kit2C || "#ffffff";
     var shorts = lumOf(k1) > 150 ? "#1b2440" : "#14161c", OUT = "rgba(8,14,30,0.75)";
     var famB = { S: 0.96, OH: 1.02, MB: 0.93, OP: 1.08, L: 0.98 }[Pl.fam] || 1;
@@ -1098,15 +1111,15 @@
     var lw = clamp((1 + ((Pl.vert || 80) - 80) / 250 + ((Pl.spd || 70) - 70) / 400) * (Pl.fam === "MB" ? 0.92 : 1), 0.85, 1.15);
     var ph = gt * 13 + (Pl.ph || 0), air = kind === "spike" || kind === "block" || kind === "press" || kind === "wipe" || kind === "serve";
     // ease toward the target pose: fluid transitions instead of snapping between poses
-    var T = targetPose(Pl, kind, pr, dir, moving), P = Pl._pose;
+    var T = targetPose(Pl, kind, pr, dir, moving, atNet), P = Pl._pose;
     if (!P) P = Pl._pose = JSON.parse(JSON.stringify(T));
     var k = 1 - Math.exp(-frameDt * (kind ? 24 : 11));
     ["c", "stance", "fwd", "tilt", "bL", "bR"].forEach(function (f) { P[f] += (T[f] - P[f]) * k; });
     [0, 1].forEach(function (i) { P.L[i] += (T.L[i] - P.L[i]) * k; P.R[i] += (T.R[i] - P.R[i]) * k; });
-    var c = P.c, hop = kind === "ready" && pr < 0.18 ? Math.sin(pr / 0.18 * Math.PI) * H * 0.05 : 0;   // the split-step hop
+    var c = P.c, hop = kind === "ready" && pr < 0.16 ? Math.sin(pr / 0.16 * Math.PI) * H * 0.045 : 0;   // the split-step hop
     yFeet -= hop;
     var lean = clamp((mvx || 0) * 0.002, -0.08, 0.08) * H;
-    var yHip = yFeet - H * (0.5 - c * 0.13), ySh = yFeet - H * (0.79 - c * 0.15 - P.fwd * 0.5), yNeck = ySh - H * 0.035;
+    var yHip = yFeet - H * (0.5 - c * 0.17), ySh = yFeet - H * (0.79 - c * 0.2 - P.fwd * 0.6), yNeck = ySh - H * 0.035;
     var cx = x + lean * 0.5, shx = x + lean, tilt = P.tilt * H;
     var SW = H * 0.19 * bw, HW = H * 0.12 * (0.9 + bw * 0.1);
     var LS = { x: shx - SW * 0.86, y: ySh + H * 0.03 + tilt }, RS = { x: shx + SW * 0.86, y: ySh + H * 0.03 - tilt };
@@ -1114,9 +1127,10 @@
     var spread = H * (0.075 + c * 0.04) * P.stance, thigh = Math.max(3, H * 0.115 * lw), calf = Math.max(2.4, H * 0.08 * lw);
     var legs = [-1, 1].map(function (sd) {
       var hip = { x: cx + sd * HW * 0.52, y: yHip }, foot = { x: x + sd * spread, y: yFeet };
-      if (moving) { var sw = Math.sin(ph + (sd > 0 ? Math.PI : 0)); foot.x += sw * H * 0.1; foot.y -= Math.max(0, Math.cos(ph + (sd > 0 ? Math.PI : 0))) * H * 0.07; }
+      if (moving) { var sw = Math.sin(ph + (sd > 0 ? Math.PI : 0)); foot.x += sd * Math.max(0, sw) * H * 0.025; foot.y -= Math.max(0, Math.cos(ph + (sd > 0 ? Math.PI : 0))) * H * 0.07; }   // feet never cross
       if (air) { foot.y -= H * 0.07; foot.x -= sd * H * 0.02; }
-      var knee = joint(hip, foot, sd * H * (0.02 + c * 0.075) * (air ? -1.2 : 1));
+      var knee = air ? { x: (hip.x + foot.x) / 2 - sd * H * 0.005, y: (hip.y + foot.y) / 2 - H * 0.03 }          // tucked in the air
+                     : { x: foot.x + sd * H * c * 0.02 - sd * H * 0.008 * (1 - c), y: (hip.y + foot.y) / 2 - c * H * 0.015 };   // knees track right over the feet, like a real squat
       return { hip: hip, knee: knee, foot: foot, sd: sd };
     });
     var arms = [[LS, { x: shx + P.L[0] * H, y: ySh + P.L[1] * H }, P.bL * H], [RS, { x: shx + P.R[0] * H, y: ySh + P.R[1] * H }, P.bR * H]].map(function (a) {
@@ -1128,8 +1142,9 @@
       g.lineTo(cx + HW, yHip - H * 0.02); g.lineTo(cx - HW, yHip - H * 0.02); g.closePath();
     }
     function shortsPath() {
-      g.beginPath(); g.moveTo(cx - HW, yHip - H * 0.04); g.lineTo(cx + HW, yHip - H * 0.04); g.lineTo(cx + HW * 1.1, yHip + H * 0.1); g.lineTo(cx - HW * 1.1, yHip + H * 0.1); g.closePath();
+      g.beginPath(); g.moveTo(cx - HW, yHip - H * 0.045); g.lineTo(cx + HW, yHip - H * 0.045); g.lineTo(cx + HW * 0.98, yHip + H * 0.035); g.lineTo(cx - HW * 0.98, yHip + H * 0.035); g.closePath();
     }
+    function shortLeg(L) { return { x: L.hip.x + (L.knee.x - L.hip.x) * 0.42, y: L.hip.y + (L.knee.y - L.hip.y) * 0.42 }; }
     var o = Math.max(1.2, H * 0.022);                                   // outline thickness
     // 1) ONE silhouette outline for the whole body (so there are no lines at the joints)
     legs.forEach(function (L) { capsule(L.hip, L.knee, thigh + o * 2, calf * 1.15 + o * 2, OUT); capsule(L.knee, L.foot, calf * 1.15 + o * 2, calf * 0.8 + o * 2, OUT); });
@@ -1146,6 +1161,7 @@
       g.fillStyle = "#2b2f3a"; g.beginPath(); g.ellipse(L.knee.x, L.knee.y, calf * 0.62, calf * 0.5, 0, 0, 6.283); g.fill();      // knee pads
     });
     g.fillStyle = shorts; shortsPath(); g.fill();
+    legs.forEach(function (L) { capsule(L.hip, shortLeg(L), thigh * 1.12, thigh * 1.08, shorts); });             // the shorts' legs
     g.fillStyle = skin; g.fillRect(shx - H * 0.04, yNeck - H * 0.01, H * 0.08, H * 0.05);                                     // neck
     g.fillStyle = k1; torsoPath(); g.fill();
     g.save(); torsoPath(); g.clip();                                                                                      // shading, inside the jersey only
@@ -1390,7 +1406,7 @@
         }
       } else if (ART === "modern") {
         var tgt0 = s.tgt[it.r];
-        drawBody(x, y + 16, 46 * hsc, Pl, kind, pr, a && a.dir, moving, tgt0 ? tgt0.x - p.x : 0);
+        drawBody(x, y + 16, 46 * hsc, Pl, kind, pr, a && a.dir, moving, tgt0 ? tgt0.x - p.x : 0, stanceOf(s, it.r, p));
         it.dy = y + 40 * (1 - hsc);
       } else {
         g.drawImage(Pl.sprite, Math.round(x - 15 * hsc), Math.round(y + 16 - 40 * hsc), Math.round(30 * hsc), Math.round(40 * hsc));
@@ -1501,7 +1517,7 @@
         if (ART === "modern") drawBody(0, hh * 0.2, hh, Pl, "sidepass", 0.5, a.dir, false, 0); else g.drawImage(Pl.sprite, -ww / 2, -hh * 0.8, ww, hh);
         g.restore();
       } else if (ART === "modern") {
-        drawBody(f0.x, f0.y - up, hh, Pl, kind, pr, a && a.dir, moving, t ? (t.x - p.x) * f0.s : 0);
+        drawBody(f0.x, f0.y - up, hh, Pl, kind, pr, a && a.dir, moving, t ? (t.x - p.x) * f0.s : 0, stanceOf(sd, it.r, p));
       } else {
         g.globalAlpha = 0.35; g.drawImage(Pl.sprite, f0.x - ww / 2 - 1.5, top + 1.5, ww, hh); g.globalAlpha = 1;
         g.drawImage(Pl.sprite, f0.x - ww / 2, top, ww, hh);
@@ -1975,6 +1991,7 @@
 
   async function serve(srv) {
     var rcv = other(srv), sr = srv.lineup[1], Sv = srv.roster[sr], kind, target, tossMod = null;
+    rcvSide = rcv;
     if (human(srv, sr)) {
       msg(Sv.name + " TO SERVE — PICK THE SERVE");
       var o = [{ label: "FLOAT SERVE", value: "float" }, { label: "TOPSPIN SERVE", value: "spin" }];

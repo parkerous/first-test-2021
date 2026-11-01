@@ -388,10 +388,16 @@ court or the M key mutes; volume is in ⚙ SETTINGS.
 - Grown-up athletes: a modern face (narrower eyes, heavier brows, a nose, a
   straight mouth, a squarer jaw, a neck), broad shoulders with a V-taper,
   thicker arms and legs, longer shorts and dark knee pads.
-- Stances: between points they just STAND (relaxed, some with hands on hips).
-  When the serve comes they SPLIT STEP (a little hop, then wide and low with
-  their hands out front), and during rallies they stay on their toes in a low
-  ready position.
+- Stances, based on real ones:
+  - Between points: they just stand, arms relaxed by their sides.
+  - While the serve is coming: the receiving passers sit LOW (wide feet, weight
+    forward, arms loose in front), and the front row at the net holds their
+    hands up beside the head, ready to block.
+  - On the serve: the passers SPLIT STEP, a little hop that lands low and wide.
+  - In the rally: the back row stays low, and the front row keeps its hands up.
+- Legs: the knees track right over the feet, as in a real squat, so they are
+  never knock-kneed or bow-legged. Feet never cross while running. The shorts
+  are proper short legs, not a skirt.
 - Heights show (a 178 cm libero is clearly shorter than a 205 cm middle), and
   builds follow position and stats: opposites and power hitters are broad,
   middles long and lean, liberos compact, and jumpers and fast players have
