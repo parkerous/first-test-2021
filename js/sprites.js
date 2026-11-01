@@ -62,11 +62,20 @@
     rect(16, 6, 1, 7, SKD); p(17, 12, SKD);                                        // cheek shade
     // eyes: big anime eyes with a catch-light
     var EYE = face.eye || "#22263d";
-    rect(8, 9, 2, 2, EYE); rect(14, 9, 2, 2, EYE); p(8, 9, "#ffffff"); p(14, 9, "#ffffff");
-    p(9, 10, mix(EYE, "#6a7cff", 0.35)); p(15, 10, mix(EYE, "#6a7cff", 0.35));
-    if (lum(skin) > 0.55) { p(7, 11, mix(skin, "#ff6f7a", 0.3)); p(16, 11, mix(skin, "#ff6f7a", 0.3)); }   // blush
-    row(8, 9, 7, HD); row(14, 15, 7, HD);                                          // brows (hair may cover)
-    if (face.mouth !== false) { p(11, 12, "#a33d4d"); p(12, 12, "#c25a6a"); } else p(11, 12, SKD);
+    if (face.modern) {                                                             // the MODERN look: a grown-up athlete's face
+      rect(8, 9, 2, 1, EYE); rect(14, 9, 2, 1, EYE); p(8, 10, SKD); p(15, 10, SKD);  // narrower eyes, a shadow under them
+      row(7, 9, 7, HD); row(14, 16, 7, HD); row(8, 9, 8, HD); row(14, 15, 8, HD);   // heavier brows
+      p(11, 10, SKD); p(11, 11, SKD);                                              // the nose
+      row(10, 13, 12, mix(SKD, "#000000", 0.15));                                 // a straight mouth
+      row(6, 17, 13, skin); row(7, 16, 13, SKD); p(6, 12, SKD); p(17, 12, SKD);   // a squarer jaw
+      rect(9, 14, 6, 1, SKD);                                                      // a thicker neck
+    } else {
+      rect(8, 9, 2, 2, EYE); rect(14, 9, 2, 2, EYE); p(8, 9, "#ffffff"); p(14, 9, "#ffffff");
+      p(9, 10, mix(EYE, "#6a7cff", 0.35)); p(15, 10, mix(EYE, "#6a7cff", 0.35));
+      if (lum(skin) > 0.55) { p(7, 11, mix(skin, "#ff6f7a", 0.3)); p(16, 11, mix(skin, "#ff6f7a", 0.3)); }   // blush
+      row(8, 9, 7, HD); row(14, 15, 7, HD);                                        // brows (hair may cover)
+      if (face.mouth !== false) { p(11, 12, "#a33d4d"); p(12, 12, "#c25a6a"); } else p(11, 12, SKD);
+    }
     if (ex.indexOf("beard") >= 0) { row(7, 16, 13, Hc); row(8, 15, 12, Hc); p(11, 12, "#a33d4d"); p(12, 12, "#c25a6a"); p(6, 11, Hc); p(17, 11, Hc); }
     if (ex.indexOf("stubble") >= 0) { var SB = mix(skin, Hc, 0.35); row(8, 15, 13, SB); p(7, 12, SB); p(16, 12, SB); }
 

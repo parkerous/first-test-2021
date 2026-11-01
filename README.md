@@ -380,6 +380,17 @@ court or the M key mutes; volume is in ⚙ SETTINGS.
   side), a coiled load before jumps, tucked legs in the air, the spike's arm
   whip, two-hand sets and straight-arm blocks. ⚙ SETTINGS → ART STYLE switches
   back to PIXEL.
+- Grown-up athletes: a modern face (narrower eyes, heavier brows, a nose, a
+  straight mouth, a squarer jaw, a neck), broad shoulders with a V-taper,
+  thicker arms and legs, longer shorts and dark knee pads.
+- Stances: between points they just STAND (relaxed, some with hands on hips).
+  When the serve comes they SPLIT STEP (a little hop, then wide and low with
+  their hands out front), and during rallies they stay on their toes in a low
+  ready position.
+- Heights show (a 178 cm libero is clearly shorter than a 205 cm middle), and
+  builds follow position and stats: opposites and power hitters are broad,
+  middles long and lean, liberos compact, and jumpers and fast players have
+  stronger legs.
 - The court is two-tone: blue back court, yellow front zone (inside the 3 m
   lines). Floor lettering is big, clean and outlined so you can read it.
 
