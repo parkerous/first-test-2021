@@ -372,6 +372,31 @@ court or the M key mutes; volume is in ⚙ SETTINGS.
 - Dialogs have a header band and a soft pop-in; on phones the cards dock at the
   bottom in two columns.
 
+## 🎨 Modern players (new)
+- Players are drawn with real proportions: legs with knees, knee pads, socks
+  and shoes; shorts; a shaded jersey with the number; arms with elbows; and the
+  character's own face and hair. They move fluidly: a running stride with arm
+  swing, a breathing athletic stance, a low platform when passing (often to the
+  side), a coiled load before jumps, tucked legs in the air, the spike's arm
+  whip, two-hand sets and straight-arm blocks. ⚙ SETTINGS → ART STYLE switches
+  back to PIXEL.
+- The court is two-tone: blue back court, yellow front zone (inside the 3 m
+  lines). Floor lettering is big, clean and outlined so you can read it.
+
+## 🧱 Blocking & defence
+- Blockers always go up. When a middle is beaten (a cheat the wrong way, a
+  quick tempo, a jump set) they often still close, but LATE: a HALF BLOCK with a
+  gap, so the seam opens ("LATE — SEAM!"). Front-rowers who can't get there
+  still jump late.
+- The defence sits in the cross: cross-court swings get dug more, and blocks
+  lean cross more, especially against a team that keeps hitting cross.
+- Sets vary: TIGHT to the net (the block eats it, more joust and net trouble),
+  OFF the net (less angle and heat, more errors), inside or outside along the
+  net. How far off depends on the pass, the setter's SET and TECHNIQUE, and how
+  well the hitter copes (TECHNIQUE).
+- Slightly fewer shanks. Topspin serves hit harder (more aces and bad passes)
+  but miss more often.
+
 ## 🙌 Playing setter
 - READ THE BLOCK: on every set, the other team's middle reads the pass and
   cheats toward one hitter (the hot one, the star, the big hitter). The
