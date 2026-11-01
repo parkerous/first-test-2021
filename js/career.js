@@ -544,7 +544,75 @@
     } else if (r < 0.46 && cl.arc === "UNDER PRESSURE" && cl.strict < 0.9) {
       cl.strict = clamp(cl.strict + 0.1, 0, 1);
       news("🔥 The " + cl.short + " board demands results. Coach " + cl.coach + " is on thin ice.", "story");
-    }
+    } else if (r < 0.9) await careerEvent(cl);                       // life between matches
+  }
+  // ---------- life between matches: a choice, a consequence ----------
+  function bump(a, n) { var me = you(); me[a] = clamp((me[a] || 70) + n, 30, 99); return (n > 0 ? "+" : "") + n + " " + ATTR_TXT[a]; }
+  function mainAttr() { return { S: "set", OH: "att", MB: "blk", OP: "att", L: "def" }[you().role] || "att"; }
+  async function careerEvent(cl) {
+    var me = you(), mate = pick(cl.roster.filter(function (id) { return id !== "you" && id !== "friend" && id !== "mate"; }).map(P)) || { name: "a teammate" };
+    var rivalCl = club(pick(Object.keys(C.clubs).filter(function (id) { return id !== C.club && C.clubs[id].league === cl.league; })));
+    var E = [
+      { t: "🎤 PRESS CONFERENCE", b: "A reporter asks: \"Can " + cl.short + " win it all this year?\"", c: [
+        ["\"We take it one match at a time.\"", function () { C.mgr = clamp(C.mgr + 2, 0, 100); return "+2 MANAGER RATING"; }],
+        ["\"Yes. And I'll be the reason.\"", function () { C.interest += 0.06; C.form = clamp(C.form + 0.3, -3, 3); C.mgr = clamp(C.mgr - 2, 0, 100); return "+FAME • +FORM • -2 MANAGER RATING"; }],
+        ["Crack a joke and dodge it", function () { C.form = clamp(C.form + 0.2, -3, 3); return "+FORM — the dressing room loved it"; }]] },
+      { t: "🏋️ EXTRA SESSION", b: mate.name + " asks if you want to stay late for extra reps.", c: [
+        ["Stay — 200 more reps", function () { return bump(mainAttr(), 1) + " • a little tired (-form)" + ((C.form = clamp(C.form - 0.15, -3, 3)), ""); }],
+        ["Go home and rest", function () { C.form = clamp(C.form + 0.2, -3, 3); return "+FORM"; }]] },
+      { t: "🍜 TEAM DINNER", b: "The squad is heading out for ramen after training.", c: [
+        ["Join them", function () { C.form = clamp(C.form + 0.3, -3, 3); C.mgr = clamp(C.mgr + 1, 0, 100); return "+FORM • +1 MANAGER RATING — great vibes"; }],
+        ["Skip it — film study", function () { return bump("tec", 1); }]] },
+      { t: "👟 SPONSOR OFFER", b: "VOLTA wants you in their new shoe campaign.", c: [
+        ["Sign it (+1500 🏐)", function () { if (VB.Gacha) VB.Gacha.earn(1500); C.interest += 0.04; C.mgr = clamp(C.mgr - 1, 0, 100); return "+1500 🏐 coins • +FAME • -1 MANAGER RATING"; }],
+        ["Not now — focus on volleyball", function () { C.mgr = clamp(C.mgr + 2, 0, 100); return "+2 MANAGER RATING"; }]] },
+      { t: "📱 TRASH TALK", b: "A " + rivalCl.short + " player posts: \"" + me.name + " is overrated.\"", c: [
+        ["Fire back", function () { C.interest += 0.06; var good = Math.random() < 0.5; C.form = clamp(C.form + (good ? 0.4 : -0.3), -3, 3); return "+FAME • " + (good ? "+FORM — fired up!" : "-FORM — it got in your head"); }],
+        ["Ignore it", function () { return bump("men", 1); }]] },
+      { t: "🎬 VIDEO SESSION", b: "Coach " + cl.coach + " breaks down " + rivalCl.short + "'s blocking scheme.", c: [
+        ["Take notes on their middle", function () { return bump("tec", 1); }],
+        ["Study their serve patterns", function () { return bump("rec", 1); }]] },
+      { t: "🧒 YOUTH CLINIC", b: "The club asks you to coach kids at a local school.", c: [
+        ["Do it", function () { C.interest += 0.04; C.mgr = clamp(C.mgr + 2, 0, 100); return "+FAME • +2 MANAGER RATING — the kids won't stop chanting your name"; }],
+        ["Pass — recovery day", function () { C.form = clamp(C.form + 0.15, -3, 3); return "+FORM"; }]] },
+      { t: "🗞️ TRANSFER RUMOUR", b: "A newspaper says a big club wants you.", c: [
+        ["Deny it publicly", function () { C.mgr = clamp(C.mgr + 3, 0, 100); return "+3 MANAGER RATING"; }],
+        ["\"Never say never.\"", function () { C.interest += 0.1; C.mgr = clamp(C.mgr - 3, 0, 100); return "++INTEREST from other clubs • -3 MANAGER RATING"; }]] },
+      { t: "🔥 LOCKER ROOM", b: "Two teammates argue after a bad practice.", c: [
+        ["Step in and calm it down", function () { C.mgr = clamp(C.mgr + 2, 0, 100); return bump("men", 1) + " • +2 MANAGER RATING"; }],
+        ["Stay out of it", function () { C.form = clamp(C.form - 0.1, -3, 3); return "-FORM — the mood is tense"; }]] },
+      { t: "🌙 LATE NIGHT", b: "Your teammates are gaming online until 3am.", c: [
+        ["Join in", function () { C.form = clamp(C.form - 0.25, -3, 3); C.mgr = clamp(C.mgr + 1, 0, 100); return "-FORM (sleepy) • closer with the squad"; }],
+        ["Early night", function () { C.form = clamp(C.form + 0.2, -3, 3); return "+FORM"; }]] },
+      { t: "🧊 RECOVERY", b: "Your legs feel heavy after a long week.", c: [
+        ["Ice bath + physio", function () { return bump("spd", 1) + " — fresh legs"; }],
+        ["Push through it", function () { if (Math.random() < 0.2) { C.injured = 1; return "OUCH — a tight hamstring: you miss the next round"; } return bump("vert", 1) + " — no pain, no gain"; }]] },
+      { t: "👀 NATIONAL TEAM SCOUT", b: "A national team scout will be watching your next match.", c: [
+        ["Ask the coach for extra minutes", function () { C.interest += 0.05; C.mgr = clamp(C.mgr - 1, 0, 100); return "+NATIONAL TEAM INTEREST • -1 MANAGER RATING"; }],
+        ["Just play your game", function () { return bump("men", 1); }]] },
+      { t: "🎂 BIRTHDAY", b: "It's " + mate.name + "'s birthday — the team plans a surprise.", c: [
+        ["Organise the cake", function () { C.mgr = clamp(C.mgr + 1, 0, 100); C.form = clamp(C.form + 0.15, -3, 3); return "+FORM • +1 MANAGER RATING"; }],
+        ["Sign the card and go", function () { return "Nice of you."; }]] },
+      { t: "🏐 1-ON-1 CHALLENGE", b: mate.name + " challenges you to a serving contest after practice.", c: [
+        ["Accept — loser buys coffee", function () { var w = Math.random() < (me.srv || 70) / 140; return bump("srv", 1) + (w ? " • you WON" : " • you lost (coffee's on you)"); }],
+        ["Decline", function () { return "Maybe next time."; }]] }
+    ];
+    var ev = pick(E);
+    var k = await U.modal(ev.t, "<p>" + esc(ev.b) + "</p>", ev.c.map(function (c, i) { return { label: c[0], value: i }; }));
+    var out = ev.c[k][1]();
+    news(ev.t + " — " + ev.c[k][0].replace(/"/g, "") + ": " + out, "you");
+    await U.modal(ev.t, "<p class='center big'>" + esc(out) + "</p>");
+  }
+  // ---------- every pre-season: a training camp with a focus ----------
+  async function preseasonCamp() {
+    if (C.mode === "coach" || !C.club || C.campDone === C.season) return;
+    C.campDone = C.season;
+    var cl = club();
+    var k = await U.modal("⛺ PRE-SEASON CAMP — " + cl.short, "<p>Two weeks away with the squad before the new season. What do you focus on?</p>",
+      [{ label: "💪 POWER (attack + vertical)", value: "power" }, { label: "🎯 TECHNIQUE (technique + main skill)", value: "tech" }, { label: "🏃 FITNESS (speed + defence)", value: "fit" }, { label: "🧠 LEADERSHIP (mental + manager)", value: "lead" }]);
+    var out = k === "power" ? bump("att", 1) + ", " + bump("vert", 1) : k === "tech" ? bump("tec", 1) + ", " + bump(mainAttr(), 1) : k === "fit" ? bump("spd", 1) + ", " + bump("def", 1) : bump("men", 2) + ((C.mgr = clamp(C.mgr + 4, 0, 100)), " • +4 MANAGER RATING");
+    news("⛺ Pre-season camp with " + cl.short + ": " + out + ".", "you");
+    await U.modal("⛺ CAMP DONE", "<p class='center big'>" + esc(out) + "</p><p class='center'>Ready for season " + C.season + ".</p>");
   }
 
   // ================== TRANSFERS ==================
@@ -667,6 +735,7 @@
 
   async function transferWindow(pre) {
     if (C.mode === "coach") return await coachWindow(pre);
+    if (pre && !C.season0) await preseasonCamp();
     var lines = [];
     if (C.club && !C.season0) {
       var d = clubDecision(pre), cl = club();

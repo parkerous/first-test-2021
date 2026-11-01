@@ -117,11 +117,11 @@
     });
   }
   // dead time between points / sets / timeouts follows the PACE setting (timing bars and ball flights never change)
-  var PACES = { fast: 0.45, normal: 1, tv: 1.35 };
+  var PACES = { fast: 0.5, normal: 1, tv: 1.35 };
   function pace() { try { return localStorage.getItem("retroVB.pace") || "fast"; } catch (e) { return "fast"; } }
   function rest(ms) { return sleep(ms * (PACES[pace()] || 1)); }
   // FAST pace also plays the rally itself quicker: flights, jumps, runs and the beats in between (timing bars unchanged)
-  function spd() { return pace() === "fast" ? 1.25 : pace() === "tv" ? 0.92 : 1; }
+  function spd() { return pace() === "fast" ? 1.12 : pace() === "tv" ? 0.85 : 0.92; }
   function slow() { timeScale = 0.2; }
   function fast() { timeScale = 1; }
   function other(s) { return s === me ? opp : me; }
@@ -504,7 +504,7 @@
     var m = baseFormation(s);
     s.onCourt.forEach(function (r) {
       if (r === setterRole) m[r] = setterSpot(s.side);
-      else if (isFront(s, r)) m[r] = P(s.side, r.indexOf("OH") === 0 ? 112 : r.indexOf("MB") === 0 ? 250 : 368, NET + 112);
+      else if (isFront(s, r)) m[r] = r.indexOf("MB") === 0 ? P(s.side, 250, NET + 96) : P(s.side, r.indexOf("OH") === 0 ? CL + 8 : CR - 8, NET + 128);   // pins start wide and deep for a real approach
       else if (r === "OP") m[r] = P(s.side, 268, NET + 165);
     });
     return m;
@@ -984,6 +984,10 @@
       if (pr < 0.5) { Lh = { x: x - 4, y: y - 34 }; Rh = { x: x + 14, y: y - 28 }; }
       else          { Lh = { x: x - 12, y: y - 6 }; Rh = { x: x + 6, y: y - 42 }; }
     } else if (kind === "set") { Lh = { x: x - 5, y: y - 35 }; Rh = { x: x + 5, y: y - 35 }; }
+    else if (kind === "sidepass") {                                                                       // platform angled out to the side
+      var sd = dir || 1;
+      Lh = { x: x + sd * 13, y: y + 1 }; Rh = { x: x + sd * 17, y: y - 4 };
+    }
     else if (kind === "pass" || kind === "dig") {
       var hy = kind === "dig" ? y + 6 : y + 2;
       Lh = { x: x - 2, y: hy }; Rh = { x: x + 2, y: hy };
@@ -1006,6 +1010,12 @@
     g.lineCap = "butt";
     g.fillStyle = skin;
     if (kind === "pass" || kind === "dig") g.fillRect(Lh.x - 4, Lh.y - 1, 12, 4);
+    if (kind === "sidepass") { g.save(); g.translate((Lh.x + Rh.x) / 2, (Lh.y + Rh.y) / 2); g.rotate(-0.5 * (dir || 1)); g.fillRect(-6, -2, 12, 4); g.restore(); }
+    if (kind === "spike" && pr > 0.4 && pr < 0.72) {                                                      // the whip of the arm
+      var wk = (pr - 0.4) / 0.32;
+      g.strokeStyle = "rgba(255,255,255," + (0.7 * (1 - wk)) + ")"; g.lineWidth = 3;
+      g.beginPath(); g.arc(x + 4, y - 26, 20, -1.9 + wk * 0.4, -0.2 + wk * 1.2); g.stroke();
+    }
     if (kind === "block" || kind === "press" || kind === "cheer") { g.fillRect(Lh.x - 3, Lh.y - 4, 6, 5); g.fillRect(Rh.x - 3, Rh.y - 4, 6, 5); }
     if (kind === "ready") g.fillRect(Lh.x - 2, Lh.y - 1, 18, 4);
     if (kind === "set") { g.fillRect(Lh.x - 3, Lh.y - 3, 5, 4); g.fillRect(Rh.x - 2, Rh.y - 3, 5, 4); }
@@ -1908,7 +1918,8 @@
       return credit(srv, sr);
     }
     var overhead = kind === "float" && rcvRole !== "L" && RP.tec >= 72 && Math.random() < 0.22;
-    jump(rcv, rcvRole, 500, overhead ? 2 : -3, overhead ? "set" : "pass");
+    var sideP = !overhead && Math.random() < 0.45 ? (target.x < (rcv.pos[rcvRole] ? rcv.pos[rcvRole].x + 1 : W / 2) ? -1 : 1) : 0;   // a lot of passes are taken to the side
+    jump(rcv, rcvRole, 500, overhead ? 2 : -3, overhead ? "set" : sideP ? "sidepass" : "pass", sideP || 1);
     if (kind === "spin" && sp.power > 0.62) {                      // a heavy serve knocks the passer back a step
       ring(target, "#ffffff", 22, 0.3); puff(target, 6);
       moveTo(rcv, rcvRole, { x: target.x, y: target.y + dirR * 14 });
@@ -2097,8 +2108,23 @@
     try { url = HP.spriteURL || (HP.spriteURL = HP.sprite.toDataURL()); } catch (e) {}
     var spot = clamp01(((s.side === 0 ? o.x : W - o.x) - CL) / (CR - CL));
     return { label: label, value: o.id, disabled: o.disabled, face: url, tempo: o.tempo, spot: spot, back: !!o.pipe,
-             cls: HP.marked ? "marked" : null, mark: HP.marked ? "🎯 MARKED" : s.onCourt.some(function (r) { return r !== o.hitter && s.roster[r].marked; }) ? "🎭 DECOY" : null,
+             cls: HP.marked ? "marked" : null, mark: cheatTag(s, o) || (HP.marked ? "🎯 MARKED" : s.onCourt.some(function (r) { return r !== o.hitter && s.roster[r].marked; }) ? "🎭 DECOY" : null),
              sub: (o.combo ? "COMBO • " : o.pipe ? "BACK ROW • " : "") + HP.name + (HP.skill === "spike" ? " ★" : "") + " • " + (FRIENDLY[VB.FAMILY[o.hitter]] || "").toLowerCase() };
+  }
+  // the defence's middle reads the pass and cheats toward one hitter (the hot one, the star, the big hitter...)
+  var curCheat = null;
+  function pickCheat(atk, opts) {
+    var hs = opts.filter(function (o) { return !o.dump && !o.disabled; });
+    if (!hs.length || Math.random() < 0.22) return null;
+    var w = hs.map(function (o) { var P0 = atk.roster[o.hitter]; return (P0.marked ? 3 : 1) * (P0.skill === "spike" ? 1.6 : 1) * (0.5 + (P0.att || 70) / 100) * (o.tempo >= 0.8 ? 1.3 : 1); });
+    var sum = w.reduce(function (a, b) { return a + b; }, 0), x = Math.random() * sum;
+    for (var i = 0; i < hs.length; i++) { x -= w[i]; if (x <= 0) return { s: atk, role: hs[i].hitter, x: hs[i].x }; }
+    return null;
+  }
+  function cheatTag(s, o) {
+    if (!curCheat || curCheat.s !== s || o.dump) return null;
+    if (o.hitter === curCheat.role) return "🧱 BLOCK WAITING";
+    return Math.abs(o.x - curCheat.x) > 140 ? "🔓 OPEN" : null;
   }
   async function offense(atk, grade, setterRole) {
     setterRole = setterRole || "S";
@@ -2107,8 +2133,10 @@
     if (setterRole !== "S") opts = opts.filter(function (o) { return o.hitter !== setterRole && !o.dump; });   // the setter can't set themself
     if (emergency) opts = opts.filter(function (o) { return o.id === "high" || o.id === "five"; });
     var st = null;
-    if (atk === me && !emergency && iControl(setterRole) && !mateRole) {       // co-op matches: the setter runs the offence automatically
-      msg(SN + " TO SET (" + GRADE_TXT[grade] + ") — 👍 = SETTER'S PICK");
+    curCheat = emergency ? null : pickCheat(atk, opts);
+    var SP = atk.roster[setterRole];
+    if (atk === me && !emergency && iControl(setterRole)) {           // whoever plays setter (you, or P2 in co-op) calls the offence
+      msg(SN + " TO SET (" + GRADE_TXT[grade] + ")" + (curCheat ? " — 👀 THEIR MIDDLE IS CHEATING TOWARD " + atk.roster[curCheat.role].name : " — 👍 = SETTER'S PICK"));
       var choice = await simpleSetMenu(opts, atk, setterRole);
       if (choice === "__more") {
         msg(SN + " — FULL PLAYBOOK (" + GRADE_TXT[grade] + ")");
@@ -2119,11 +2147,17 @@
         }));
       }
       st = opts.find(function (o) { return o.id === choice; });
-      if (mode === "role" && !st.dump) {
-        var setTq = await timingBar("SET — SOFT HANDS, " + SN + "!", 1000, 0.24 + (me.roster[setterRole].set - 70) / 300, setterRole);
-        st = Object.assign({}, st, { setAdj: setTq >= 1 ? 0.12 : setTq >= 0.5 ? 0 : -0.18 });
-        if (setTq < 0.5) feed(0, SN + "'s set is a little off...");
+      var jumpSet = false;
+      if (!st.dump && grade >= 1) {                                     // a jump set: faster, harder to read — but tighter hands
+        jumpSet = (await askB(setterRole, [{ label: "🦘 JUMP SET", sub: "faster • the block reads it late • tighter timing", value: "jump" },
+                                           { label: "🙌 STANDING SET", sub: "safe and steady", value: "stand" }])) === "jump";
       }
+      if (mode === "role" && !st.dump) {
+        var setTq = await timingBar((jumpSet ? "JUMP SET — " : "SET — SOFT HANDS, ") + SN + "!", jumpSet ? 880 : 1000, 0.24 + (SP.set - 70) / 300 - (jumpSet ? 0.05 : 0), setterRole);
+        st = Object.assign({}, st, { setAdj: setTq >= 1 ? (jumpSet ? 0.18 : 0.12) : setTq >= 0.5 ? 0 : (jumpSet ? -0.24 : -0.18), setQ1: setTq });
+        if (setTq < 0.5) feed(0, SN + "'s set is a little off...");
+      } else if (!st.dump) st = Object.assign({}, st, { setAdj: jumpSet && Math.random() < 0.18 ? -0.15 : 0 });
+      if (jumpSet) st = Object.assign({}, st, { jumpSet: true, tempo: Math.max(0.25, st.tempo - 0.12) });
     } else if (atk === me && mode === "role" && !emergency && !mateRole) {
       var callers = humans().filter(function (h) { return opts.some(function (o) { return !o.disabled && !o.dump && o.hitter === h; }); });
       var caller = callers.length ? pick(callers) : myRole;           // co-op: either of you can call for it
@@ -2143,7 +2177,15 @@
         }
       }
     }
-    if (!st) st = aiPickSet(atk, opts);
+    if (!st) {
+      st = aiPickSet(atk, opts);
+      // a good AI setter sees the cheating middle and goes the other way
+      if (curCheat && st && !st.dump && st.hitter === curCheat.role && Math.random() < 0.25 + ((SP.tec || 70) - 70) / 80) {
+        var alt = opts.filter(function (o) { return !o.dump && !o.disabled && Math.abs(o.x - curCheat.x) > 140; });
+        if (alt.length) st = pick(alt);
+      }
+      if (st && !st.dump && !emergency && grade >= 1 && Math.random() < (grade === 2 ? 0.32 : 0.14) * (SP.tec >= 75 ? 1.3 : 1)) st = Object.assign({}, st, { jumpSet: true, tempo: Math.max(0.25, st.tempo - 0.12) });
+    }
     if (emergency) feed(atk.side, SN + (setterRole === "L" ? " (libero)" : "") + " has to take the second ball — a high ball from deep!");
     if (st.dump) return await dumpAttack(atk, def, grade);
     return await spikeAttack(atk, def, grade, st, setterRole);
@@ -2195,7 +2237,13 @@
       n = guessed ? Math.min(3, Math.max(n, 2) + (Math.random() < 0.4 ? 1 : 0)) : Math.max(0, n - 1);
       late = guessed ? 0 : 2; tight = guessed ? 8 : -4;
     }
-    var decoy = false;
+    var decoy = false, readTxt = null;
+    if (curCheat && curCheat.s === atk) {
+      if (curCheat.role === hitter) { n = Math.min(3, Math.max(n + 1, st.tempo < 0.3 ? 1 : 2)); late = Math.min(late, 0.6); readTxt = "🧱 Their middle was cheating that way — the block is there!"; }
+      else if (Math.abs(curCheat.x - st.x) > 140 && n > 0 && Math.random() < 0.7) { n--; tight -= 4; readTxt = "🔓 The middle bit on " + atk.roster[curCheat.role].name + " — " + A.name + " gets an OPEN SWING!"; }
+    }
+    curCheat = null;
+    if (st.jumpSet && n > 1 && Math.random() < 0.35) { n--; readTxt = (readTxt ? readTxt + " " : "") + "🦘 The jump set beats the middle!"; }
     if (A.marked) { n = Math.min(3, Math.max(n + 1, st.tempo < 0.3 ? 1 : 2)); late = Math.min(late, 0.5); tight += 5; }       // they were waiting for you
     else if (n > 0 && atk.onCourt.some(function (r) { return r !== hitter && atk.roster[r].marked; }) && Math.random() < 0.55) { n--; decoy = true; }   // ...so the others get a cleaner look
     var blockers = chooseBlockers(def, st.x, n);
@@ -2214,9 +2262,16 @@
     }
     feed(atk.side, SN + " sets " + st.say + " for " + A.name + (A.skill ? " ★" : "") + "...");
     if (A.marked) feed(def.side, "🎯 " + def.team.name + " were waiting for " + A.name + " — the block is up early!");
+    if (readTxt) feed(atk.side, readTxt, /OPEN|beats/.test(readTxt));
     if (decoy) feed(atk.side, "🎭 The block cheats toward the marked hitter — " + A.name + " gets a cleaner look!", true);
     if (n === 0 && st.tempo < 0.6) feed(def.side, "...the middle is late — nobody up to block!");
-    jump(atk, setterRole, 420, 2, "set");
+    jump(atk, setterRole, st.jumpSet ? 520 : 420, st.jumpSet ? 13 : 2, "set");
+    // the set's quality, where everyone can see it
+    var sq = st.setAdj != null ? st.setAdj : 0, spos = atk.pos[setterRole] || setFrom;
+    if (sq >= 0.12 || (st.setAdj == null && grade === 2 && Math.random() < 0.25)) { setTimeout(function () { popup(st.jumpSet ? "PERFECT JUMP SET!" : "PERFECT SET!", spos, "#3dff7a"); ring(spos, "#3dff7a", 26, 0.35); }, 120); if (st.setAdj >= 0.12) hitStop(60); }
+    else if (sq < 0) setTimeout(function () { popup(pick(["OFF THE NET", "TIGHT!", "TOO LOW"]), spos, "#ffb000"); }, 120);
+    else if (st.jumpSet) setTimeout(function () { popup("JUMP SET!", spos, "#7fd8ff"); }, 120);
+    if (st.jumpSet) feed(atk.side, SN + " jump-sets it — quick!");
     var setFlight = flyBall(setFrom, contact, 380 + st.tempo * 420, { h0: 1.1, h1: 1.4, peak: st.peak });
     var blockInfo = BLOCK_TXT[n] + (n && st.tempo >= 0.7 ? ", LEANING " + lean.toUpperCase() : "");
 
@@ -2538,6 +2593,7 @@
       return killed("and " + o.A.name + (o.superSpike ? " ★ ROCKETS " : " rockets ") + shotName(o.st.x, to) + " — NO TOUCH!", "NO TOUCH!");
     }
     if (diving) jump(def, digRole, 620, -2, "dive", diveDir);
+    else if (!o.soft && Math.random() < 0.4) jump(def, digRole, 480, -5, "sidepass", to.x < W / 2 ? -1 : 1);
     else jump(def, digRole, 500, o.soft ? -3 : -5, o.soft ? "pass" : "dig");
     var superDig = ready(D, "dig") && (def !== me || controlled || Math.random() < 0.7);
     if (superDig) useSkill(def, D);

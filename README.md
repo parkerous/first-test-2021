@@ -104,7 +104,7 @@ through a link (or a 6-letter code) while you're both online:
 - ▶ CONTINUE jumps straight back into the career slot, story slot or tournament
   you played last.
 - ⚙ SETTINGS: camera, court floor, MATCH PACE (FAST is the default: rallies play
-  ~25% quicker and the dead time between points, sets and timeouts is cut; TV
+  ~12% quicker and the dead time between points, sets and timeouts is cut; TV
   lingers; timing bars never change), SOUND on/off
   with a volume slider, and SCREEN SHAKE (LOW turns off the big punch-ins).
 - Save slots show a portrait of your player plus key progress: titles, awards,
@@ -372,6 +372,21 @@ court or the M key mutes; volume is in ⚙ SETTINGS.
 - Dialogs have a header band and a soft pop-in; on phones the cards dock at the
   bottom in two columns.
 
+## 🙌 Playing setter
+- READ THE BLOCK: on every set, the other team's middle reads the pass and
+  cheats toward one hitter (the hot one, the star, the big hitter). The
+  caller strip says who ("👀 THEIR MIDDLE IS CHEATING TOWARD HINATA"), and the
+  set cards are tagged 🔓 OPEN (far from the cheat) or 🧱 BLOCK WAITING. Set
+  away from it and the middle is beaten for an OPEN SWING; set into it and the
+  block is bigger and earlier. Good AI setters see it too.
+- JUMP SET (on a good or perfect pass): 🦘 JUMP SET or 🙌 STANDING SET. A jump
+  set is quicker and often beats the middle, but your hands timing is tighter.
+  A perfect one gives the hitter an even better ball.
+- The set shows on court: PERFECT SET / PERFECT JUMP SET (green ring and a
+  tiny freeze), JUMP SET, or OFF THE NET / TIGHT / TOO LOW.
+- In co-op, whoever plays setter (you or P2) makes the set calls, including in
+  PLAY AS ONE CAREER.
+
 ## 🎯 Getting marked
 - Score a few in quick succession and the other team MARKS you: a banner and
   their coach's call ("Mark AZUMANE! Front the block, cover the line!").
@@ -385,6 +400,19 @@ court or the M key mutes; volume is in ⚙ SETTINGS.
   stuffed or dug all cool you down. A new set starts clean.
 - It works both ways: your team marks the opponent's hot hitter, and smart
   opposing setters start spreading the ball away from a marked star.
+
+## Animation
+- Passes and digs are often taken to the side with the platform angled out;
+  spikes show the arm whip; pin hitters start their approach wide and deep.
+
+## Career life
+- Between matches, about half the rounds bring a choice event: press
+  conferences, extra sessions, team dinners, sponsor offers, trash talk, video
+  sessions, youth clinics, transfer rumours, locker-room fights, late nights,
+  recovery, scouts, birthdays, serving contests. Each choice changes your form,
+  attributes, manager rating, fame or coins.
+- Every pre-season starts with a ⛺ TRAINING CAMP: pick POWER, TECHNIQUE,
+  FITNESS or LEADERSHIP.
 
 ## Rallies that stay alive
 - SHANKS can be chased down: when a pass flies off the arms toward the side,
