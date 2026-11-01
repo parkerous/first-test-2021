@@ -1047,85 +1047,130 @@
     return j;
   }
   // x, yFeet: where the feet are (lift already applied); H: standing height in px
+  var frameDt = 1 / 60;
+  // a capsule from a to b, tapering from wa to wb (round ends) — limbs without visible seams
+  function capsule(a, b, wa, wb, col) {
+    var dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+    g.fillStyle = col; g.beginPath();
+    g.moveTo(a.x + nx * wa / 2, a.y + ny * wa / 2); g.lineTo(b.x + nx * wb / 2, b.y + ny * wb / 2);
+    g.arc(b.x, b.y, wb / 2, Math.atan2(ny, nx), Math.atan2(ny, nx) - Math.PI, true);      // the far end bulges outward
+    g.lineTo(a.x - nx * wa / 2, a.y - ny * wa / 2);
+    g.arc(a.x, a.y, wa / 2, Math.atan2(-ny, -nx), Math.atan2(-ny, -nx) - Math.PI, true);
+    g.closePath(); g.fill();
+  }
+  function joint(a, b, bend) {                                          // the knee / elbow between two ends
+    var dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
+    return { x: (a.x + b.x) / 2 - dy / L * bend, y: (a.y + b.y) / 2 + dx / L * bend };
+  }
+  // the pose a player is aiming for this frame (all in units of their height, relative to the shoulders)
+  function targetPose(Pl, kind, pr, dir, moving) {
+    var ph = gt * 13 + (Pl.ph || 0), d = dir || 1, T = { c: 0, stance: 1, fwd: 0, tilt: 0, L: [-0.2, 0.3], R: [0.2, 0.3], bL: -0.03, bR: 0.03 };
+    if (kind === "ready") { T.c = 0.58; T.stance = 1.55; T.fwd = 0.06; }
+    else if (kind === "pass" || kind === "sidepass") { T.c = 0.5 + 0.2 * Math.sin(Math.min(1, pr) * Math.PI); T.stance = 1.45; T.fwd = 0.05; }
+    else if (kind === "dig") { T.c = 0.85; T.stance = 1.6; T.fwd = 0.08; }
+    else if (kind === "approach") { T.c = 0.35 + 0.3 * pr; T.fwd = 0.06; }
+    else if (kind === "shank") T.c = 0.3;
+    else if (!moving && !kind && inRally) { T.c = 0.42; T.stance = 1.35; T.fwd = 0.05; }
+    else if (!moving && !kind) T.c = 0.05 + 0.02 * Math.sin(gt * 2.5 + (Pl.ph || 0));
+    if (kind === "block" || kind === "press") { T.L = [-0.08, -0.42]; T.R = [0.08, -0.42]; T.bL = T.bR = 0; }
+    else if (kind === "spike" || kind === "serve" || kind === "wipe") {
+      if (pr < 0.45) { T.L = [-0.03, -0.38]; T.R = [0.22, -0.2]; T.bR = 0.06; T.tilt = 0.04; }
+      else if (pr < 0.65) { T.L = [-0.1, 0.02]; T.R = kind === "wipe" ? [0.26 * d, -0.3] : [0.06, -0.46]; T.bR = 0; T.tilt = -0.05; }
+      else { T.L = [-0.1, 0.2]; T.R = [-0.12, 0.26]; T.tilt = -0.02; }
+    }
+    else if (kind === "set") { T.L = [-0.045, -0.3]; T.R = [0.045, -0.3]; T.bL = 0.08; T.bR = -0.08; }
+    else if (kind === "pass" || kind === "dig") { var py = kind === "dig" ? 0.36 : 0.3; T.L = [-0.015, py]; T.R = [0.015, py]; T.bL = T.bR = 0; }
+    else if (kind === "sidepass") { T.L = [d * 0.22 - 0.015, 0.26]; T.R = [d * 0.22 + 0.015, 0.24]; T.bL = T.bR = 0; T.tilt = 0.03 * d; }
+    else if (kind === "ready" || (!kind && !moving && inRally)) { T.L = [-0.17, 0.3]; T.R = [0.17, 0.3]; T.bL = 0.07; T.bR = -0.07; }
+    else if (kind === "approach") { T.L = [-0.24, 0.2]; T.R = [0.1, 0.26]; }
+    else if (kind === "cheer") { var wv = Math.sin(pr * 20) * 0.03; T.L = [-0.18, -0.36 + wv]; T.R = [0.18, -0.36 - wv]; }
+    else if (kind === "shank") { T.L = [-0.26, 0.02]; T.R = [0.16, -0.22]; }
+    else if (moving) { var aw = Math.sin(ph); T.L = [-0.2 - aw * 0.06, 0.22]; T.R = [0.2 + aw * 0.06, 0.22]; T.bL = -0.06; T.bR = 0.06; T.tilt = aw * 0.012; }
+    else if (!kind && !inRally && (Pl.num || 0) % 3 === 0) { T.L = [-0.16, 0.24]; T.R = [0.16, 0.24]; T.bL = -0.11; T.bR = 0.11; }   // hands on hips
+    return T;
+  }
+  // x, yFeet: where the feet are (lift already applied); H: standing height in px
   function drawBody(x, yFeet, H, Pl, kind, pr, dir, moving, mvx) {
     var skin = (Pl.face && Pl.face.skin) || "#e0b48a", k1 = Pl.kitC || "#1e63ff", k2 = Pl.kit2C || "#ffffff";
-    var shorts = lumOf(k1) > 150 ? "#1b2440" : "#14161c", out = "rgba(8,14,30,0.6)";
-    // build: position and stats (power hitters are broad, middles long and lean, liberos compact)
+    var shorts = lumOf(k1) > 150 ? "#1b2440" : "#14161c", OUT = "rgba(8,14,30,0.75)";
     var famB = { S: 0.96, OH: 1.02, MB: 0.93, OP: 1.08, L: 0.98 }[Pl.fam] || 1;
     var bw = clamp(famB * (1 + ((Pl.att || 72) - 72) / 260 + ((Pl.blk || 70) - 70) / 500), 0.86, 1.2);
     var lw = clamp((1 + ((Pl.vert || 80) - 80) / 250 + ((Pl.spd || 70) - 70) / 400) * (Pl.fam === "MB" ? 0.92 : 1), 0.85, 1.15);
     var ph = gt * 13 + (Pl.ph || 0), air = kind === "spike" || kind === "block" || kind === "press" || kind === "wipe" || kind === "serve";
-    var c = 0, hop = 0, fwd = 0, stance = 1;
-    if (kind === "ready") {                                             // the SPLIT STEP: a little hop, then wide and low
-      c = 0.58; stance = 1.55; fwd = 0.06; hop = pr < 0.18 ? Math.sin(pr / 0.18 * Math.PI) * H * 0.05 : 0;
-    } else if (kind === "pass" || kind === "sidepass") { c = 0.5 + 0.2 * Math.sin(Math.min(1, pr) * Math.PI); stance = 1.45; fwd = 0.05; }
-    else if (kind === "dig") { c = 0.85; stance = 1.6; fwd = 0.08; }
-    else if (kind === "approach") { c = 0.35 + 0.3 * pr; fwd = 0.06; }
-    else if (kind === "shank") c = 0.3;
-    else if (!moving && !kind && inRally) { c = 0.42; stance = 1.35; fwd = 0.05; }             // rally: on the toes, ready to move
-    else if (!moving && !kind) c = 0.05 + 0.02 * Math.sin(gt * 2.5 + (Pl.ph || 0));             // between points: just standing
+    // ease toward the target pose: fluid transitions instead of snapping between poses
+    var T = targetPose(Pl, kind, pr, dir, moving), P = Pl._pose;
+    if (!P) P = Pl._pose = JSON.parse(JSON.stringify(T));
+    var k = 1 - Math.exp(-frameDt * (kind ? 24 : 11));
+    ["c", "stance", "fwd", "tilt", "bL", "bR"].forEach(function (f) { P[f] += (T[f] - P[f]) * k; });
+    [0, 1].forEach(function (i) { P.L[i] += (T.L[i] - P.L[i]) * k; P.R[i] += (T.R[i] - P.R[i]) * k; });
+    var c = P.c, hop = kind === "ready" && pr < 0.18 ? Math.sin(pr / 0.18 * Math.PI) * H * 0.05 : 0;   // the split-step hop
     yFeet -= hop;
     var lean = clamp((mvx || 0) * 0.002, -0.08, 0.08) * H;
-    var yHip = yFeet - H * (0.5 - c * 0.13), ySh = yFeet - H * (0.79 - c * 0.15 - fwd * 0.5), yNeck = ySh - H * 0.035;
-    var cx = x + lean * 0.5, shx = x + lean;
-    var SW = H * 0.19 * bw, HW = H * 0.12 * (0.9 + bw * 0.1);           // shoulder / hip half-widths
-    // legs: hip → knee → foot (thighs inside the shorts)
-    var spread = H * (0.075 + c * 0.04) * stance, legW = Math.max(2.6, H * 0.1 * lw);
-    [-1, 1].forEach(function (sd) {
-      var hip = { x: cx + sd * HW * 0.55, y: yHip }, foot = { x: x + sd * spread, y: yFeet };
+    var yHip = yFeet - H * (0.5 - c * 0.13), ySh = yFeet - H * (0.79 - c * 0.15 - P.fwd * 0.5), yNeck = ySh - H * 0.035;
+    var cx = x + lean * 0.5, shx = x + lean, tilt = P.tilt * H;
+    var SW = H * 0.19 * bw, HW = H * 0.12 * (0.9 + bw * 0.1);
+    var LS = { x: shx - SW * 0.86, y: ySh + H * 0.03 + tilt }, RS = { x: shx + SW * 0.86, y: ySh + H * 0.03 - tilt };
+    // legs: hip → knee → foot
+    var spread = H * (0.075 + c * 0.04) * P.stance, thigh = Math.max(3, H * 0.115 * lw), calf = Math.max(2.4, H * 0.08 * lw);
+    var legs = [-1, 1].map(function (sd) {
+      var hip = { x: cx + sd * HW * 0.52, y: yHip }, foot = { x: x + sd * spread, y: yFeet };
       if (moving) { var sw = Math.sin(ph + (sd > 0 ? Math.PI : 0)); foot.x += sw * H * 0.1; foot.y -= Math.max(0, Math.cos(ph + (sd > 0 ? Math.PI : 0))) * H * 0.07; }
       if (air) { foot.y -= H * 0.07; foot.x -= sd * H * 0.02; }
-      var j = limb(hip, foot, sd * H * (0.02 + c * 0.075) * (air ? -1.2 : 1), legW, [shorts, skin], out);
-      g.fillStyle = "#f2f2f2"; g.fillRect(foot.x - legW / 2, foot.y - H * 0.075, legW, H * 0.05);              // socks
-      g.fillStyle = "#1a1d24"; g.fillRect(foot.x - legW * 0.75 + sd, foot.y - H * 0.03, legW * 1.5, H * 0.04);   // shoes
-      g.fillStyle = "#2b2f3a"; g.beginPath(); g.arc(j.x, j.y, legW * 0.5, 0, 6.283); g.fill();                  // dark knee pads
+      var knee = joint(hip, foot, sd * H * (0.02 + c * 0.075) * (air ? -1.2 : 1));
+      return { hip: hip, knee: knee, foot: foot, sd: sd };
     });
-    // shorts: to mid-thigh
-    g.fillStyle = shorts; g.beginPath(); g.moveTo(cx - HW, yHip - H * 0.03); g.lineTo(cx + HW, yHip - H * 0.03); g.lineTo(cx + HW * 1.08, yHip + H * 0.1); g.lineTo(cx - HW * 1.08, yHip + H * 0.1); g.closePath(); g.fill();
-    // neck, then the torso: a proper V-taper
-    g.fillStyle = skin; g.fillRect(shx - H * 0.04, yNeck - H * 0.01, H * 0.08, H * 0.05);
-    g.fillStyle = k1; g.strokeStyle = out; g.lineWidth = 1.2;
-    g.beginPath(); g.moveTo(shx - SW, ySh + H * 0.01); g.quadraticCurveTo(shx, ySh - H * 0.025, shx + SW, ySh + H * 0.01);
-    g.lineTo(cx + HW, yHip - H * 0.02); g.lineTo(cx - HW, yHip - H * 0.02); g.closePath(); g.fill(); g.stroke();
-    g.fillStyle = "rgba(0,0,0,0.17)"; g.beginPath(); g.moveTo(shx + SW * 0.25, ySh); g.lineTo(shx + SW, ySh + H * 0.01); g.lineTo(cx + HW, yHip - H * 0.02); g.lineTo(cx + HW * 0.15, yHip - H * 0.02); g.closePath(); g.fill();
-    g.fillStyle = k2; g.fillRect(shx - H * 0.05, ySh - 1, H * 0.1, Math.max(1.5, H * 0.025));                       // collar
-    if (H >= 26) {
-      g.font = "900 " + Math.round(H * 0.16) + "px Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
-      g.fillStyle = k2; g.fillText(String(Pl.num || ""), (shx + cx) / 2, (ySh + yHip) / 2);
+    var arms = [[LS, { x: shx + P.L[0] * H, y: ySh + P.L[1] * H }, P.bL * H], [RS, { x: shx + P.R[0] * H, y: ySh + P.R[1] * H }, P.bR * H]].map(function (a) {
+      return { sh: a[0], hand: a[1], el: joint(a[0], a[1], a[2]) };
+    });
+    var upper = Math.max(2.6, H * 0.085 * (0.85 + bw * 0.15)), fore = Math.max(2.1, H * 0.068 * (0.85 + bw * 0.15));
+    function torsoPath() {
+      g.beginPath(); g.moveTo(shx - SW, ySh + H * 0.012 + tilt); g.quadraticCurveTo(shx, ySh - H * 0.03, shx + SW, ySh + H * 0.012 - tilt);
+      g.lineTo(cx + HW, yHip - H * 0.02); g.lineTo(cx - HW, yHip - H * 0.02); g.closePath();
     }
-    // the head: the character's face and hair (grown-up version), drawn smooth
+    function shortsPath() {
+      g.beginPath(); g.moveTo(cx - HW, yHip - H * 0.04); g.lineTo(cx + HW, yHip - H * 0.04); g.lineTo(cx + HW * 1.1, yHip + H * 0.1); g.lineTo(cx - HW * 1.1, yHip + H * 0.1); g.closePath();
+    }
+    var o = Math.max(1.2, H * 0.022);                                   // outline thickness
+    // 1) ONE silhouette outline for the whole body (so there are no lines at the joints)
+    legs.forEach(function (L) { capsule(L.hip, L.knee, thigh + o * 2, calf * 1.15 + o * 2, OUT); capsule(L.knee, L.foot, calf * 1.15 + o * 2, calf * 0.8 + o * 2, OUT); });
+    arms.forEach(function (A) { capsule(A.sh, A.el, upper + o * 2, fore * 1.1 + o * 2, OUT); capsule(A.el, A.hand, fore * 1.1 + o * 2, fore * 0.9 + o * 2, OUT); });
+    g.lineJoin = "round"; g.strokeStyle = OUT; g.lineWidth = o * 2; torsoPath(); g.stroke(); shortsPath(); g.stroke();
+    g.fillStyle = OUT; g.fillRect(shx - H * 0.04 - o, yNeck - H * 0.01, H * 0.08 + o * 2, H * 0.05);
+    // 2) fills, back to front
+    legs.forEach(function (L) {
+      capsule(L.knee, L.foot, calf * 1.15, calf * 0.8, skin);
+      capsule(L.hip, L.knee, thigh, calf * 1.15, skin);
+      g.fillStyle = "rgba(0,0,0,0.12)"; g.beginPath(); g.arc(L.knee.x + L.sd * calf * 0.2, L.knee.y, calf * 0.45, 0, 6.283); g.fill();   // a little muscle shading
+      g.fillStyle = "#f2f2f2"; g.fillRect(L.foot.x - calf * 0.45, L.foot.y - H * 0.075, calf * 0.9, H * 0.05);                // socks
+      g.fillStyle = "#1a1d24"; g.beginPath(); g.ellipse(L.foot.x + L.sd * 0.5, L.foot.y - H * 0.015, calf * 0.8, H * 0.022, 0, 0, 6.283); g.fill();   // shoes
+      g.fillStyle = "#2b2f3a"; g.beginPath(); g.ellipse(L.knee.x, L.knee.y, calf * 0.62, calf * 0.5, 0, 0, 6.283); g.fill();      // knee pads
+    });
+    g.fillStyle = shorts; shortsPath(); g.fill();
+    g.fillStyle = skin; g.fillRect(shx - H * 0.04, yNeck - H * 0.01, H * 0.08, H * 0.05);                                     // neck
+    g.fillStyle = k1; torsoPath(); g.fill();
+    g.save(); torsoPath(); g.clip();                                                                                      // shading, inside the jersey only
+    var sg = g.createLinearGradient(shx - SW, 0, shx + SW, 0); sg.addColorStop(0, "rgba(255,255,255,0.10)"); sg.addColorStop(0.55, "rgba(0,0,0,0)"); sg.addColorStop(1, "rgba(0,0,0,0.22)");
+    g.fillStyle = sg; g.fillRect(shx - SW - 2, ySh - H * 0.05, SW * 2 + 4, yHip - ySh + H * 0.06);
+    g.restore();
+    g.fillStyle = k2; g.fillRect(shx - H * 0.05, ySh - 1, H * 0.1, Math.max(1.5, H * 0.025));                              // collar
+    if (H >= 26) { g.font = "900 " + Math.round(H * 0.16) + "px Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = k2; g.fillText(String(Pl.num || ""), (shx + cx) / 2, (ySh + yHip) / 2); }
+    // the head
     var hk = H * 0.185 / 12, hw = 24 * hk, hh = 16 * hk, hd = Pl.headM || Pl.sprite;
     g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
     if (hd) g.drawImage(hd, 0, 0, 24, 16, shx - hw / 2, yNeck - hh * 0.92, hw, hh);
     g.imageSmoothingEnabled = false;
-    // arms: shoulder → elbow → hand, posed by the action
-    var Ls = { x: shx - SW * 0.88, y: ySh + H * 0.025 }, Rs = { x: shx + SW * 0.88, y: ySh + H * 0.025 }, Lh, Rh, d = dir || 1, bendL = H * 0.04, bendR = -H * 0.04;
-    function at(px, py) { return { x: shx + px * H, y: ySh + py * H }; }
-    var handsOnHips = !kind && !moving && !inRally && ((Pl.num || 0) % 3 === 0);
-    if (kind === "block" || kind === "press") { Lh = at(-0.08, -0.42); Rh = at(0.08, -0.42); bendL = bendR = 0; }
-    else if (kind === "spike" || kind === "serve" || kind === "wipe") {
-      if (pr < 0.45) { Lh = at(-0.03, -0.38); Rh = at(0.22, -0.2); bendR = H * 0.06; }
-      else if (pr < 0.65) { Lh = at(-0.1, 0.02); Rh = kind === "wipe" ? at(0.26 * d, -0.3) : at(0.06, -0.46); bendR = 0; }
-      else { Lh = at(-0.1, 0.2); Rh = at(-0.12, 0.26); }
-    }
-    else if (kind === "set") { Lh = at(-0.045, -0.3); Rh = at(0.045, -0.3); bendL = H * 0.08; bendR = -H * 0.08; }
-    else if (kind === "pass" || kind === "dig") { var py = kind === "dig" ? 0.36 : 0.3; Lh = at(-0.015, py); Rh = at(0.015, py); bendL = bendR = 0; }
-    else if (kind === "sidepass") { Lh = at(d * 0.22 - 0.015, 0.26); Rh = at(d * 0.22 + 0.015, 0.24); bendL = bendR = 0; }
-    else if (kind === "ready" || (!kind && !moving && inRally)) { Lh = at(-0.17, 0.3); Rh = at(0.17, 0.3); bendL = H * 0.07; bendR = -H * 0.07; }   // hands out front, apart, elbows out
-    else if (kind === "approach") { Lh = at(-0.24, 0.2); Rh = at(0.1, 0.26); }
-    else if (kind === "cheer") { var wv = Math.sin(pr * 20) * 0.03; Lh = at(-0.18, -0.36 + wv); Rh = at(0.18, -0.36 - wv); }
-    else if (kind === "shank") { Lh = at(-0.26, 0.02); Rh = at(0.16, -0.22); }
-    else if (moving) { var aw = Math.sin(ph); Lh = at(-0.2 - aw * 0.06, 0.22); Rh = at(0.2 + aw * 0.06, 0.22); bendL = -H * 0.06; bendR = H * 0.06; }
-    else if (handsOnHips) { Lh = at(-0.16, 0.24); Rh = at(0.16, 0.24); bendL = -H * 0.11; bendR = H * 0.11; }
-    else { Lh = at(-0.2, 0.3); Rh = at(0.2, 0.3); bendL = -H * 0.03; bendR = H * 0.03; }                    // relaxed by the sides
-    var armW = Math.max(2.2, H * 0.075 * (0.85 + bw * 0.15));
-    limb(Ls, Lh, bendL, armW, [k1, skin], out); limb(Rs, Rh, bendR, armW, [k1, skin], out);
-    g.fillStyle = skin;
-    [Lh, Rh].forEach(function (h) { g.beginPath(); g.arc(h.x, h.y, armW * 0.55, 0, 6.283); g.fill(); });     // hands
-    if (kind === "pass" || kind === "dig" || kind === "sidepass") { g.fillRect((Lh.x + Rh.x) / 2 - H * 0.04, (Lh.y + Rh.y) / 2 - 1, H * 0.08, Math.max(2, H * 0.04)); }
-    if (kind === "spike" && pr > 0.4 && pr < 0.72) {                                                          // the whip of the arm
-      var wk = (pr - 0.4) / 0.32; g.strokeStyle = "rgba(255,255,255," + (0.65 * (1 - wk)) + ")"; g.lineWidth = Math.max(2, H * 0.05);
-      g.beginPath(); g.arc(Rs.x, Rs.y, H * 0.45, -2.2 + wk * 0.5, -0.6 + wk * 1.3); g.stroke();
+    // arms over the torso: sleeves blend into the jersey, then skin, then hands
+    arms.forEach(function (A) {
+      var mid = { x: A.sh.x + (A.el.x - A.sh.x) * 0.38, y: A.sh.y + (A.el.y - A.sh.y) * 0.38 };
+      capsule(A.el, A.hand, fore * 1.1, fore * 0.9, skin);
+      capsule(A.sh, A.el, upper, fore * 1.1, skin);
+      capsule(A.sh, mid, upper * 1.02, upper * 0.98, k1);                                                                // sleeve
+      g.fillStyle = skin; g.beginPath(); g.arc(A.hand.x, A.hand.y, fore * 0.62, 0, 6.283); g.fill();                     // hand
+    });
+    if (kind === "pass" || kind === "dig" || kind === "sidepass") { var a0 = arms[0].hand, a1 = arms[1].hand; g.fillStyle = skin; g.fillRect((a0.x + a1.x) / 2 - H * 0.04, (a0.y + a1.y) / 2 - 1, H * 0.08, Math.max(2, H * 0.04)); }
+    if (kind === "spike" && pr > 0.4 && pr < 0.72) {                                                                     // the whip of the arm
+      var wk = (pr - 0.4) / 0.32; g.strokeStyle = "rgba(255,255,255," + (0.6 * (1 - wk)) + ")"; g.lineWidth = Math.max(2, H * 0.05);
+      g.beginPath(); g.arc(RS.x, RS.y, H * 0.45, -2.2 + wk * 0.5, -0.6 + wk * 1.3); g.stroke();
     }
     return yNeck - hh;
   }
@@ -1230,7 +1275,7 @@
   }
 
   function draw(now) {
-    var dt = Math.min(0.05, (now - lastFrame) / 1000);
+    var dt = Math.min(0.05, (now - lastFrame) / 1000); frameDt = dt;
     lastFrame = now;
     var sdt = paused ? 0 : dt * timeScale;
     gt += sdt;

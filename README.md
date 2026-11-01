@@ -380,6 +380,11 @@ court or the M key mutes; volume is in ⚙ SETTINGS.
   side), a coiled load before jumps, tucked legs in the air, the spike's arm
   whip, two-hand sets and straight-arm blocks. ⚙ SETTINGS → ART STYLE switches
   back to PIXEL.
+- Seamless bodies: one outline around the whole silhouette (no lines at the
+  knees, elbows or shoulders), tapered limbs (thick thighs, slimmer calves,
+  upper arms into forearms), sleeves that run into the jersey, and soft
+  shading. Poses ease into each other every frame instead of snapping, so
+  players move like athletes, not ragdolls.
 - Grown-up athletes: a modern face (narrower eyes, heavier brows, a nose, a
   straight mouth, a squarer jaw, a neck), broad shoulders with a V-taper,
   thicker arms and legs, longer shorts and dark knee pads.
